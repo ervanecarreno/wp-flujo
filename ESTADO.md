@@ -67,6 +67,13 @@ Detectado al probarlo: pasar por `cmd //c "..."` desde Git Bash puede partir un 
 espacios en argumentos sueltos (pasó de verdad con la ruta de "Local Sites"). Usar siempre
 PowerShell para comandos de wp-cli contra un sitio real.
 
+**El plugin instalado no se actualiza solo con `/plugin → Update`.** Detectado el 27/08/2026: el
+menú compara por número de versión de `.claude-plugin/plugin.json`, no por contenido ni por SHA de
+git. Con la versión sin cambiar, `Update` respondía *"already at the latest version"* aunque el
+contenido real hubiera cambiado (pasó con el commit del bug de escapado). **Subir el `version` de
+`plugin.json` en cada cambio real** a `skills/` o `herramientas/` para que `/plugin` lo detecte, y
+recordar que además pide reiniciar Claude Code para aplicarlo.
+
 ### Hallazgos del 27/08/2026 (al integrar las herramientas)
 
 - **`var(--color)` sí sobrevive de extremo a extremo — experimento RESUELTO.** Probado contra un
