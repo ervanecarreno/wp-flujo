@@ -31,7 +31,12 @@ David y el correo de trabajo es javier@metropoliscom.com):
 carpeta base `C:\TRABAJOS\CLOUDE WP\` (la máquina anterior usaba `C:\TRABAJOS\CLOUDE CODE\`,
 ruta que aquí NO existe):
 - Instalado: `node` (v24.18), `npm` (11.16), `git`, `gh`, Local WP
-- **NO** instalado: `php` en PATH, `wp-cli`, `composer`, `cwebp`/`magick`/`ffmpeg`
+- **NO** instalado en PATH: `php`, `wp`, `composer`, `cwebp`/`magick`/`ffmpeg`
+- **PERO `php` y `wp-cli` SI estan disponibles**, dentro de Local WP (verificado 27/08/2026:
+  PHP 8.2.29, WP-CLI 2.12.0). Se usan con los envoltorios
+  `herramientas/wp-cli/wp.cmd` y `php.cmd` del repo, sin abrir el "site shell" de Local y sin
+  instalar nada. **No decirle que le falta wp-cli: lo tiene.** Los comandos que tocan la base de
+  datos exigen que el sitio este arrancado en Local; los que solo leen ficheros, no.
 - Sin ningún sitio de Local WP **para el flujo de clientes** todavía (el único que existe,
   `figma-staging`, pertenece a otro proyecto — ver abajo)
 

@@ -22,6 +22,7 @@ concreto.
 | `docs/metodo-generateblocks-v2.md` | El método de referencia para generar bloques GB V2, con el checklist del §8 |
 | `docs/AUDITORIA-aridane.md` | Caso de estudio: la auditoría que descubrió los fallos de entorno |
 | `verificacion/roundtrip-escapado-wp.js` | Prueba que `var(--color)` sobrevive al escapado de WP |
+| `herramientas/wp-cli/` | `wp.cmd` y `php.cmd`: usan el PHP y wp-cli que trae Local, sin instalar nada. Ver su LEEME |
 | `config-heredada/` | Config de Claude Code de la máquina anterior, como referencia (sin secretos, verificado) |
 
 ## Estado actual
@@ -39,7 +40,7 @@ cuenta se sincronizó sola) sino los *scripts*; y los hooks —capacidad exclusi
 | # | Etapa | Estado |
 |---|---|---|
 | 1 | Reescribir la descripción de la skill `web-para-wordpress` | pendiente — su descripción actual empuja a `theme.json` y ACF Blocks, contra las conclusiones de la investigación |
-| 2 | Verificar `wp-cli` y `php` en el site shell de Local WP | pendiente — bloquea las fases 4, 7 y 8 del flujo |
+| 2 | Verificar `wp-cli` y `php` de Local WP | **HECHA** (27/08/2026) — PHP 8.2.29 y WP-CLI 2.12.0, con envoltorios propios en `herramientas/wp-cli/` |
 | 3 | Recuperar el validador Node (`herramientas/`) | **HECHA** (27/08/2026) — recuperado, integrado y probado |
 | 4 | Esqueleto del plugin en git | pendiente |
 | 5 | Skills: una enrutadora + una referencia por fase | pendiente |
@@ -48,8 +49,11 @@ cuenta se sincronizó sola) sino los *scripts*; y los hooks —capacidad exclusi
 
 ### Bloqueos abiertos
 
-- **`wp-cli` no está en PATH** y tampoco `php`. Local WP los trae en su *site shell*. Sin
-  confirmarlo empíricamente, tres de las ocho fases son especulación.
+Ninguno bloqueante. Condición operativa a recordar: los comandos de wp-cli que tocan la base de
+datos exigen que el sitio esté **arrancado** en Local (*Start site*).
+
+Sin verificar todavía: `wp doctor` (fase 7) es un paquete aparte de wp-cli y hay que instalarlo con
+`wp package install wp-cli/doctor-command`. Descarga de red, pendiente de autorización.
 
 ### Hallazgos del 27/08/2026 (al integrar las herramientas)
 
