@@ -18,19 +18,32 @@ en local no se ve.
 
 ## Los cinco pasos
 
-**1. Enlaces e imágenes rotas**
+**1 y 2. Rotas y peso de imagen — un solo comando, sin descargar nada**
+
+```
+node herramientas/puerta-calidad.js <url-real-con-subdirectorio>
+```
+
+Cubre los dos primeros pasos: extrae del HTML todas las imágenes (incluido `srcset` y fondos CSS),
+recursos y enlaces, y comprueba cada URL **contra el servidor real**. Separa lo roto en tu propio
+sitio —que bloquea la entrega— de lo roto hacia fuera, y lista las imágenes que pasan del
+presupuesto. Node sin dependencias: no descarga nada. Opciones: `--max-kb=200`, `--json`.
+
+Es lo que habría detectado los 11×404 de Aridane, porque resuelve las rutas como el navegador y no
+como el marcado. **Si solo haces un paso de los cinco, haz este.**
+
+Medido contra un sitio real: 350 URLs comprobadas en una pasada.
+
+*Límite que hay que conocer:* comprueba **una página** y todo lo que esa página referencia. Para
+recorrer el sitio entero hace falta un rastreador, y entonces sí:
 
 ```
 npx linkinator <url-staging> --recurse --concurrency 20
 ```
 
-Es lo único que habría detectado los 11×404, porque resuelve rutas como el navegador real y no como
-el marcado. Si solo puedes hacer un paso de los cinco, haz este.
-
-**2. Peso y formato de imagen**
-
-Convertir con `sharp-cli` o `avif-cli`. **No `squoosh-cli`**: sin mantenimiento activo desde que
-Google disolvió el equipo. Presupuesto orientativo: **menos de 200 KB** por imagen above-the-fold.
+Para **convertir** las imágenes que salgan pesadas: `sharp-cli` o `avif-cli`. **No `squoosh-cli`**,
+sin mantenimiento activo desde que Google disolvió el equipo. Presupuesto: **menos de 200 KB** por
+imagen above-the-fold.
 
 **3. Accesibilidad**
 

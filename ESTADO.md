@@ -25,6 +25,7 @@ concreto.
 | `skills/` | Las 4 skills del plugin (ver README) |
 | `.claude-plugin/` | Manifiestos del plugin y del marketplace |
 | `herramientas/wp-cli/` | `wp.cmd` y `php.cmd`: usan el PHP y wp-cli que trae Local, sin instalar nada. Ver su LEEME |
+| `herramientas/puerta-calidad.js` | Fase 7: comprueba URLs rotas y peso de imagen contra el servidor real |
 | `config-heredada/` | Config de Claude Code de la máquina anterior, como referencia (sin secretos, verificado) |
 
 ## Estado actual
@@ -46,7 +47,7 @@ cuenta se sincronizó sola) sino los *scripts*; y los hooks —capacidad exclusi
 | 3 | Recuperar el validador Node (`herramientas/`) | **HECHA** (27/08/2026) — recuperado, integrado y probado |
 | 4 | Esqueleto del plugin | **HECHA** (27/08/2026) — `.claude-plugin/plugin.json` y `marketplace.json`, con la estructura verificada contra plugins reales |
 | 5 | Skills del plugin | **HECHA** (27/08/2026) — 4 skills: flujo, generación de bloques, wp-cli en Local y puerta de calidad. Sin duplicar los docs: apuntan a ellos |
-| 6 | Puerta de calidad como script ejecutable | pendiente — la skill ya documenta los 5 pasos; falta automatizarlos en un solo comando |
+| 6 | Puerta de calidad como script ejecutable | **HECHA** (27/08/2026) — `herramientas/puerta-calidad.js`, sin dependencias. Cubre los pasos 1 y 2 de los 5 |
 | 7 | Hooks (incluido el de commit de memoria al cerrar) | pendiente |
 
 ### Bloqueos abiertos
