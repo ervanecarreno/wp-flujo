@@ -24,6 +24,8 @@ concreto.
 | `verificacion/roundtrip-escapado-wp.js` | Prueba que `var(--color)` sobrevive al escapado de WP |
 | `skills/` | Las 4 skills del plugin (ver README) |
 | `.claude-plugin/` | Manifiestos del plugin y del marketplace |
+| `.claude/settings.json` | Hook `Stop`: versiona la memoria automáticamente |
+| `herramientas/commit-memoria.sh` | El script del hook. Defensivo: calla si no hay cambios o no es un repo |
 | `herramientas/wp-cli/` | `wp.cmd` y `php.cmd`: usan el PHP y wp-cli que trae Local, sin instalar nada. Ver su LEEME |
 | `herramientas/puerta-calidad.js` | Fase 7: comprueba URLs rotas y peso de imagen contra el servidor real |
 | `config-heredada/` | Config de Claude Code de la máquina anterior, como referencia (sin secretos, verificado) |
@@ -48,7 +50,7 @@ cuenta se sincronizó sola) sino los *scripts*; y los hooks —capacidad exclusi
 | 4 | Esqueleto del plugin | **HECHA** (27/08/2026) — `.claude-plugin/plugin.json` y `marketplace.json`, con la estructura verificada contra plugins reales |
 | 5 | Skills del plugin | **HECHA** (27/08/2026) — 4 skills: flujo, generación de bloques, wp-cli en Local y puerta de calidad. Sin duplicar los docs: apuntan a ellos |
 | 6 | Puerta de calidad como script ejecutable | **HECHA** (27/08/2026) — `herramientas/puerta-calidad.js`, sin dependencias. Cubre los pasos 1 y 2 de los 5 |
-| 7 | Hooks (incluido el de commit de memoria al cerrar) | pendiente |
+| 7 | Hooks | **HECHA** (27/08/2026) — hook `Stop` en `.claude/settings.json` que commitea `.claude-memory` solo si cambió. Requiere reiniciar Claude Code una vez para que se cargue |
 
 ### Bloqueos abiertos
 

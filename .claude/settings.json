@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"C:/TRABAJOS/wp-flujo/herramientas/commit-memoria.sh\"",
+            "timeout": 20,
+            "statusMessage": "Versionando la memoria..."
+          }
+        ]
+      }
+    ]
+  }
+}

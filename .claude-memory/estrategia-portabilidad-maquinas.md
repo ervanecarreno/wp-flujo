@@ -43,6 +43,14 @@ proyecto viajan juntos por git entre carpetas y máquinas, pero no hay copia fue
 `METROPOLIS Design System-handoff`). Cada uno con su silo de memoria. **Nunca abrir Claude Code en
 `C:\TRABAJOS` raíz**: crea un tercer silo que contamina ambos, ya pasó una vez.
 
-**Pendiente de automatizar:** un hook al cerrar sesión que haga `git add .claude-memory &&
-git commit`, para que no dependa de acordarse. Es el primer caso de uso real de hooks y refuerza
-empaquetar el flujo como plugin. Ver [[flujo-wordpress-generateblocks]].
+**Ya automatizado (27/08/2026).** Hay un hook `Stop` en `.claude/settings.json` de este repo que
+ejecuta `herramientas/commit-memoria.sh`: commitea `.claude-memory` **solo si cambió**, commitea
+solo esa ruta (no arrastra otros cambios indexados), y sale en silencio si no es un repo, no hay
+carpeta de memoria o no hay nada que commitear. Cuando commitea, avisa con un `systemMessage`: no
+hace nada a escondidas. Probado en los dos casos, con memoria limpia y con memoria cambiada.
+
+Nota: el evento correcto es **`Stop`** — `SessionEnd` existe en el esquema pero no lo usa ningún
+plugin real, así que no se eligió a ciegas. `Stop` salta al final de cada turno, y como el script
+solo actúa si hay cambios, en la práctica commitea justo cuando la memoria se ha escrito.
+
+Ver [[plugin-wp-generateblocks]] y [[flujo-wordpress-generateblocks]].
