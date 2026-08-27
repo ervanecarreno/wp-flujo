@@ -57,14 +57,19 @@ cuenta se sincronizó sola) sino los *scripts*; y los hooks —capacidad exclusi
 Ninguno bloqueante. Condición operativa a recordar: los comandos de wp-cli que tocan la base de
 datos exigen que el sitio esté **arrancado** en Local (*Start site*).
 
-Sin verificar todavía: `wp doctor` (fase 7) es un paquete aparte de wp-cli y hay que instalarlo con
-`wp package install wp-cli/doctor-command`. Descarga de red, pendiente de autorización.
+`wp doctor` **ya instalado** (27/08/2026). La rama `dev-main` exige WP-CLI ^3.0 y tenemos 2.12.0:
+hubo que fijar la versión compatible con `wp package install wp-cli/doctor-command:2.3.0`, no la
+última. Verificado: `wp doctor list` responde con las 16 comprobaciones disponibles.
+
+Detectado al probarlo: pasar por `cmd //c "..."` desde Git Bash puede partir un `--path` con
+espacios en argumentos sueltos (pasó de verdad con la ruta de "Local Sites"). Usar siempre
+PowerShell para comandos de wp-cli contra un sitio real.
 
 ### Hallazgos del 27/08/2026 (al integrar las herramientas)
 
 - **El escapado de WordPress NO es el obstáculo para `var(--color)`.**
   `verificacion/roundtrip-escapado-wp.js` demuestra round-trip sin pérdida: el `--` se serializa
-  como `--` y vuelve intacto. Queda por probar si el **editor** de GB lo reescribe al
+  como `\u002d\u002d` y vuelve intacto. Queda por probar si el **editor** de GB lo reescribe al
   guardar y si el frontend lo pinta. Experimento de 10 min con premio grande: si sobrevive,
   las clases utilitarias de la fase 4 pasan a ser opcionales.
 - **El validador da 0 errores sobre el fichero que estaba roto en producción.** Ejecutado contra

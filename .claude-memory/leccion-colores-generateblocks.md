@@ -27,7 +27,7 @@ resultante) antes de apoyarse en él.
 
 **Hallazgo del 27/08/2026 (parcial, no cierra el asunto):** el script `verificacion/roundtrip-escapado-wp.js`
 demuestra que `var(--color-primary)` **sobrevive intacto** al escapado de atributos de bloque de
-WordPress — el `--` se serializa como `--`, no queda ningún `--` crudo que rompa el
+WordPress — el `--` se serializa como `\u002d\u002d`, no queda ningún `--` crudo que rompa el
 comentario, y parsea de vuelta sin pérdida. Es decir: **el escapado NO es el obstáculo**, contra lo
 que se asumía. Lo que sigue SIN probar es si el editor de GB reescribe el `var()` al abrir y guardar
 el bloque, y si el frontend lo pinta. Ese es el experimento pendiente y de premio gordo: si `var()`

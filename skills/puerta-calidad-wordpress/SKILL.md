@@ -66,9 +66,15 @@ Umbrales: CLS `maxNumericValue: 0.1` y LCP ≤ 2,5 s.
 
 **5. Salud de WordPress**
 
-`wp doctor` — autoload options, integridad de plugins. Ojo: es un paquete aparte que hay que
-instalar (`wp package install wp-cli/doctor-command`), y descarga de internet: **pedir permiso**.
-Usa el envoltorio de la skill `wp-cli-en-local`.
+```
+wp doctor check --all --path="<ruta del sitio>"
+```
+
+Cubre autoload options, cron, actualizaciones de plugin/tema. **Ya está instalado en esta máquina**,
+fijado a la versión `2.3.0` porque la última rama exige WP-CLI ^3.0 y aquí hay 2.12.0. Si hay que
+reinstalarlo en otra máquina: `wp package install wp-cli/doctor-command:2.3.0` (sin fijar versión,
+falla). Usa el envoltorio de la skill `wp-cli-en-local`, y ejecútalo desde PowerShell —
+`cmd //c "..."` puede partir un `--path` con espacios.
 
 ## Tras el despliegue
 

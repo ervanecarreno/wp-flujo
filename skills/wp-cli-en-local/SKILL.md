@@ -25,8 +25,10 @@ $site = "C:\Users\David\Local Sites\<sitio>\app\public"
 & "C:\TRABAJOS\wp-flujo\herramientas\wp-cli\wp.cmd" core version --path=$site
 ```
 
-Desde Git Bash hay que tener cuidado con las comillas al pasar por `cmd`; si el `--path` sale
-mal interpretado, usa PowerShell.
+**Desde Git Bash hay que tener cuidado con las comillas al pasar por `cmd`.** Envolver con
+`cmd //c "..."` puede partir un `--path` con espacios (por ejemplo "Local Sites") en argumentos
+sueltos — pasó de verdad probando `wp doctor`. Si el `--path` sale mal interpretado, o para
+cualquier comando que use un sitio, usa siempre PowerShell.
 
 ## La condición que hay que recordar
 
@@ -53,8 +55,17 @@ La ruta incluye la versión de PHP (`php-8.2.29+0`). Cuando Local se actualice, 
 de nombre y los envoltorios darán un ERROR indicando qué ruta esperaban. Hay que corregir la
 versión en dos ficheros: `herramientas/wp-cli/wp.cmd` y `herramientas/wp-cli/php.ini`.
 
-## Todavía sin instalar
+## wp doctor ya está instalado
 
-`wp doctor` (fase 7 del flujo) es un paquete aparte:
-`wp package install wp-cli/doctor-command`. Descarga de internet — **pedir permiso al usuario antes
-de ejecutarlo.**
+Verificado el 27/08/2026: `wp doctor list` responde con las 16 comprobaciones disponibles
+(autoload options, cron, actualizaciones de plugin/tema, PHP en `uploads/`...).
+
+Fijado a la versión **`2.3.0`** — la rama `dev-main` exige WP-CLI ^3.0 y aquí hay 2.12.0. Si hace
+falta reinstalarlo en otra máquina, usar exactamente esa versión:
+
+```
+wp package install wp-cli/doctor-command:2.3.0
+```
+
+Instalarlo sin fijar versión (`wp package install wp-cli/doctor-command` a secas) falla con un
+error de dependencias.
