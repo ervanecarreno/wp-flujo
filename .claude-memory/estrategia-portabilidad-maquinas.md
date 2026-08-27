@@ -32,6 +32,17 @@ actualiza al cerrar cada sesión (el patrón que ya funcionó en el proyecto Ari
 `.credentials.json`, `daemon.lock`, `sessions/` y caches; dos máquinas escribiendo a la vez
 corrompen estado. Solo la subcarpeta de memoria, y por git.
 
+**Sin remoto, por decisión explícita (27/08/2026).** La cuenta de GitHub que hay en la máquina
+(`ervanecarreno`) pertenece al proyecto **figma-gb-pipeline**, que es otro proyecto sin relación.
+El usuario eligió dejar `wp-flujo` **solo en local, sin copia**, asumiendo el riesgo. **No volver a
+proponer GitHub ni ningún remoto salvo que él lo pida.** Consecuencia asumida: la memoria y el
+proyecto viajan juntos por git entre carpetas y máquinas, pero no hay copia fuera de este disco.
+
+**Los dos proyectos de `C:\TRABAJOS` están separados y no se mezclan:** `wp-flujo` (este) y
+`figma-gb-pipeline` (pipeline de Figma a GB, con su propio git y remoto, e incluye dentro
+`METROPOLIS Design System-handoff`). Cada uno con su silo de memoria. **Nunca abrir Claude Code en
+`C:\TRABAJOS` raíz**: crea un tercer silo que contamina ambos, ya pasó una vez.
+
 **Pendiente de automatizar:** un hook al cerrar sesión que haga `git add .claude-memory &&
 git commit`, para que no dependa de acordarse. Es el primer caso de uso real de hooks y refuerza
 empaquetar el flujo como plugin. Ver [[flujo-wordpress-generateblocks]].

@@ -73,6 +73,21 @@ cuenta se sincronizó sola) sino los *scripts*; y los hooks —capacidad exclusi
 - **Figma como fuente del marcado**: descartado con fundamento; ver la memoria
   `decision-saltar-figma`.
 
+## Separación de proyectos
+
+En `C:\TRABAJOS` conviven **dos proyectos sin relación**, y no deben mezclarse:
+
+| Carpeta | Proyecto | Git |
+|---|---|---|
+| `wp-flujo` | **este**: flujo WordPress + GenerateBlocks | git local, **sin remoto por decisión del usuario** |
+| `figma-gb-pipeline` | otro: pipeline Figma → GeneratePress/GB. Contiene `METROPOLIS Design System-handoff` | git propio con remoto en GitHub |
+
+**Nunca abrir Claude Code en `C:\TRABAJOS`**, solo en la carpeta del proyecto. Cada carpeta tiene
+su silo de memoria nombrado por su ruta; abrir en la raíz crea un tercer silo que contamina los
+dos. Ocurrió entre el 21 y el 26/08/2026 y se limpió el 27/08/2026.
+
+`_archivo/` guarda lo que no es de ningún proyecto.
+
 ## Cómo retomar en una máquina nueva
 
 La ruta de trabajo **tiene que ser exactamente `C:\TRABAJOS\wp-flujo`**. La carpeta de memoria de

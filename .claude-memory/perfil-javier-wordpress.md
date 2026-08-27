@@ -17,6 +17,16 @@ prototipo** (que lo aprobado en diseño sea exactamente lo que sale en producci�
 
 Escribe en español; los entregables van en español (es-ES / es-Canarias).
 
+**Cómo quiere que se le hable** (fusionado el 27/08/2026 desde el perfil del proyecto
+figma-gb-pipeline, donde constaba como "David" — es la misma persona; la cuenta de Windows es
+David y el correo de trabajo es javier@metropoliscom.com):
+- Se describe como **perfil no-desarrollador**. Instrucciones paso a paso y **el comando exacto**,
+  explicado antes de ejecutarlo. Sin jerga innecesaria.
+- No dar por sabido git, npm ni interioridades de herramientas salvo que lo demuestre.
+- **Detesta los valores inventados o supuestos.** Pedir aprobación de tokens de diseño,
+  breakpoints y similares en vez de asumirlos. Encaja con la lección de verificar contra el
+  entorno real: no adivinar, comprobar.
+
 **Entorno real a 27/08/2026** — verificado en la máquina actual, no asumido. Windows 11 Pro,
 carpeta base `C:\TRABAJOS\CLOUDE WP\` (la máquina anterior usaba `C:\TRABAJOS\CLOUDE CODE\`,
 ruta que aquí NO existe):
