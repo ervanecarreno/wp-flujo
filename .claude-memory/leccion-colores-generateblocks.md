@@ -25,5 +25,14 @@ El nuevo CSS Editor de GB Pro 2.6 (estable desde junio 2026) no tiene confirmaci
 esto — probarlo empíricamente (crear un Global Style con `var()`, guardar, inspeccionar el HTML
 resultante) antes de apoyarse en él.
 
+**Hallazgo del 27/08/2026 (parcial, no cierra el asunto):** el script `verificacion/roundtrip-escapado-wp.js`
+demuestra que `var(--color-primary)` **sobrevive intacto** al escapado de atributos de bloque de
+WordPress — el `--` se serializa como `--`, no queda ningún `--` crudo que rompa el
+comentario, y parsea de vuelta sin pérdida. Es decir: **el escapado NO es el obstáculo**, contra lo
+que se asumía. Lo que sigue SIN probar es si el editor de GB reescribe el `var()` al abrir y guardar
+el bloque, y si el frontend lo pinta. Ese es el experimento pendiente y de premio gordo: si `var()`
+sobrevive también al editor, cambiar un color pasa a ser una edición y las clases utilitarias se
+vuelven opcionales. Hasta comprobarlo, seguir con las clases.
+
 **How to apply:** en la fase de generación de marcado de [[flujo-wordpress-generateblocks]], el
 color se aplica siempre por clase CSS, nunca por el panel visual del bloque.

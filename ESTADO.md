@@ -3,7 +3,7 @@
 > **Fuente de verdad del estado del proyecto.** Al retomar, lee esto primero: ni el README ni la
 > memoria de Claude Code lo sustituyen. Actualízalo al cerrar cada sesión de trabajo.
 
-**Última actualización:** 27/08/2026
+**Última actualización:** 27/08/2026 (herramientas integradas)
 
 ## Qué es este repo
 
@@ -18,6 +18,11 @@ concreto.
 | `traspaso-2026-08-26/SETUP-RECOMENDADO.md` | El flujo de 8 fases, sintetizado y accionable. **Empieza aquí.** |
 | `traspaso-2026-08-26/investigacion/resultados-completos.md` | El respaldo: 7 temas, cada afirmación con fuente y verificación adversarial (130 KB) |
 | `.claude-memory/` | Memoria persistente de Claude Code, versionada con el repo (ver más abajo) |
+| `herramientas/` | Validadores Node sin dependencias: `audit-gb.js` (checklist §8), `audit-cross.js` (marcado vs CSS/JS/assets), `fix-gb.js` (generador, ojo a su constante `PEND`) |
+| `docs/metodo-generateblocks-v2.md` | El método de referencia para generar bloques GB V2, con el checklist del §8 |
+| `docs/AUDITORIA-aridane.md` | Caso de estudio: la auditoría que descubrió los fallos de entorno |
+| `verificacion/roundtrip-escapado-wp.js` | Prueba que `var(--color)` sobrevive al escapado de WP |
+| `config-heredada/` | Config de Claude Code de la máquina anterior, como referencia (sin secretos, verificado) |
 
 ## Estado actual
 
@@ -35,7 +40,7 @@ cuenta se sincronizó sola) sino los *scripts*; y los hooks —capacidad exclusi
 |---|---|---|
 | 1 | Reescribir la descripción de la skill `web-para-wordpress` | pendiente — su descripción actual empuja a `theme.json` y ACF Blocks, contra las conclusiones de la investigación |
 | 2 | Verificar `wp-cli` y `php` en el site shell de Local WP | pendiente — bloquea las fases 4, 7 y 8 del flujo |
-| 3 | Recuperar o reescribir el validador Node (`herramientas/`) | pendiente — no está en esta máquina; en tránsito desde la máquina anterior |
+| 3 | Recuperar el validador Node (`herramientas/`) | **HECHA** (27/08/2026) — recuperado, integrado y probado |
 | 4 | Esqueleto del plugin en git | pendiente |
 | 5 | Skills: una enrutadora + una referencia por fase | pendiente |
 | 6 | Puerta de calidad como script + comando | pendiente |
@@ -45,8 +50,20 @@ cuenta se sincronizó sola) sino los *scripts*; y los hooks —capacidad exclusi
 
 - **`wp-cli` no está en PATH** y tampoco `php`. Local WP los trae en su *site shell*. Sin
   confirmarlo empíricamente, tres de las ocho fases son especulación.
-- **El validador Node no está aquí.** Solo vive en `aridane-home-1b_2026-08-26.zip` en la máquina
-  anterior. Si no aparece, la etapa 3 pasa de "recuperar" a "reescribir".
+
+### Hallazgos del 27/08/2026 (al integrar las herramientas)
+
+- **El escapado de WordPress NO es el obstáculo para `var(--color)`.**
+  `verificacion/roundtrip-escapado-wp.js` demuestra round-trip sin pérdida: el `--` se serializa
+  como `--` y vuelve intacto. Queda por probar si el **editor** de GB lo reescribe al
+  guardar y si el frontend lo pinta. Experimento de 10 min con premio grande: si sobrevive,
+  las clases utilitarias de la fase 4 pasan a ser opcionales.
+- **El validador da 0 errores sobre el fichero que estaba roto en producción.** Ejecutado contra
+  el HTML v1 de Aridane (el de las 11 imágenes en 404): 0 errores / 42 avisos. No es un fallo del
+  validador — es la demostración de que valida CONTENIDO, no ENTORNO, y de por qué la fase 7 tiene
+  que existir. Define exactamente qué deben añadir las dos reglas nuevas.
+- **Precisión pendiente:** el §8 de `docs/metodo-generateblocks-v2.md` lista **10** casillas, no 11
+  como dice la memoria. Resolver el recuento al codificar el validador del plugin.
 
 ### Descartado (no volver a perseguirlo)
 

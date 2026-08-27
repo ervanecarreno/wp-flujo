@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "markitdown": {
+      "command": "npx",
+      "args": ["-y", "github:microsoft/markitdown#packages/markitdown-mcp"]
+    }
+  }
+}
