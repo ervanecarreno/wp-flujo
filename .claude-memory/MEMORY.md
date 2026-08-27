@@ -1,7 +1,8 @@
+- [Estrategia de portabilidad](estrategia-portabilidad-maquinas.md) — ruta canónica fija, memoria versionada por junction, el chat no viaja
 - [Perfil de Javier](perfil-javier-wordpress.md) — stack fijo WordPress, sus prioridades, y qué tiene y qué NO tiene instalado
 - [Flujo WordPress+GenerateBlocks](flujo-wordpress-generateblocks.md) — el flujo definitivo de 8 fases, usar en todo proyecto nuevo
 - [Setup WordPress (historial)](setup-wordpress-pendiente.md) — cerrada; cómo se llegó al flujo definitivo
-- [Proyecto Aridane](proyecto-aridane-home.md) — rediseño de la home; auditado, empaquetado, pendiente optimizar imágenes
+- [Proyecto Aridane](proyecto-aridane-home.md) — DESCARTADO; solo sobreviven los scripts de `herramientas/`
 - [Lección: marcado ≠ entorno](leccion-rutas-wordpress-subdirectorio.md) — validar bloques no detecta URLs rotas; comprobar contra el servidor real
 - [Decisión: saltar Figma](decision-saltar-figma.md) — diseñar directo en HTML; el límite de Figma se ata al plan del cliente, no al tuyo
 - [Lección: colores en GenerateBlocks](leccion-colores-generateblocks.md) — nunca elegir color en el panel del bloque, siempre por clase CSS
