@@ -3,7 +3,55 @@
 > **Fuente de verdad del estado del proyecto.** Al retomar, lee esto primero: ni el README ni la
 > memoria de Claude Code lo sustituyen. Actualízalo al cerrar cada sesión de trabajo.
 
-**Última actualización:** 27/08/2026 (herramientas integradas)
+**Última actualización:** 27/08/2026, final de jornada.
+
+---
+
+## ⏭ LO SIGUIENTE (pendiente al retomar — 28/08/2026)
+
+**Cerrar la laguna de portabilidad de la configuración del tema.** Es lo único que quedó a medias.
+
+Javier planteó un supuesto real al final de la sesión: un diseño ya aprobado en Figma (una home
+más un CPT fijo de "servicios") que hay que trasladar a WordPress en Local WP, ajustar secciones,
+noticias del blog y **configuración del tema y tipografía**, confirmar fiabilidad del diseño,
+animar con GSAP y añadir query loops. El flujo cubre todo eso… **menos un hueco verificado**:
+
+La configuración del tema y la tipografía **viven en la base de datos, no en código**, así que
+**no viajan con el repo git**. Comprobado contra un WordPress real (figma-staging):
+
+```
+generate_settings              ← toda la configuración del tema
+generate_spacing_settings      ← espaciados
+generate_package_font_library  ← la tipografía
+```
+
+La fase 2 versiona el tema hijo, los CPT, `acf-json/` y `/patterns/`, pero no esto. Al migrar a
+producción no van solas.
+
+**La tarea:** un script en `herramientas/` (Node sin dependencias, como los demás) que exporte
+esas opciones a un JSON versionado en el repo y las reimporte en el destino. Base del comando:
+
+```
+wp option get generate_settings --format=json --path="<sitio>"
+wp option update generate_settings --format=json --path="<sitio>" < fichero.json
+```
+
+Al terminarlo: documentarlo en la fase 2 de `SETUP-RECOMENDADO.md` y en la skill
+`flujo-wordpress-generateblocks`, y **subir el `version` de `.claude-plugin/plugin.json`** para
+que `/plugin` detecte la actualización (ver Bloqueos abiertos).
+
+### También conversado y sin cerrar
+
+- **Correcciones de orden al supuesto de Javier**, ya explicadas pero no escritas en el flujo: el
+  CPT de servicios debe registrarse por código en la fase 2 (no al final, o se construye la
+  sección dos veces), y **GSAP va después de los query loops** — animar una sección con un número
+  fijo de tarjetas y convertirla luego en query loop rompe la animación. Valorar si merece una
+  nota explícita en `SETUP-RECOMENDADO.md`.
+- **El plugin no cubre la traducción Figma → GenerateBlocks.** Empieza cuando el marcado ya
+  existe. Javier tiene un pipeline propio para ese paso en `C:\TRABAJOS\figma-gb-pipeline`
+  (proyecto distinto, no mezclar), pero conviene decidir si se documenta el enlace entre ambos.
+
+---
 
 ## Qué es este repo
 
