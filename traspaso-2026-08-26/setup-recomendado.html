@@ -1,0 +1,596 @@
+<title>Setup WordPress + GenerateBlocks</title>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --paper: #f5f7f3;
+    --paper-raised: #ffffff;
+    --ink: #1a2420;
+    --ink-soft: #4d5850;
+    --ink-faint: #808c83;
+    --line: #d7ddd3;
+    --line-soft: #e6eae2;
+    --accent: #0e6e6d;
+    --accent-ink: #ffffff;
+    --accent-tint: #e2f0ef;
+    --good: #3f7d4f;
+    --good-tint: #e6f1e8;
+    --warn: #a5690f;
+    --warn-tint: #f7ecdb;
+    --bad: #a63a2e;
+    --bad-tint: #f8e6e3;
+    --code-bg: #101816;
+    --code-ink: #dce8e2;
+    --code-accent: #6bd6c9;
+    --shadow: 0 1px 2px rgba(20, 30, 26, 0.06), 0 8px 24px -12px rgba(20, 30, 26, 0.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #101613;
+      --paper-raised: #171f1b;
+      --ink: #e7ede9;
+      --ink-soft: #a9b6ae;
+      --ink-faint: #6d7a72;
+      --line: #2a352e;
+      --line-soft: #202a24;
+      --accent: #4fc3bd;
+      --accent-ink: #0a1a19;
+      --accent-tint: #16302e;
+      --good: #6fbf7f;
+      --good-tint: #16281a;
+      --warn: #d9a44e;
+      --warn-tint: #2e2517;
+      --bad: #e07a6b;
+      --bad-tint: #331e1a;
+      --code-bg: #0a100e;
+      --code-ink: #d5e3dc;
+      --code-accent: #6bd6c9;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #101613;
+    --paper-raised: #171f1b;
+    --ink: #e7ede9;
+    --ink-soft: #a9b6ae;
+    --ink-faint: #6d7a72;
+    --line: #2a352e;
+    --line-soft: #202a24;
+    --accent: #4fc3bd;
+    --accent-ink: #0a1a19;
+    --accent-tint: #16302e;
+    --good: #6fbf7f;
+    --good-tint: #16281a;
+    --warn: #d9a44e;
+    --warn-tint: #2e2517;
+    --bad: #e07a6b;
+    --bad-tint: #331e1a;
+    --code-bg: #0a100e;
+    --code-ink: #d5e3dc;
+    --code-accent: #6bd6c9;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  code, .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+  h1, h2, h3 {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-weight: 600;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  strong { color: var(--ink); }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    border-bottom: 1px solid var(--line);
+    padding: 3.5rem 1.5rem 3rem;
+  }
+
+  .masthead-inner {
+    max-width: 52rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .eyebrow::before { content: ""; width: 1.4rem; height: 1px; background: var(--accent); }
+
+  .masthead h1 {
+    font-size: clamp(2rem, 3.6vw + 1rem, 2.9rem);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+
+  .masthead p.lede { font-size: 1.1rem; color: var(--ink-soft); max-width: 44rem; }
+
+  .priority-chain {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.4rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.86rem;
+  }
+
+  .priority-chain .step {
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    background: var(--accent-tint);
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .priority-chain .arrow { color: var(--ink-faint); }
+
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.4rem;
+    margin-top: 0.4rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+  }
+
+  .meta-row b { color: var(--ink-soft); font-weight: 500; }
+
+  .plugin-note {
+    margin-top: 0.6rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+  }
+
+  .plugin-note strong { color: var(--ink); }
+
+  /* ---------- nav ---------- */
+
+  nav.toc {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 1.1rem 1.5rem 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.3rem;
+  }
+
+  nav.toc a {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.76rem;
+    text-decoration: none;
+    color: var(--ink-soft);
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ---------- sections ---------- */
+
+  main { padding: 0 1.5rem; }
+
+  section {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 3.2rem 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  section.wide { max-width: 62rem; }
+  section:last-of-type { border-bottom: none; }
+
+  .section-head { display: flex; align-items: baseline; gap: 0.9rem; margin-bottom: 1.5rem; }
+  .section-num { font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+  section h2 { font-size: 1.55rem; }
+  .lead-text { font-size: 1.03rem; color: var(--ink-soft); max-width: 42rem; }
+
+  /* ---------- cambios de fondo ---------- */
+
+  .change-list { display: flex; flex-direction: column; gap: 0.9rem; margin-top: 1.6rem; }
+
+  .change {
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+  }
+
+  .change .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 1.1rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .change p { margin: 0; font-size: 0.93rem; color: var(--ink-soft); }
+  .change p strong { color: var(--ink); }
+
+  /* ---------- phase pipeline ---------- */
+
+  .pipeline { display: flex; flex-direction: column; margin-top: 1rem; }
+
+  .phase { display: grid; grid-template-columns: 3.2rem 1fr; gap: 0 1.1rem; }
+
+  .phase-rail { display: flex; flex-direction: column; align-items: center; }
+
+  .phase-dot {
+    width: 2.4rem; height: 2.4rem; border-radius: 50%;
+    background: var(--paper-raised); border: 1.5px solid var(--accent); color: var(--accent);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.9rem; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .phase.is-new .phase-dot { background: var(--accent); color: var(--accent-ink); }
+
+  .phase-thread { width: 1.5px; flex: 1; background: var(--line); margin: 0.15rem 0; }
+  .phase:last-child .phase-thread { display: none; }
+
+  .phase-body { padding-bottom: 1.9rem; }
+
+  .phase-title { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; padding-top: 0.35rem; }
+  .phase-title h3 { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.04rem; font-weight: 600; }
+
+  .tag {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; letter-spacing: 0.04em;
+    text-transform: uppercase; padding: 0.18rem 0.5rem; border-radius: 4px; font-weight: 500;
+  }
+  .tag.new { background: var(--accent-tint); color: var(--accent); }
+
+  .phase-body ul { margin: 0.5rem 0 0; padding-left: 1.1rem; }
+  .phase-body li { font-size: 0.91rem; color: var(--ink-soft); margin-bottom: 0.4rem; }
+  .phase-body li:last-child { margin-bottom: 0; }
+  .phase-body li strong { color: var(--ink); }
+  .phase-body p { font-size: 0.91rem; color: var(--ink-soft); margin-top: 0.4rem; max-width: 40rem; }
+
+  /* ---------- correction callout ---------- */
+
+  .erratum {
+    margin-top: 1.4rem;
+    border: 1px solid var(--bad);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--paper-raised);
+  }
+
+  .erratum-header {
+    background: var(--bad-tint);
+    color: var(--bad);
+    padding: 0.7rem 1.2rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .erratum-body { padding: 1.1rem 1.2rem; font-size: 0.92rem; color: var(--ink-soft); }
+  .erratum-body p + p { margin-top: 0.7rem; }
+  .erratum-body .was { color: var(--bad); }
+  .erratum-body .now { color: var(--good); font-weight: 600; }
+
+  /* ---------- discarded grid ---------- */
+
+  .discard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.6rem; }
+  @media (max-width: 640px) { .discard-grid { grid-template-columns: 1fr; } }
+
+  .discard-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.2rem 1.3rem;
+    box-shadow: var(--shadow);
+  }
+
+  .discard-card h3 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .discard-card h3::before { content: "✕"; color: var(--ink-faint); font-family: 'IBM Plex Mono', monospace; }
+
+  .discard-card.resolved h3::before { content: "✓"; color: var(--good); }
+
+  .discard-card p { font-size: 0.88rem; color: var(--ink-soft); margin: 0; }
+
+  /* ---------- watchlist ---------- */
+
+  .watchlist { display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1.6rem; }
+
+  .watch-item {
+    display: grid;
+    grid-template-columns: 8rem 1fr;
+    gap: 1rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--warn);
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 560px) { .watch-item { grid-template-columns: 1fr; } }
+
+  .watch-item .when {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--warn);
+    font-weight: 600;
+  }
+
+  .watch-item p { margin: 0; color: var(--ink-soft); }
+  .watch-item p strong { color: var(--ink); }
+
+  /* ---------- footer ---------- */
+
+  footer {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+</style>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <p class="eyebrow">Referencia de criterio · Metrópolis Comunicación</p>
+    <h1>Setup WordPress + GenerateBlocks</h1>
+    <p class="lede">El flujo definitivo, en 8 fases, para webs de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Nace de la investigación de 7 temas (verificada adversarialmente) y de un experimento propio contra un WordPress real que corrigió dos de sus conclusiones.</p>
+    <div class="priority-chain">
+      <span class="step">velocidad</span><span class="arrow">→</span>
+      <span class="step">menos pasos</span><span class="arrow">→</span>
+      <span class="step">fiabilidad del prototipo</span>
+    </div>
+    <div class="meta-row">
+      <span>última revisión <b>27/08/2026</b></span>
+      <span>8 fases</span>
+      <span>3 cambios de fondo</span>
+    </div>
+    <div class="plugin-note">Este flujo ya no es solo un documento: está empaquetado como plugin de Claude Code (<strong>wp-generateblocks</strong>), con 4 skills que se activan solas y las herramientas de validación ya construidas.</div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Secciones">
+  <a href="#cambios">Los 3 cambios</a>
+  <a href="#fases">Las 8 fases</a>
+  <a href="#correccion">Corrección de hoy</a>
+  <a href="#descartado">Descartado</a>
+  <a href="#vigencias">Vigencias</a>
+</nav>
+
+<main>
+
+  <section id="cambios">
+    <div class="section-head"><span class="section-num">§1</span><h2>Los tres cambios de fondo</h2></div>
+    <p class="lead-text">Frente a la propuesta original de 7 pasos, estos son los ajustes que de verdad importan — el resto es orden y detalle.</p>
+    <div class="change-list">
+      <div class="change">
+        <span class="num">1</span>
+        <p><strong>El WordPress vacío se monta primero, no después del diseño.</strong> El fallo que originó este flujo (rutas rotas por un subdirectorio) fue posible precisamente porque el diseño se cerró sin conocer los hechos del entorno real. Montar el sitio vacío son ~10 min y no bloquea nada.</p>
+      </div>
+      <div class="change">
+        <span class="num">2</span>
+        <p><strong>Los tokens de color van en CSS real, no en el panel de color de cada bloque.</strong> GenerateBlocks resuelve siempre el color elegido en su selector a HEX literal, confirmado por su propio soporte — así que "cambiar un color" solo puede ser una edición si nunca se fijó bloque a bloque.</p>
+      </div>
+      <div class="change">
+        <span class="num">3</span>
+        <p><strong>Hay una puerta de calidad automatizada antes de producción.</strong> El marcado del proyecto que originó este flujo era perfecto — 0 errores sobre 179 bloques — y el sitio estaba roto igualmente. Validar el marcado y validar el entorno son dos capas distintas, y las dos hacen falta.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="fases" class="wide">
+    <div class="section-head"><span class="section-num">§2</span><h2>Las 8 fases</h2></div>
+    <p class="lead-text">Cada fase se apoya en hechos que la anterior deja verificados. Las dos marcadas como nuevas son las que la propuesta original no tenía.</p>
+
+    <div class="pipeline">
+      <div class="phase is-new">
+        <div class="phase-rail"><div class="phase-dot">0</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Bootstrap del entorno</h3><span class="tag new">nueva</span></div>
+          <p>Crear el sitio vacío en Local WP con GeneratePress + GenerateBlocks Pro V2 + ACF (free) + plugins específicos. Anotar de inmediato: ¿hay subdirectorio?, ¿qué breakpoint usa GP (768px) vs GB (767px)?, ¿carpeta de uploads? Dejar montado el esqueleto de portabilidad (fase 2) en este mismo paso — más barato vacío que reordenado después.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">1</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Diseño directo en HTML</h3></div>
+          <p>Sin partir de Figma para extraer código, con MCP o con token — el límite se ata al plan del archivo del cliente, no a quien llama. Si el cliente ya trae uno, solo como referencia visual. El sistema de color se fija aquí como variables CSS reales, nunca en el panel de color del bloque.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">2</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Esqueleto de portabilidad</h3></div>
+          <ul>
+            <li><code class="mono">git init</code> dentro de <code class="mono">wp-content/</code></li>
+            <li>Tema hijo de GeneratePress, versionado</li>
+            <li>CPTs registrados <strong>por código</strong>, nunca por plugin de UI</li>
+            <li><code class="mono">acf-json/</code> activo desde el día uno — gratis, no requiere PRO</li>
+            <li><code class="mono">/patterns/</code> para secciones reutilizables, vía WordPress core</li>
+          </ul>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">3</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Repositorio GitHub</h3></div>
+          <p>Push del esqueleto de la fase 2, con el alcance correcto: nunca core, <code class="mono">uploads/</code> ni plugins de terceros. Push/pull diario tiene sentido porque lo que se versiona es código de verdad.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">4</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Generación de marcado</h3></div>
+          <ul>
+            <li>Imágenes subidas <strong>primero</strong> con <code class="mono">wp media import --porcelain</code> — un ID inventado no da error, solo deja de generar tamaños responsive</li>
+            <li>Escapado del JSON: <strong>4 sustituciones</strong> (<code class="mono">--</code>, <code class="mono">&lt;</code>, <code class="mono">&gt;</code>, <code class="mono">&amp;</code>), comillas literales — ver corrección más abajo</li>
+            <li>Color siempre por clase CSS o <code class="mono">var()</code> directo en <code class="mono">styles</code>/<code class="mono">css</code>, nunca por el panel del bloque</li>
+            <li>Validador Node obligatorio antes de dar nada por bueno</li>
+          </ul>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">5</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Plantillas, noticias, CPT</h3></div>
+          <p>Los CPT ya están registrados por código desde la fase 2. Las plantillas y secciones se guardan como archivos PHP en <code class="mono">/patterns</code>, no como contenido que solo vive en la base de datos.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">6</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Animación con GSAP</h3></div>
+          <ul>
+            <li>GSAP 100% gratuito desde abril de 2025, incluido ScrollTrigger</li>
+            <li>Encolar vía <code class="mono">wp_enqueue_script</code> en el tema hijo, nunca vía WPCode</li>
+            <li>GenerateBlocks Pro no anima por scroll — su panel Effects es solo hover/focus</li>
+            <li>Sobre listados dinámicos: re-consultar el DOM y refrescar <code class="mono">ScrollTrigger</code> siempre, nunca un número fijo de tarjetas</li>
+            <li><code class="mono">prefers-reduced-motion</code> no es opcional — exigible por el RD 1112/2018</li>
+          </ul>
+        </div>
+      </div>
+      <div class="phase is-new">
+        <div class="phase-rail"><div class="phase-dot">7</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Puerta de calidad</h3><span class="tag new">nueva</span></div>
+          <p>Contra el sitio ya desplegado en staging, con la URL real y su subdirectorio — nunca contra un HTML local:</p>
+          <ul>
+            <li><code class="mono">node herramientas/puerta-calidad.js &lt;url&gt;</code> — enlaces e imágenes rotas contra el servidor real</li>
+            <li>Peso de imagen: &lt;200 KB por imagen above-the-fold; convertir con sharp-cli o avif-cli</li>
+            <li><code class="mono">pa11y-ci</code> + <code class="mono">@axe-core/cli</code> contra WCAG 2.1 AA — obligatorio para ayuntamientos</li>
+            <li><code class="mono">lhci autorun</code> — CLS ≤ 0.1, LCP ≤ 2,5s</li>
+            <li><code class="mono">wp doctor check --all</code> — salud general de WordPress</li>
+          </ul>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">8</div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Producción</h3></div>
+          <p><code class="mono">wp search-replace --dry-run --skip-columns=guid</code> primero, revisar el informe, y solo entonces sin <code class="mono">--dry-run</code>. Nunca editar URLs a mano. Tras desplegar, repetir la fase 7 completa contra la URL de producción real.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="correccion">
+    <div class="section-head"><span class="section-num">§3</span><h2>Corrección de hoy: lo que la investigación no pudo saber</h2></div>
+    <p class="lead-text">La investigación original se hizo por desk research. Esto solo lo reveló probarlo contra un WordPress real.</p>
+    <div class="erratum">
+      <div class="erratum-header">Corregido 27/08/2026 (tarde)</div>
+      <div class="erratum-body">
+        <p class="was">Se afirmaba: "GenerateBlocks no admite var(--color) de forma fiable en el marcado pegado a mano" — y por eso se recomendaba aplanar todo a valores literales.</p>
+        <p class="now">Es falso. Verificado contra un WordPress real: var(--color-x) sobrevive intacto — guardado vía la API REST (el mismo camino que el editor), parseado por WordPress, y presente en el CSS que GenerateBlocks genera de verdad en el frontend.</p>
+        <p>El problema real nunca fue <code class="mono">var()</code>: era una quinta sustitución de escapado (comillas → unicode) que ni este documento ni la investigación original sabían que rompía el guardado — con ella, WordPress guarda el bloque <strong>vacío</strong>, sin ningún error visible. Con las cuatro sustituciones correctas y comillas literales, todo funciona.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="descartado">
+    <div class="section-head"><span class="section-num">§4</span><h2>Piezas descartadas y por qué</h2></div>
+    <div class="discard-grid">
+      <div class="discard-card">
+        <h3>GenerateCloud</h3>
+        <p>$99/año. Solo rentable gestionando muchos sitios con librería de patrones compartida. Para un proyecto puntual, exportar/importar XML es gratis y suficiente.</p>
+      </div>
+      <div class="discard-card">
+        <h3>Global Styles como sincronización</h3>
+        <p>Custom post type sin API REST ni WP-CLI oficial. No hay forma fiable de versionarlo en git — esto no cambia con la corrección de arriba: el problema de Global Styles nunca fue el escapado.</p>
+      </div>
+      <div class="discard-card resolved">
+        <h3>var() en el marcado</h3>
+        <p>Se daba por descartado. Resuelto: sobrevive con el escapado correcto (ver §3). Sigue sin probar un clic real en el CSS Editor de GB Pro 2.6 desde la UI.</p>
+      </div>
+      <div class="discard-card">
+        <h3>theme.json en GeneratePress</h3>
+        <p>Su efecto real en frontend es ambiguo incluso en la documentación oficial. Verificarlo contra el sitio real antes de construir nada encima.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="vigencias">
+    <div class="section-head"><span class="section-num">§5</span><h2>Vigencias a revisar</h2></div>
+    <p class="lead-text">Esto cambia con el tiempo — no darlo por fijo al releer este documento más adelante.</p>
+    <div class="watchlist">
+      <div class="watch-item">
+        <span class="when">≈ oct. 2026</span>
+        <p><strong>EN 301 549 v4.1.1</strong> (WCAG 2.2 AA) se espera en el Diario Oficial de la UE. Hasta entonces sigue vigente WCAG 2.1 AA — revisar la fecha antes de cerrar una auditoría de accesibilidad a partir de esta.</p>
+      </div>
+      <div class="watch-item">
+        <span class="when">mar. 2026</span>
+        <p><strong>WPackagist</strong> fue adquirida por WP Engine. Relevante si se usa Composer para plugins de terceros, dado el litigio Automattic/WP Engine en curso.</p>
+      </div>
+      <div class="watch-item">
+        <span class="when">2026–2027</span>
+        <p><strong>ACF vs Secure Custom Fields</strong> sigue abierto (medida cautelar, no sentencia firme; juicio previsto finales de 2026 o principios de 2027). Revisar antes de fijar ACF como dependencia a largo plazo.</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>Setup WordPress + GenerateBlocks · última revisión 27/08/2026</span>
+  <span>Fuente: traspaso-2026-08-26/SETUP-RECOMENDADO.md — respaldo completo en investigacion/resultados-completos.md</span>
+</footer>
