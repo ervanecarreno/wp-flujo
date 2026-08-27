@@ -87,11 +87,10 @@ El SVG va en el atributo `html` y repetido en el cuerpo. Usa `stroke="currentCol
 
 ## 3. Escapado del JSON en el comentario de bloque
 
-Este es el punto donde falla casi cualquier generador. El JSON vive dentro de un comentario HTML, así que hay cinco sustituciones obligatorias **después** de `JSON.stringify`:
+Este es el punto donde falla casi cualquier generador. El JSON vive dentro de un comentario HTML, así que hay **cuatro** sustituciones obligatorias **después** de `JSON.stringify`:
 
 | Carácter | Se escribe |
 |---|---|
-| `"` (dentro de un valor) | `\u0022` |
 | `&` | `\u0026` |
 | `<` | `\u003c` |
 | `>` | `\u003e` |
@@ -99,17 +98,36 @@ Este es el punto donde falla casi cualquier generador. El JSON vive dentro de un
 
 ```js
 const esc = j => j
-  .split('\\"').join('\\u0022')
-  .split('&').join('\\u0026')
-  .split('<').join('\\u003c')
-  .split('>').join('\\u003e')
-  .split('--').join('\\u002d\\u002d');
+  .split('--').join('\u002d\u002d')
+  .split('<').join('\u003c')
+  .split('>').join('\u003e')
+  .split('&').join('\u0026');
 ```
 
-Las dos que más se olvidan:
+**Las comillas `"` se dejan literales.** No van a `\u0022`. Es un error de una versión anterior de
+este documento, corregido el 27/08/2026 tras verificarlo contra un WordPress real (ver más abajo):
+escapar las comillas rompe el guardado. WordPress sanea el contenido al guardar (vía REST, que es
+la misma ruta que usa el editor de bloques al pulsar "Actualizar") y su filtro de `kses` solo
+reconoce un comentario de bloque como legítimo si el JSON de dentro tiene comillas literales — si
+no, no lo detecta como bloque de Gutenberg y borra silenciosamente todo el interior del comentario,
+dejando `<!-- wp:generateblocks/element -->` sin atributos. `herramientas/audit-gb.js` nunca exigió
+este escape (solo comprueba los cuatro de la tabla), así que el validador siempre fue correcto — el
+error estaba solo aquí, en la documentación.
 
-- **`--` → `\u002d\u002d`**: cierra el comentario HTML antes de tiempo. Afecta a **cualquier variable CSS** (`var(--color)`), a los comentarios CSS y a los guiones dobles en texto. Por eso en el proyecto real se descartaron las variables CSS y se escribieron los colores como valores literales (`#EE743B`): menos elegante, pero sobrevive intacto al copiar y pegar.
-- **`&` → `\u0026`**: aparece en el selector de hover (`&:hover`), así que sale en casi todos los bloques interactivos.
+**`--` → `\u002d\u002d` sigue siendo obligatorio**, y ya no hace falta evitar `var(--color)` por
+su culpa: **verificado el 27/08/2026 contra un WordPress real** (figma-staging, PHP 8.2.29 / WP-CLI
+2.12.0, GenerateBlocks Pro 2.7.0) que con los cuatro escapes correctos y comillas literales, un
+`var(--color-x)` en `styles`/`css` sobrevive **intacto**: el guardado vía REST, el `parse_blocks()`
+de WordPress, y el CSS que GenerateBlocks genera de verdad en el frontend
+(`wp-content/uploads/generateblocks/style-{ID}.css`) contienen exactamente
+`background-color:var(--color-x)`, sin aplanar a HEX.
+
+**Qué sigue sin probar:** este experimento usó la API REST directamente (el mismo camino que sigue
+el editor al guardar), no un clic real en el editor visual de GB Pro. Es una diferencia menor — la
+capa de saneado de WordPress es la misma en los dos casos — pero si algo cambia al comprobarlo con
+el editor abierto de verdad, anotarlo aquí.
+
+**`&` → `\u0026`**: aparece en el selector de hover (`&:hover`), así que sale en casi todos los bloques interactivos.
 
 ---
 
@@ -222,7 +240,7 @@ Criterio: si el bloque de core aporta **funcionalidad de servidor** (búsqueda, 
 - [ ] Cada `css` coincide exactamente con su `styles` (minificado, alfabético).
 - [ ] Ningún `className` contiene la id-class.
 - [ ] Todos los HTML del cuerpo llevan `gb-<tipo>-<id>` + `gb-<tipo>`.
-- [ ] Las cinco sustituciones de escapado aplicadas; en particular ningún `--` ni `&` crudo dentro del JSON.
+- [ ] Las cuatro sustituciones de escapado aplicadas (`--`, `<`, `>`, `&`); comillas SIN escapar (ver §3).
 - [ ] `src`/`alt`/`href` dentro de `htmlAttributes`, no en el primer nivel.
 - [ ] `content` duplicado en atributo y cuerpo para todos los `text`.
 - [ ] Todo `element` con `tagName: "a"` contiene un `text`, nunca texto plano.

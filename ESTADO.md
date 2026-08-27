@@ -51,6 +51,8 @@ cuenta se sincronizó sola) sino los *scripts*; y los hooks —capacidad exclusi
 | 5 | Skills del plugin | **HECHA** (27/08/2026) — 4 skills: flujo, generación de bloques, wp-cli en Local y puerta de calidad. Sin duplicar los docs: apuntan a ellos |
 | 6 | Puerta de calidad como script ejecutable | **HECHA** (27/08/2026) — `herramientas/puerta-calidad.js`, sin dependencias. Cubre los pasos 1 y 2 de los 5 |
 | 7 | Hooks | **HECHA** (27/08/2026) — hook `Stop` en `.claude/settings.json` que commitea `.claude-memory` solo si cambió. Requiere reiniciar Claude Code una vez para que se cargue |
+| — | `wp doctor` instalado | **HECHA** (27/08/2026) — fijado a la versión `2.3.0`, compatible con WP-CLI 2.12.0 |
+| — | Experimento `var(--color)` en GenerateBlocks | **HECHA** (27/08/2026) — resuelto de extremo a extremo, con un bug de documentación encontrado y corregido de propina. Ver Hallazgos abajo |
 
 ### Bloqueos abiertos
 
@@ -67,17 +69,38 @@ PowerShell para comandos de wp-cli contra un sitio real.
 
 ### Hallazgos del 27/08/2026 (al integrar las herramientas)
 
-- **El escapado de WordPress NO es el obstáculo para `var(--color)`.**
-  `verificacion/roundtrip-escapado-wp.js` demuestra round-trip sin pérdida: el `--` se serializa
-  como `\u002d\u002d` y vuelve intacto. Queda por probar si el **editor** de GB lo reescribe al
-  guardar y si el frontend lo pinta. Experimento de 10 min con premio grande: si sobrevive,
-  las clases utilitarias de la fase 4 pasan a ser opcionales.
+- **`var(--color)` sí sobrevive de extremo a extremo — experimento RESUELTO.** Probado contra un
+  WordPress real (figma-staging, sandbox puntual, ver más abajo): un bloque con
+  `background-color:var(--color-x)` guardado vía REST (el mismo camino que el editor al pulsar
+  "Actualizar") llega intacto hasta el CSS que GenerateBlocks genera de verdad en el frontend
+  (`wp-content/uploads/generateblocks/style-{ID}.css`), sin aplanar a HEX. El color se sigue
+  aplicando por clase CSS en el flujo por defecto (no cambia), pero ya no hay que evitar `var()`
+  por miedo al escapado.
+- **Bug encontrado y corregido: el quinto escape de comillas rompe el guardado real.**
+  `docs/metodo-generateblocks-v2.md` §3 documentaba 5 escapes JSON, incluyendo `"` → `\u0022`.
+  Con ese escape, el `kses` de WordPress no reconoce el comentario como bloque de Gutenberg
+  legítimo y lo guarda VACÍO — `parse_blocks()` devuelve atributos vacíos, sin error visible.
+  Con los **cuatro** escapes correctos (`\u002d\u002d`, `\u003c`, `\u003e`, `\u0026`) y comillas
+  literales, el bloque sobrevive perfecto. `herramientas/audit-gb.js` nunca exigió el quinto
+  escape, así que el validador siempre fue correcto — el error estaba solo en la documentación
+  (ya corregida en `docs/metodo-generateblocks-v2.md` §3 y §8, en la skill
+  `generar-bloques-generateblocks`, en la memoria `leccion-colores-generateblocks`, y con un
+  addendum fechado en `traspaso-2026-08-26/investigacion/resultados-completos.md`).
+- **Metodología del experimento**, por si hay que repetirlo: sitio `figma-staging` (de
+  figma-gb-pipeline, usado como sandbox puntual con permiso explícito del usuario — un post de
+  prueba creado y borrado, sin tocar ficheros ni git de ese proyecto). Conectar wp-cli exige el
+  puerto MySQL específico del sitio (`\AppData\Roaming\Local\sites.json`, campo
+  `services.mysql.ports.MYSQL`; en este caso 10011) vía
+  `php -c php.ini -d mysqli.default_port=<puerto> wp-cli.phar ...` — el `php.ini` del plugin no
+  lo sabe porque cada sitio usa un puerto distinto. Para simular el guardado del editor sin tocar
+  credenciales: `wp eval-file` con `wp_set_current_user(1)` + `WP_REST_Request` +
+  `rest_do_request()` en el propio proceso de wp-cli, contra el mismo endpoint que usa Gutenberg.
+  El diagnóstico decisivo fue `parse_blocks($post->post_content)`: atributos vacíos = el JSON no
+  decodificó, sea cual sea el motivo.
 - **El validador da 0 errores sobre el fichero que estaba roto en producción.** Ejecutado contra
   el HTML v1 de Aridane (el de las 11 imágenes en 404): 0 errores / 42 avisos. No es un fallo del
   validador — es la demostración de que valida CONTENIDO, no ENTORNO, y de por qué la fase 7 tiene
   que existir. Define exactamente qué deben añadir las dos reglas nuevas.
-- **Precisión pendiente:** el §8 de `docs/metodo-generateblocks-v2.md` lista **10** casillas, no 11
-  como dice la memoria. Resolver el recuento al codificar el validador del plugin.
 
 ### Descartado (no volver a perseguirlo)
 
@@ -120,4 +143,5 @@ fue exactamente lo que pasó el 27/08/2026.
    ```
 3. Abrir Claude Code en `C:\TRABAJOS\wp-flujo` y decir *"lee ESTADO.md y la memoria"*.
 
-Al terminar de trabajar: `git add -A && git commit && git push`. Eso lleva proyecto **y** memoria.
+Al terminar de trabajar: `git add -A && git commit`. Sin remoto, no hay `push` — eso lleva proyecto
+**y** memoria dentro del propio commit, listo para copiar la carpeta a otra máquina.

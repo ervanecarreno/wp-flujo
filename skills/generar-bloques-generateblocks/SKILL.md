@@ -35,7 +35,7 @@ Son las 10 casillas del §8 de `docs/metodo-generateblocks-v2.md`:
 1. Cada `css` coincide exactamente con su `styles` (minificado, alfabético)
 2. Ningún `className` contiene la id-class
 3. Todos los HTML del cuerpo llevan `gb-<tipo>-<id>` + `gb-<tipo>`
-4. Las cinco sustituciones de escapado aplicadas; ningún `--` ni `&` crudo dentro del JSON
+4. Las cuatro sustituciones de escapado aplicadas (`--`, `<`, `>`, `&`); comillas SIN escapar
 5. `src`/`alt`/`href` dentro de `htmlAttributes`, no en el primer nivel
 6. `content` duplicado en atributo y cuerpo para todos los `text`
 7. Todo `element` con `tagName: "a"` contiene un `text`, nunca texto plano
@@ -67,10 +67,26 @@ Este validador comprueba **contenido, no entorno**. Está medido: da 0 errores s
 tenía 11 imágenes en 404 en producción. Después de validar, la fase 7 del flujo
 (`puerta-calidad-wordpress`) sigue siendo obligatoria — comprueba cada URL contra el servidor real.
 
-## Pendiente de verificar: `var()` en lugar de literales
+## RESUELTO: `var()` sí sobrevive, con el escapado correcto
 
-`verificacion/roundtrip-escapado-wp.js` demuestra que `var(--color-primary)` sobrevive **sin
-pérdida** al escapado de atributos de bloque de WordPress: el `--` se serializa como
-`\u002d\u002d` y vuelve intacto. **El escapado no es el obstáculo.** Lo que sigue sin probar es si
-el editor de GB reescribe el `var()` al abrir y guardar, y si el frontend lo pinta. Hasta
-comprobarlo en un WordPress real, mantener las clases utilitarias.
+Probado el 27/08/2026 de extremo a extremo contra un WordPress real (GenerateBlocks Pro 2.7.0):
+un bloque con `background-color:var(--color-x)` en `styles`/`css`, guardado por el mismo camino
+que usa el editor al pulsar "Actualizar" (API REST), llega **intacto** hasta el CSS que
+GenerateBlocks genera de verdad en el frontend — sin aplanar a HEX. El escapado nunca fue el
+obstáculo real.
+
+**Lo que sí era el obstáculo, y no se sabía:** escapar las comillas (el quinto escape que este
+documento y `docs/metodo-generateblocks-v2.md` daban por bueno) rompe el guardado real. WordPress
+sanea el contenido al guardar con `kses`, que solo reconoce un comentario de bloque como Gutenberg
+legítimo si el JSON de dentro tiene **comillas literales** — si no, borra silenciosamente todo el
+interior del comentario y el bloque se guarda vacío. Con los **cuatro** escapes correctos
+(`\u002d\u002d`, `\u003c`, `\u003e`, `\u0026`) y comillas literales, sobrevive perfecto. El checklist de
+arriba y `docs/metodo-generateblocks-v2.md` §3 ya reflejan esto — si ves código o memoria que
+siga escapando comillas, está desactualizado.
+
+**Nota:** el color se sigue aplicando por clase CSS, nunca por el panel visual del bloque — eso
+no cambia (ver la lección de memoria `leccion-colores-generateblocks`). Lo que cambia es que ya
+no hay que evitar `var()` en `styles`/`css` por miedo al escapado.
+
+**Sin probar todavía:** el experimento usó la API REST directamente, no un clic real en el
+editor visual de GB Pro. Diferencia menor (misma capa de saneado), pero es el único cabo suelto.

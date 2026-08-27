@@ -532,3 +532,34 @@ Ninguna de estas herramientas sustituye la lección más cara del proyecto Arida
 La mayoría de las afirmaciones concretas (comandos CLI, nombres de paquetes npm, requisitos de versión de Node, marco legal RD 1112/2018 + UNE-EN 301549, umbrales de wp-cli doctor) se sostienen tras contraste con fuentes oficiales o repositorios primarios. No encontré ninguna afirmación clínicamente FALSA (nombre de comando inexistente, funcionalidad inventada, requisito de licencia de pago no mencionado). El punto más flojo del informe es recomendar `@squoosh/cli` en la Fase 2 sin advertir que está sin mantenimiento activo (Google disolvió el equipo) — mejor usar sharp-cli o avif-cli, que el propio informe ya menciona como alternativas mantenidas. También conviene tratar la estadística '~55% LCP≤2.5s' como orientativa (fuente de blog, no HTTP Archive directo) en vez de darle 'confianza alta'. Ninguna herramienta mencionada (linkinator, pa11y-ci, @axe-core/cli, lhci, wp-cli doctor, sharp-cli) requiere plan de pago — todas son CLI/npm gratuitas y de código abierto, lo cual coincide con lo afirmado.
 
 ---
+
+
+## Addendum verificado el 27/08/2026 — corrige el escapado de comillas
+
+Esta investigación (línea 38 más arriba) daba por buenas **cinco** sustituciones de escape,
+incluyendo `"` → `\u0022`, basándose en la lectura de `serialize_block_attributes` de
+WordPress. **Es incorrecto y se corrige aquí tras una prueba real, no solo desk research.**
+
+Se creó un post de prueba vía wp-cli, se guardó a través de la API REST (el mismo camino que
+usa el editor de bloques al pulsar "Actualizar") en un WordPress real con GenerateBlocks Pro
+2.7.0, y se inspeccionó tanto `parse_blocks()` como el CSS final generado en el frontend:
+
+- **Con las comillas escapadas a `\u0022` (las 5 sustituciones), WordPress guarda el
+  bloque VACÍO.** El filtro `kses` que sanea el contenido al guardar solo reconoce un comentario
+  de bloque como Gutenberg legítimo si el JSON de dentro tiene comillas literales; si no, borra
+  silenciosamente todo el interior del comentario. `parse_blocks()` devuelve `attrs: []`.
+- **Con solo cuatro sustituciones** (`\u002d\u002d`, `\u003c`, `\u003e`, `\u0026`) **y comillas
+  literales**, el bloque sobrevive intacto: `parse_blocks()` decodifica bien, y
+  `var(--color-x)` en `styles`/`css` llega tal cual al CSS que GenerateBlocks genera de verdad
+  en el frontend (`wp-content/uploads/generateblocks/style-{ID}.css`), sin aplanar a HEX.
+
+Esto también resuelve la pregunta abierta de la línea 40: el riesgo de `--` sin escapar SÍ era
+real para marcado pegado a mano (como advertía esta investigación), pero la solución NO era
+escapar también las comillas — bastaba con escapar bien los cuatro caracteres que sí rompen el
+comentario HTML (`\u002d\u002d`, `<`, `>`, `\u0026`) y dejar las comillas tal cual.
+
+`herramientas/audit-gb.js` (el validador Node del proyecto) nunca exigió el quinto escape —
+solo comprueba los cuatro correctos — así que el validador siempre fue correcto; el error estaba
+solo en la documentación (`docs/metodo-generateblocks-v2.md` §3, ya corregido) y en esta
+investigación. Detalle completo, con la metodología de la prueba, en `ESTADO.md` del repo y en
+la memoria `leccion-colores-generateblocks` de Claude Code.
