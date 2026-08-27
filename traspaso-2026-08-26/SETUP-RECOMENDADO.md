@@ -1,9 +1,15 @@
-# Setup WordPress + GenerateBlocks — flujo definitivo (27/08/2026)
+# Setup WordPress + GenerateBlocks — flujo definitivo (última revisión 27/08/2026)
 
 Ajuste del flujo de 7 pasos de Javier, basado en la investigación completa (7 temas,
-investigados y verificados adversarialmente — detalle con fuentes en `investigacion/resultados-completos.md`)
-y en las lecciones del proyecto Aridane. Prioriza, en este orden: **velocidad → menos pasos → fiabilidad
-del prototipo**.
+investigados y verificados adversarialmente — detalle con fuentes en `investigacion/resultados-completos.md`),
+en las lecciones del proyecto Aridane, y en un experimento propio contra un WordPress real
+(27/08/2026 por la tarde) que corrige una de las conclusiones de la investigación original — ver
+Fase 1 y Fase 4. Prioriza, en este orden: **velocidad → menos pasos → fiabilidad del prototipo**.
+
+**Este flujo ya no es solo un documento.** Está empaquetado como plugin de Claude Code
+(`wp-generateblocks`, en la raíz de este mismo repo) con 4 skills que se activan solas y las
+herramientas de validación ya construidas y probadas. Este documento sigue siendo la referencia
+de criterio; `ESTADO.md` en la raíz lleva el estado de implementación al día.
 
 ## Los tres cambios de fondo respecto a la propuesta original
 
@@ -36,11 +42,19 @@ hacerlo vacío que reordenarlo después.
 ### Fase 1 — Diseño (ajustada: sin Figma como fuente de datos)
 
 Diseñar directamente en HTML (Claude Design / prototipo navegable), no partir de un archivo Figma
-para extraer código. Motivo verificado: el límite de uso del Figma MCP se ata al plan del ARCHIVO
-del cliente, no al tuyo — un Figma en plan gratuito dejaría ~6 peticiones al mes sobre ese archivo
-aunque pagues Professional; la Variables REST API exige Enterprise sin excepción. Y aunque se
-extrajeran limpio, hay que volver a aplanar todo a literales de todos modos porque GenerateBlocks
-no admite `var(--color)` de forma fiable en el marcado pegado a mano.
+para extraer código, sea con MCP o con token de acceso personal — el límite se ata al plan del
+ARCHIVO del cliente, no a quien llama: un Figma en plan gratuito deja ~6 peticiones al mes sobre
+ese archivo aunque pagues Professional o uses tu propio token; la Variables REST API exige
+Enterprise sin excepción da igual el método de acceso.
+
+**Corrección del 27/08/2026 (tarde) — lo que sigue abajo estaba equivocado y ya no aplica:** este
+documento afirmaba que "GenerateBlocks no admite `var(--color)` de forma fiable en el marcado
+pegado a mano", y por eso recomendaba aplanar todo a literales incluso si se extrajera limpio de
+Figma. **Es falso, verificado contra un WordPress real** (ver Fase 4): `var(--color-x)` sobrevive
+intacto con el escapado correcto — el problema real nunca fue `var()`, sino un quinto escape de
+comillas que ni este documento ni la investigación original sabían que rompía el guardado. Sigue
+sin ser buena idea extraer marcado de Figma (por el límite de peticiones de arriba), pero YA NO es
+por un problema técnico de `var()` — si algún día se extrae limpio, las variables sí sobrevivirían.
 
 **Si el cliente insiste en Figma o ya lo tiene armado por un tercero**, úsalo solo como referencia
 visual (capturas, comentarios) — nunca como fuente del marcado final. Sigue pasando cada bloque
@@ -48,7 +62,8 @@ generado por el validador antes de pegarlo.
 
 En esta fase se fija también el **sistema de color como tokens reales**: variables CSS (o los
 Global Colors nativos de GeneratePress: `--accent`, `--contrast`, etc.) en una hoja de estilos de
-verdad — nunca elegidos en el panel de color de cada bloque GB.
+verdad — nunca elegidos en el panel de color de cada bloque GB (ver Fase 4, sigue aplicando aunque
+`var()` funcione: el problema del panel es que resuelve a HEX literal, no el escapado).
 
 ### Fase 2 — Esqueleto de portabilidad (dentro del WP de la Fase 0, antes de generar marcado)
 
@@ -78,14 +93,22 @@ se versiona es realmente código, no un volcado de base de datos.
    ID real devuelto. Generar el marcado usando ESE id — nunca uno inventado en el prototipo. Es
    el mecanismo exacto que causa la degradación silenciosa de `srcset` cuando el id no existe en
    el destino (no da error: simplemente no genera tamaños responsive).
-2. Generar los bloques de GenerateBlocks con la skill del checklist de 11 reglas.
-3. Colores: nunca elegidos en el panel de color del bloque. Definir un puñado de clases
-   utilitarias (`.text-accent`, `.bg-accent`...) en el CSS complementario del tema hijo usando las
-   variables reales, y aplicarlas vía el campo "CSS classes" de GB.
-4. Pasar el **validador Node** (ya construido en Aridane) — y ampliarlo con dos reglas nuevas que
-   esta investigación confirma que hacen falta: (a) fallar si aparece un HEX de marca literal
-   fuera de una lista de excepciones conocida, y (b) contra un WordPress real (vía wp-cli),
-   comprobar que cada `wp-image-{ID}` referenciado corresponde a un adjunto que existe de verdad.
+2. Generar los bloques de GenerateBlocks con la skill del checklist de 10 reglas (`generar-bloques-generateblocks`
+   del plugin; el §8 de `docs/metodo-generateblocks-v2.md` tiene el detalle de cada una).
+   **El escapado del JSON del comentario de bloque son 4 sustituciones, no 5**: `--`, `<`, `>`, `&`
+   → sus `\uXXXX`. **Las comillas se dejan literales** — escaparlas rompe el guardado real (ver
+   nota de la Fase 1 y el detalle completo en `docs/metodo-generateblocks-v2.md` §3).
+3. Colores: nunca elegidos en el panel de color del bloque — sigue resolviendo siempre a HEX
+   literal, tenga o no Global Styles activados (ver Fase 6). Por defecto, clases utilitarias
+   (`.text-accent`, `.bg-accent`...) en el CSS del tema hijo. Alternativa ya verificada: escribir
+   `var(--accent)` directamente en `styles`/`css` al generar el bloque (nunca por el panel) —
+   sobrevive intacto con el escapado de 4 sustituciones de arriba.
+4. Pasar el **validador Node** — ya construido, integrado en el plugin
+   (`herramientas/audit-gb.js`, reconstruye el `css` de cada bloque desde `styles` y compara
+   carácter a carácter). Pendiente de ampliar con dos reglas que esta investigación señala: (a)
+   fallar si aparece un HEX de marca literal fuera de una lista de excepciones conocida, y (b)
+   contra un WordPress real (vía wp-cli), comprobar que cada `wp-image-{ID}` referenciado
+   corresponde a un adjunto que existe de verdad.
 
 ### Fase 5 — Plantillas intermedias, noticias, CPT (igual que la propuesta original)
 
@@ -115,14 +138,21 @@ solo vive en la base de datos.
 Contra el sitio **ya desplegado en staging, con la URL real incluyendo el subdirectorio si lo
 hay** — nunca contra un HTML local suelto:
 
-1. `npx linkinator <url-staging> --recurse --concurrency 20` — habría detectado las 11 imágenes
-   404 de Aridane, porque resuelve rutas como el navegador real, no como el marcado
-2. Peso/formato de imagen: convertir con **sharp-cli o avif-cli** (no squoosh-cli, sin
-   mantenimiento activo) antes de subir; presupuesto orientativo <200 KB por imagen above-the-fold
+1. **`node herramientas/puerta-calidad.js <url-staging>`** (del plugin, sin dependencias) —
+   sustituye a `npx linkinator`: extrae del HTML real imágenes, `srcset`, fondos CSS y enlaces, y
+   comprueba cada URL contra el servidor. Separa lo roto en el propio sitio de lo roto hacia
+   fuera. Habría detectado las 11 imágenes 404 de Aridane, porque resuelve rutas como el
+   navegador real, no como el marcado. Probado contra un sitio real: 350 URLs en una pasada
+2. Peso/formato de imagen (el propio script anterior ya lo reporta, con presupuesto de 200 KB por
+   imagen above-the-fold). Para **convertir** las que salgan pesadas: **sharp-cli o avif-cli** (no
+   squoosh-cli, sin mantenimiento activo)
 3. `pa11y-ci` + `@axe-core/cli` contra WCAG 2.1 AA — obligatorio por RD 1112/2018 para
    ayuntamientos, no opcional
 4. `lhci autorun` (Lighthouse CI) con umbral de CLS (`maxNumericValue: 0.1`) y LCP ≤2.5s
-5. `wp-cli doctor` para salud general de WordPress (autoload options, integridad de plugins)
+5. `wp doctor check --all --path="<sitio>"` (vía `herramientas/wp-cli/wp.cmd` del plugin) — salud
+   general de WordPress. **Ojo al instalarlo**: `wp package install wp-cli/doctor-command` a secas
+   falla si la versión de WP-CLI es 2.x (la rama por defecto exige ^3.0); fijar la versión
+   compatible, p. ej. `wp-cli/doctor-command:2.3.0` para WP-CLI 2.12
 
 Ninguna de estas herramientas sustituye al validador Node del marcado — son capas
 complementarias: una valida el CONTENIDO, la otra el ENTORNO.
@@ -144,11 +174,18 @@ contra la URL de producción real.
   suficiente.
 - **Global Styles de GenerateBlocks Pro** como mecanismo de sincronización entre entornos: es un
   custom post type sin API REST ni WP-CLI oficial — no hay forma fiable de versionarlo en git hoy.
-  Tratarlo como paso de checklist manual antes de cada entrega, no como algo automático.
-- **El nuevo CSS Editor de GB Pro 2.6** (estable desde el 23/06/2026, no en alpha): no hay
-  confirmación de que resuelva el problema de `--` en el comentario HTML. Antes de apoyarse en él
-  para centralizar colores, probarlo empíricamente: crear un Global Style con `var(--accent)`
-  desde la UI, guardar, e inspeccionar si el HTML resultante rompe algo.
+  Tratarlo como paso de checklist manual antes de cada entrega, no como algo automático. Esto
+  **no cambia** con el hallazgo de abajo: el problema de Global Styles nunca fue el escapado de
+  `--`, es que no hay API para exportarlo/versionarlo — sigue sin poder viajar por git.
+- **El problema de `--` en el comentario HTML, resuelto (27/08/2026).** Este documento y la
+  investigación original daban por buena una quinta sustitución de escapado (comillas → `"`)
+  que resulta ser la que rompe el guardado real: WordPress guarda el bloque vacío sin dar error.
+  Con las cuatro sustituciones correctas (`--`, `<`, `>`, `&`) y comillas literales, `var(--color)`
+  sobrevive intacto hasta el CSS real del frontend — probado contra un WordPress real, no solo
+  contra el editor. Detalle completo, con la metodología, en `docs/metodo-generateblocks-v2.md`
+  §3 y en `ESTADO.md`. **Sigue sin probar**: un clic real en el CSS Editor de GB Pro 2.6 desde la
+  UI (el experimento usó la API REST directamente, el mismo camino que usa el editor al guardar,
+  pero no un clic literal en ese editor concreto).
 - **theme.json en GeneratePress** (tema clásico): su efecto real en frontend es ambiguo incluso en
   la documentación oficial — verificarlo contra el sitio real antes de construir nada encima, no
   darlo por hecho.
