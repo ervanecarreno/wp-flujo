@@ -1,0 +1,814 @@
+<title>wp-generateblocks</title>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --paper: #f5f7f3;
+    --paper-raised: #ffffff;
+    --ink: #1a2420;
+    --ink-soft: #4d5850;
+    --ink-faint: #808c83;
+    --line: #d7ddd3;
+    --line-soft: #e6eae2;
+    --accent: #0e6e6d;
+    --accent-ink: #ffffff;
+    --accent-tint: #e2f0ef;
+    --good: #3f7d4f;
+    --good-tint: #e6f1e8;
+    --warn: #a5690f;
+    --warn-tint: #f7ecdb;
+    --bad: #a63a2e;
+    --bad-tint: #f8e6e3;
+    --code-bg: #101816;
+    --code-ink: #dce8e2;
+    --code-accent: #6bd6c9;
+    --shadow: 0 1px 2px rgba(20, 30, 26, 0.06), 0 8px 24px -12px rgba(20, 30, 26, 0.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #101613;
+      --paper-raised: #171f1b;
+      --ink: #e7ede9;
+      --ink-soft: #a9b6ae;
+      --ink-faint: #6d7a72;
+      --line: #2a352e;
+      --line-soft: #202a24;
+      --accent: #4fc3bd;
+      --accent-ink: #0a1a19;
+      --accent-tint: #16302e;
+      --good: #6fbf7f;
+      --good-tint: #16281a;
+      --warn: #d9a44e;
+      --warn-tint: #2e2517;
+      --bad: #e07a6b;
+      --bad-tint: #331e1a;
+      --code-bg: #0a100e;
+      --code-ink: #d5e3dc;
+      --code-accent: #6bd6c9;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #101613;
+    --paper-raised: #171f1b;
+    --ink: #e7ede9;
+    --ink-soft: #a9b6ae;
+    --ink-faint: #6d7a72;
+    --line: #2a352e;
+    --line-soft: #202a24;
+    --accent: #4fc3bd;
+    --accent-ink: #0a1a19;
+    --accent-tint: #16302e;
+    --good: #6fbf7f;
+    --good-tint: #16281a;
+    --warn: #d9a44e;
+    --warn-tint: #2e2517;
+    --bad: #e07a6b;
+    --bad-tint: #331e1a;
+    --code-bg: #0a100e;
+    --code-ink: #d5e3dc;
+    --code-accent: #6bd6c9;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  code, .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+  h1, h2, h3 {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-weight: 600;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead {
+    border-bottom: 1px solid var(--line);
+    padding: 3.5rem 1.5rem 3rem;
+  }
+
+  .masthead-inner {
+    max-width: 52rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 1.4rem;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .masthead h1 {
+    font-size: clamp(2.1rem, 4vw + 1rem, 3.1rem);
+    line-height: 1.08;
+    letter-spacing: -0.01em;
+  }
+
+  .masthead h1 .mono {
+    color: var(--accent);
+  }
+
+  .masthead p.lede {
+    font-size: 1.15rem;
+    color: var(--ink-soft);
+    max-width: 42rem;
+  }
+
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.4rem;
+    margin-top: 0.6rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--ink-faint);
+  }
+
+  .meta-row span b { color: var(--ink-soft); font-weight: 500; }
+
+  /* ---------- nav rail ---------- */
+
+  nav.toc {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 1.1rem 1.5rem 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.3rem;
+  }
+
+  nav.toc a {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.76rem;
+    text-decoration: none;
+    color: var(--ink-soft);
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+
+  nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ---------- sections ---------- */
+
+  main { padding: 0 1.5rem; }
+
+  section {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 3.4rem 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  section.wide { max-width: 62rem; }
+
+  section:last-of-type { border-bottom: none; }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    margin-bottom: 1.6rem;
+  }
+
+  .section-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  section h2 { font-size: 1.6rem; }
+
+  section > p { max-width: 42rem; }
+  section > p + p { margin-top: 1rem; }
+
+  .lead-text {
+    font-size: 1.05rem;
+    color: var(--ink-soft);
+  }
+
+  strong { color: var(--ink); }
+
+  /* ---------- the problem: before/after ---------- */
+
+  .split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    margin-top: 1.8rem;
+  }
+
+  @media (max-width: 640px) { .split { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.3rem 1.4rem;
+    box-shadow: var(--shadow);
+  }
+
+  .card.bad-edge { border-top: 3px solid var(--bad); }
+  .card.good-edge { border-top: 3px solid var(--good); }
+
+  .card h3 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .stat {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.6rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  .card.bad-edge .stat { color: var(--bad); }
+  .card.good-edge .stat { color: var(--good); }
+
+  .card p { font-size: 0.92rem; color: var(--ink-soft); margin-top: 0.5rem; }
+
+  /* ---------- phase pipeline ---------- */
+
+  .pipeline {
+    display: flex;
+    flex-direction: column;
+    margin-top: 1rem;
+  }
+
+  .phase {
+    display: grid;
+    grid-template-columns: 3.2rem 1fr;
+    gap: 0 1.1rem;
+    position: relative;
+  }
+
+  .phase-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .phase-dot {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    background: var(--paper-raised);
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .phase.is-new .phase-dot {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .phase-thread {
+    width: 1.5px;
+    flex: 1;
+    background: var(--line);
+    margin: 0.15rem 0;
+  }
+
+  .phase:last-child .phase-thread { display: none; }
+
+  .phase-body { padding-bottom: 1.9rem; }
+
+  .phase-title {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    padding-top: 0.35rem;
+  }
+
+  .phase-title h3 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 1.02rem;
+    font-weight: 600;
+  }
+
+  .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.18rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .tag.new { background: var(--accent-tint); color: var(--accent); }
+
+  .phase-body p {
+    font-size: 0.93rem;
+    color: var(--ink-soft);
+    margin-top: 0.35rem;
+    max-width: 38rem;
+  }
+
+  .phase-body p.tight-note {
+    margin-top: 0.55rem;
+    padding: 0.55rem 0.8rem;
+    background: var(--line-soft);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    border-left: 2px solid var(--ink-faint);
+  }
+
+  /* ---------- skill cards ---------- */
+
+  .skills-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1.6rem;
+  }
+
+  @media (max-width: 640px) { .skills-grid { grid-template-columns: 1fr; } }
+
+  .skill-card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.3rem 1.4rem 1.4rem;
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .skill-card .mono-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.88rem;
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .skill-card h3 {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 1.02rem;
+    font-weight: 600;
+  }
+
+  .skill-card .trigger {
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    font-style: italic;
+  }
+
+  .skill-card p.body-text { font-size: 0.9rem; color: var(--ink-soft); }
+
+  /* ---------- file tree / tools table ---------- */
+
+  .tools-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.6rem;
+    font-size: 0.9rem;
+  }
+
+  .tools-table th {
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: 0 0.9rem 0.6rem 0;
+    border-bottom: 1px solid var(--line);
+    font-weight: 500;
+  }
+
+  .tools-table td {
+    padding: 0.85rem 0.9rem 0.85rem 0;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+
+  .tools-table tr:last-child td { border-bottom: none; }
+
+  .tools-table td.path {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.84rem;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .tools-table td.desc { color: var(--ink-soft); }
+
+  .table-scroll { overflow-x: auto; }
+
+  /* ---------- case study ---------- */
+
+  .case {
+    margin-top: 1.6rem;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .case-header {
+    padding: 1.1rem 1.5rem;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    background: var(--line-soft);
+  }
+
+  .case-header .mono { font-size: 0.8rem; color: var(--ink-faint); }
+
+  .case-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.1rem; }
+
+  .verdict-row {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+
+  .verdict-row.no { background: var(--bad-tint); color: var(--bad); }
+  .verdict-row.yes { background: var(--good-tint); color: var(--good); }
+
+  .verdict-row .mark {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .verdict-row .text { color: var(--ink); }
+  .verdict-row .text b { color: inherit; }
+
+  pre.term {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    padding: 1rem 1.2rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  pre.term .comment { color: #6d7a72; }
+  pre.term .ok { color: var(--code-accent); }
+
+  /* ---------- howto steps ---------- */
+
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 1.6rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--paper-raised);
+    box-shadow: var(--shadow);
+  }
+
+  .step {
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    gap: 1rem;
+    padding: 1.05rem 1.3rem;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .step:last-child { border-bottom: none; }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--accent);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .step p { margin: 0; font-size: 0.92rem; }
+  .step code {
+    background: var(--line-soft);
+    padding: 0.12rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+  }
+
+  .step .note { color: var(--ink-faint); font-size: 0.83rem; margin-top: 0.3rem; }
+
+  /* ---------- footer ---------- */
+
+  footer {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  footer a { color: var(--ink-faint); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .card, .skill-card, .case, .steps { transition: box-shadow 0.2s ease; }
+  }
+</style>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <p class="eyebrow">Plugin interno · Metrópolis Comunicación</p>
+    <h1>Cómo funciona <span class="mono">wp-generateblocks</span></h1>
+    <p class="lede">Convierte en herramienta instalable lo que costó caro aprender en un proyecto real: el flujo de 8 fases para webs WordPress con GeneratePress + GenerateBlocks Pro, con validadores, puerta de calidad y wp-cli listos de fábrica.</p>
+    <div class="meta-row">
+      <span>versión <b>0.1.0</b></span>
+      <span>4 skills</span>
+      <span>3 validadores Node</span>
+      <span>última verificación <b>27/08/2026</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Secciones">
+  <a href="#problema">El problema</a>
+  <a href="#fases">Las 8 fases</a>
+  <a href="#skills">Las skills</a>
+  <a href="#herramientas">Las herramientas</a>
+  <a href="#caso">Caso real</a>
+  <a href="#uso">Cómo se usa</a>
+</nav>
+
+<main>
+
+  <section id="problema">
+    <div class="section-head"><span class="section-num">00</span><h2>El problema que resuelve</h2></div>
+    <p class="lead-text">En el proyecto que originó este plugin, el marcado de GenerateBlocks pasó su checklist de validación sin un solo error. El sitio, aun así, llegó roto a producción.</p>
+    <div class="split">
+      <div class="card bad-edge">
+        <h3>Marcado validado</h3>
+        <div class="stat">0 / 179</div>
+        <p>Bloques con errores de sintaxis, según el checklist de validación del propio marcado.</p>
+      </div>
+      <div class="card bad-edge">
+        <h3>Imágenes en producción</h3>
+        <div class="stat">11 / 13</div>
+        <p>Daban 404 en el sitio real: las rutas no contaban con el subdirectorio del dominio.</p>
+      </div>
+    </div>
+    <p style="margin-top:1.6rem">Validar el marcado y validar el entorno son comprobaciones distintas. Un archivo de bloques puede ser perfectamente canónico y estar roto en el sitio de destino. <strong>wp-generateblocks</strong> existe para que esa segunda comprobación deje de depender de acordarse.</p>
+  </section>
+
+  <section id="fases" class="wide">
+    <div class="section-head"><span class="section-num">01</span><h2>Las 8 fases del flujo</h2></div>
+    <p class="lead-text">El orden importa: cada fase se apoya en hechos que la anterior deja verificados. Prioridad fija en todas ellas — <strong>velocidad → menos pasos → fiabilidad del prototipo</strong>.</p>
+
+    <div class="pipeline">
+      <div class="phase is-new">
+        <div class="phase-rail"><div class="phase-dot">0</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Bootstrap del entorno</h3><span class="tag new">nueva</span></div>
+          <p>Se monta el WordPress vacío <em>antes</em> del diseño — ~10 min. Se anota subdirectorio, breakpoint real de GeneratePress (768px) vs GenerateBlocks (767px) y carpeta de uploads. Diseñar a ciegas de esto fue la causa raíz del fallo de arriba.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">1</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Diseño directo en HTML</h3></div>
+          <p>Sin partir de Figma para extraer código: el límite de uso del Figma MCP se ata al plan del archivo del cliente, no al del que trabaja. El sistema de color se fija como variables CSS reales desde este momento.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">2</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Esqueleto de portabilidad</h3></div>
+          <p>Git en <code class="mono">wp-content/</code>, tema hijo, CPTs por código, <code class="mono">acf-json/</code> activo desde el día uno — es gratis, no requiere PRO — y carpeta <code class="mono">/patterns/</code> para las secciones reutilizables.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">3</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Repositorio</h3></div>
+          <p>Con el alcance correcto: solo lo de la fase 2. Nunca el core de WordPress, <code class="mono">uploads/</code> ni plugins de terceros.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">4</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Generación de marcado</h3></div>
+          <p>Imágenes subidas <em>primero</em> con <code class="mono">wp media import --porcelain</code> para usar IDs reales. Color siempre por clase CSS utilitaria, nunca elegido en el panel del bloque.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">5</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Plantillas y contenido dinámico</h3></div>
+          <p>Noticias, CPT, listados. Las secciones ya viven en <code class="mono">/patterns</code> como PHP, no como contenido pegado que solo existe en la base de datos.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">6</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Animación con GSAP</h3></div>
+          <p>GenerateBlocks Pro no anima por scroll — su panel Effects es solo hover/focus. Sobre listados dinámicos: re-consultar el DOM y refrescar <code class="mono">ScrollTrigger</code> siempre, nunca una captura fija.</p>
+        </div>
+      </div>
+      <div class="phase is-new">
+        <div class="phase-rail"><div class="phase-dot">7</div><div class="phase-thread"></div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Puerta de calidad</h3><span class="tag new">nueva</span></div>
+          <p>Contra el sitio ya desplegado, con la URL real y su subdirectorio — nunca contra un HTML local. Es la comprobación que habría detectado el fallo de la fase 00.</p>
+          <p class="tight-note">Enlaces e imágenes rotas → peso de imagen → accesibilidad WCAG 2.1 AA → rendimiento (CLS / LCP) → salud de WordPress.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-rail"><div class="phase-dot">8</div></div>
+        <div class="phase-body">
+          <div class="phase-title"><h3>Producción</h3></div>
+          <p><code class="mono">wp search-replace --dry-run --skip-columns=guid</code> primero, revisar el informe, y solo entonces repetir sin <code class="mono">--dry-run</code>. Nunca editar URLs a mano.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="skills">
+    <div class="section-head"><span class="section-num">02</span><h2>Las 4 skills</h2></div>
+    <p class="lead-text">Cada una se activa por un disparador distinto, sin solaparse entre sí. Ninguna duplica contenido de los documentos del repo — apuntan a ellos.</p>
+    <div class="skills-grid">
+      <div class="skill-card">
+        <span class="mono-name">flujo-wordpress-generateblocks</span>
+        <h3>El enrutador</h3>
+        <p class="trigger">Se activa al aparecer un proyecto WordPress de cliente.</p>
+        <p class="body-text">Las 8 fases, las cinco trampas ya pagadas y lo descartado con fundamento (Figma como fuente, GenerateCloud, theme.json sin verificar).</p>
+      </div>
+      <div class="skill-card">
+        <span class="mono-name">generar-bloques-generateblocks</span>
+        <h3>El generador</h3>
+        <p class="trigger">Al escribir o corregir marcado de bloques GB.</p>
+        <p class="body-text">El método de referencia, el checklist de 10 casillas, y obliga a pasar el validador antes de dar nada por bueno.</p>
+      </div>
+      <div class="skill-card">
+        <span class="mono-name">wp-cli-en-local</span>
+        <h3>El puente</h3>
+        <p class="trigger">Antes de proponer cualquier comando <span class="mono-name">wp</span> o <span class="mono-name">php</span>.</p>
+        <p class="body-text">Local WP ya trae ambos dentro. Nunca hay que decirle al usuario que le falta wp-cli: lo tiene, solo hay que saber dónde.</p>
+      </div>
+      <div class="skill-card">
+        <span class="mono-name">puerta-calidad-wordpress</span>
+        <h3>El guardián</h3>
+        <p class="trigger">Antes de entregar o publicar un sitio.</p>
+        <p class="body-text">Los cinco pasos de la fase 7, contra la URL real. La que existe precisamente porque el marcado perfecto no bastó una vez.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="herramientas" class="wide">
+    <div class="section-head"><span class="section-num">03</span><h2>Las herramientas que trae dentro</h2></div>
+    <p class="lead-text">Node sin dependencias — nada que instalar con <span class="mono">npm</span> — más los envoltorios que hablan con Local WP.</p>
+    <div class="table-scroll">
+      <table class="tools-table">
+        <thead>
+          <tr><th>Ruta</th><th>Qué hace</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="path">herramientas/audit-gb.js</td><td class="desc">Reconstruye el CSS de cada bloque desde su atributo <span class="mono">styles</span> y lo compara carácter a carácter contra el checklist de 10 reglas.</td></tr>
+          <tr><td class="path">herramientas/audit-cross.js</td><td class="desc">Cruza el marcado con el CSS, el JS y los assets: clases sin estilo, imágenes referenciadas que no se entregaron.</td></tr>
+          <tr><td class="path">herramientas/fix-gb.js</td><td class="desc">Regenera el marcado corregido a partir del original, sin reserializar el JSON a mano.</td></tr>
+          <tr><td class="path">herramientas/puerta-calidad.js</td><td class="desc">Fase 7, pasos 1–2: extrae imágenes y enlaces del HTML real y comprueba cada URL contra el servidor. Separa lo roto propio de lo roto ajeno.</td></tr>
+          <tr><td class="path">herramientas/wp-cli/wp.cmd</td><td class="desc">Ejecuta wp-cli usando el PHP que ya trae Local WP — sin instalar nada, sin abrir el site shell.</td></tr>
+          <tr><td class="path">herramientas/commit-memoria.sh</td><td class="desc">El hook <span class="mono">Stop</span>: versiona la memoria de Claude Code sola al cerrar cada turno, solo si cambió.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="caso">
+    <div class="section-head"><span class="section-num">04</span><h2>Caso real: el bug que encontró el propio plugin</h2></div>
+    <p class="lead-text">El 27/08/2026 se probó si <span class="mono">var(--color)</span> sobrevive al guardado real de WordPress. La respuesta importante no fue la esperada.</p>
+
+    <div class="case">
+      <div class="case-header">
+        <span class="mono">figma-staging · GenerateBlocks Pro 2.7.0 · sandbox puntual</span>
+      </div>
+      <div class="case-body">
+        <div class="verdict-row no">
+          <span class="mark">✕</span>
+          <span class="text"><b>Con 5 escapes</b> (incluidas las comillas → <span class="mono-name">\u0022</span>), WordPress guardaba el bloque <b>vacío</b>. El saneado de seguridad de WordPress no reconocía el comentario como un bloque legítimo — sin ningún error visible.</span>
+        </div>
+        <div class="verdict-row yes">
+          <span class="mark">✓</span>
+          <span class="text"><b>Con 4 escapes</b> y comillas literales, el bloque sobrevive intacto — incluido <span class="mono-name">var(--color)</span> hasta el CSS real del frontend.</span>
+        </div>
+        <pre class="term"><span class="comment"># parse_blocks() de WordPress, antes y después de corregir el escapado</span>
+attrs: Array ( )                          <span class="comment">← con el quinto escape: vacío</span>
+
+attrs: Array (
+    [styles] => Array ( [background-color] => var(--color-x) )
+    [css] => .gb-element-x{background-color:var(--color-x)}
+)                                          <span class="ok">← con los 4 escapes correctos: intacto</span></pre>
+        <p style="font-size:0.9rem;color:var(--ink-soft);margin:0">El validador propio del plugin nunca exigió ese quinto escape — siempre fue correcto. El error vivía solo en la documentación, y ya está corregido en los cinco sitios donde aparecía.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="uso">
+    <div class="section-head"><span class="section-num">05</span><h2>Cómo se usa, en el día a día</h2></div>
+    <p class="lead-text">Se instala una vez por máquina. A partir de ahí, las skills se activan solas al detectar contexto de proyecto WordPress.</p>
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">01</span>
+        <div>
+          <p>Añadir el repositorio como marketplace: <code>/plugin marketplace add C:\TRABAJOS\wp-flujo</code></p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">02</span>
+        <div>
+          <p>Instalar <code>wp-generateblocks</code> desde el menú <code>/plugin → Discover</code>.</p>
+          <p class="note">Si el otro proyecto trae la skill de cuenta antigua, desactivarla antes: compite con las de este plugin.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">03</span>
+        <div>
+          <p>Trabajar como siempre. Al mencionar WordPress, GeneratePress o GenerateBlocks, la skill del flujo se activa sola.</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">04</span>
+        <div>
+          <p>Antes de entregar: <code>node herramientas/puerta-calidad.js https://sitio.com/</code></p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-num">05</span>
+        <div>
+          <p>Si el repo cambia (nuevas skills, herramientas corregidas), actualizar desde <code>/plugin → Installed → Update</code> para que el plugin instalado recoja los cambios.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>wp-generateblocks · v0.1.0 · Metrópolis Comunicación</span>
+  <span>Repositorio: C:\TRABAJOS\wp-flujo — git local, sin remoto por decisión explícita</span>
+  <span>Fuente de estado: ESTADO.md en la raíz del repo</span>
+</footer>
