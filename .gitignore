@@ -1,0 +1,17 @@
+# Dependencias
+node_modules/
+package-lock.json.bak
+
+# Ruido del sistema
+Thumbs.db
+desktop.ini
+*.log
+
+# Transcripción cruda de sesiones: pesada (6,6 MB) y de valor efímero.
+# Decisión consciente (27/08/2026): el chat NO viaja entre máquinas; lo que
+# sobrevive es .claude-memory/ y ESTADO.md. El zip original queda como archivo.
+traspaso-2026-08-26/sesion-cruda/
+
+# Nunca versionar credenciales ni estado de sesión de Claude Code
+.claude/settings.local.json
+*.credentials.json
