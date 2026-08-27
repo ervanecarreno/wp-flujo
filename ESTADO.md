@@ -94,7 +94,9 @@ La ruta de trabajo **tiene que ser exactamente `C:\TRABAJOS\wp-flujo`**. La carp
 Claude Code se nombra a partir de la ruta, así que una ruta distinta deja la memoria huérfana —
 fue exactamente lo que pasó el 27/08/2026.
 
-1. `git clone <repo> C:\TRABAJOS\wp-flujo`
+1. Copia la carpeta `wp-flujo` **completa** (incluido su `.git`) a `C:\TRABAJOS\wp-flujo` en la
+   máquina nueva. No hay remoto git —decisión del 27/08/2026—, así que el traslado es una copia
+   de carpeta, no un `clone`. El historial y la memoria viajan dentro.
 2. Enlazar la memoria (junction, no necesita permisos de administrador):
 
    ```powershell
