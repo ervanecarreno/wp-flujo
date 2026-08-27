@@ -8,7 +8,7 @@ metadata:
   modified: 2026-08-26T15:05:18.977Z
 ---
 
-En el proyecto Aridane (26/08/2026) el marcado de GenerateBlocks pasó un checklist de 11 reglas
+En el proyecto Aridane (26/08/2026) el marcado de GenerateBlocks pasó un checklist de 10 reglas
 con **0 errores sobre 179 bloques** y aun así **11 de 13 imágenes daban 404 en producción**: el
 WordPress vive en un subdirectorio (`aridane.org/city/`) y las rutas de imagen eran relativas sin
 ese prefijo. Los *enlaces* sí lo llevaban; las *imágenes* no.

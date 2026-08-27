@@ -22,6 +22,8 @@ concreto.
 | `docs/metodo-generateblocks-v2.md` | El método de referencia para generar bloques GB V2, con el checklist del §8 |
 | `docs/AUDITORIA-aridane.md` | Caso de estudio: la auditoría que descubrió los fallos de entorno |
 | `verificacion/roundtrip-escapado-wp.js` | Prueba que `var(--color)` sobrevive al escapado de WP |
+| `skills/` | Las 4 skills del plugin (ver README) |
+| `.claude-plugin/` | Manifiestos del plugin y del marketplace |
 | `herramientas/wp-cli/` | `wp.cmd` y `php.cmd`: usan el PHP y wp-cli que trae Local, sin instalar nada. Ver su LEEME |
 | `config-heredada/` | Config de Claude Code de la máquina anterior, como referencia (sin secretos, verificado) |
 
@@ -39,12 +41,12 @@ cuenta se sincronizó sola) sino los *scripts*; y los hooks —capacidad exclusi
 
 | # | Etapa | Estado |
 |---|---|---|
-| 1 | Reescribir la descripción de la skill `web-para-wordpress` | pendiente — su descripción actual empuja a `theme.json` y ACF Blocks, contra las conclusiones de la investigación |
+| 1 | Retirar la skill de cuenta `web-para-wordpress` | **pendiente y es tuya**: no se edita desde el repo. Su descripción empuja a `theme.json` y ACF Blocks, contra la investigación, y ahora compite con las skills del plugin. Desactívala en la gestión de skills de la cuenta |
 | 2 | Verificar `wp-cli` y `php` de Local WP | **HECHA** (27/08/2026) — PHP 8.2.29 y WP-CLI 2.12.0, con envoltorios propios en `herramientas/wp-cli/` |
 | 3 | Recuperar el validador Node (`herramientas/`) | **HECHA** (27/08/2026) — recuperado, integrado y probado |
-| 4 | Esqueleto del plugin en git | pendiente |
-| 5 | Skills: una enrutadora + una referencia por fase | pendiente |
-| 6 | Puerta de calidad como script + comando | pendiente |
+| 4 | Esqueleto del plugin | **HECHA** (27/08/2026) — `.claude-plugin/plugin.json` y `marketplace.json`, con la estructura verificada contra plugins reales |
+| 5 | Skills del plugin | **HECHA** (27/08/2026) — 4 skills: flujo, generación de bloques, wp-cli en Local y puerta de calidad. Sin duplicar los docs: apuntan a ellos |
+| 6 | Puerta de calidad como script ejecutable | pendiente — la skill ya documenta los 5 pasos; falta automatizarlos en un solo comando |
 | 7 | Hooks (incluido el de commit de memoria al cerrar) | pendiente |
 
 ### Bloqueos abiertos
@@ -72,7 +74,7 @@ Sin verificar todavía: `wp doctor` (fase 7) es un paquete aparte de wp-cli y ha
 ### Descartado (no volver a perseguirlo)
 
 - **Proyecto Aridane**: era una prueba. Lo único reutilizable son los scripts de `herramientas/`
-  y el checklist de 11 reglas de `AUDITORIA.md`.
+  y el checklist de 10 reglas de `AUDITORIA.md`.
 - **`figma-gb-pipeline`** (en `C:\TRABAJOS`): otro proyecto, sin relación con este flujo.
 - **Figma como fuente del marcado**: descartado con fundamento; ver la memoria
   `decision-saltar-figma`.

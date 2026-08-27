@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "metropolis-wp",
+  "description": "Flujo y herramientas propias para proyectos WordPress de Metrópolis Comunicación",
+  "owner": {
+    "name": "Javier — Metrópolis Comunicación",
+    "email": "javier@metropoliscom.com"
+  },
+  "plugins": [
+    {
+      "name": "wp-generateblocks",
+      "description": "El flujo de 8 fases para webs WordPress con GeneratePress + GenerateBlocks Pro V2 + ACF, con los validadores y los envoltorios de wp-cli incluidos.",
+      "source": "./"
+    }
+  ]
+}

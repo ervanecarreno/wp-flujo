@@ -18,8 +18,7 @@ seguir en otra máquina.
 **DESCARTADO el 27/08/2026.** Javier confirmó que Aridane era una prueba y que el proyecto que
 importa es el flujo/setup, no esta home. No retomar el diseño ni las 5 imágenes a WebP. Lo único
 que sigue vivo de aquí son los scripts de `herramientas/` (validador Node sin dependencias), que
-la fase 4 de [[flujo-wordpress-generateblocks]] necesita, y `AUDITORIA.md` con el checklist de
-11 reglas. Todo lo demás es historial.
+la fase 4 de [[flujo-wordpress-generateblocks]] necesita, y `AUDITORIA.md` con el checklist de 10 reglas. Todo lo demás es historial.
 
 **A 27/08/2026 ese zip NO está en la máquina actual** y la ruta de arriba es de la máquina
 anterior (aquí la base es `C:\TRABAJOS\CLOUDE WP\`). Hay que transferir el zip antes de poder
