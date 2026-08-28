@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.1.1
+version: 0.2.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -18,15 +18,41 @@ breakpoints, IDs, rutas—: pregunta o compruébalo.
 Pregunta o deduce en qué fase está el proyecto. No empieces a producir marcado si la fase 0 no se
 ha hecho: es el error que costó caro en el proyecto Aridane.
 
+## Punto de decisión obligatorio: qué tipo de conversión
+
+**Pregúntalo siempre, en cuanto se vea que hay un diseño que llevar a WordPress.** No lo decidas
+tú y no lo des por supuesto: condiciona la fase 2 (si hace falta hueco para el CSS en el tema hijo)
+y toda la fase 4.
+
+> ¿Qué tipo de conversión prefieres para esta página?
+>
+> **A · GenerateBlocks Pro V2** (la habitual) — llega estilada de una vez, sin instalar CSS.
+> **B · Gutenberg nativo** — un solo CSS con tokens: cambiar un color cambia toda la página.
+
+| | **A · GenerateBlocks Pro V2** | **B · Gutenberg nativo** |
+|---|---|---|
+| Al pegar solo los bloques | **ya estilada** | **sin estilos** hasta instalar su CSS |
+| Pasos para verla puesta | 1 | 2 |
+| Recolorear la marca | 124 HEX repartidos por 179 bloques | 1 token |
+| Dependencia | requiere GB Pro activo | ninguna |
+
+**Por defecto A**, que es la vía habitual del proyecto. Pero **si el cliente va a mantener o
+reteñir la web, di lo de B antes de que elijan**: ahí el token gana de calle. Y si eligen A, pide
+que los colores vayan como `var(--token)` en `styles`/`css`, no aplanados a HEX — eso cierra la
+única desventaja real de A.
+
+Cifras medidas contra un WordPress real: `docs/prueba-handoff.md`. El detalle operativo de la
+importación, con sus dos trampas silenciosas, en [[importar-handoff-diseno]].
+
 ## Las 8 fases
 
 | # | Fase | Lo que no puede fallar |
 |---|---|---|
 | 0 | **Bootstrap del WordPress vacío** (~10 min) | Va **antes** del diseño. Anota subdirectorio, breakpoint real de GP (768) vs GB (767), y carpeta de uploads. Sin estos datos el diseño se cierra a ciegas |
-| 1 | **Diseño directo en HTML** | No partir de Figma para extraer código. Fijar el color como variables CSS reales desde ya |
+| 1 | **Diseño directo en HTML, o handoff ya convertido** | No partir de Figma para extraer código. Fijar el color como variables CSS reales desde ya. **Aquí se pregunta el tipo de conversión** (ver arriba) |
 | 2 | **Esqueleto de portabilidad** | `git init` en `wp-content/`, tema hijo, CPTs por código en plugin propio, `acf-json/` activo (es gratis), carpeta `/patterns/`. Y **exportar la configuración del tema**: no está en código (ver trampa 6) |
 | 3 | **Repo** | Solo lo de la fase 2. Nunca core, `uploads/` ni plugins de terceros |
-| 4 | **Generación de marcado** | Imágenes **primero** con `wp media import --porcelain` para usar IDs reales. Color por clase CSS, jamás por el panel del bloque. Pasar el validador |
+| 4 | **Generación de marcado, o importación del handoff** | Imágenes **primero** con `wp media import --porcelain` para usar IDs reales. Color por clase CSS, jamás por el panel del bloque. Pasar el validador. Si el marcado ya viene hecho: `wp post create <fichero>`, **nunca** `wp_insert_post()` — ver [[importar-handoff-diseno]] |
 | 5 | **Plantillas, noticias, CPT** | Los CPT ya están por código desde la fase 2; las secciones van a `/patterns` como PHP, no pegadas en la base de datos |
 | 6 | **Animación con GSAP** | Va **después** de la fase 5, query loops ya montados. Animar antes y convertir luego a query loop rompe la animación. GB Pro no tiene animación por scroll: su panel Effects es solo hover/focus |
 | 7 | **Puerta de calidad** | Contra staging con la **URL real**, subdirectorio incluido. Nunca contra un HTML local |
@@ -93,6 +119,7 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
 
 ## Skills hermanas
 
-- `generar-bloques-generateblocks` — al producir marcado de bloques (fase 4)
+- `importar-handoff-diseno` — cuando el marcado **ya existe** y hay que meterlo en WordPress (fases 1 y 4)
+- `generar-bloques-generateblocks` — al **producir** marcado de bloques (fase 4)
 - `wp-cli-en-local` — para cualquier comando `wp` (fases 4, 7, 8)
 - `puerta-calidad-wordpress` — antes de entregar o subir a producción (fase 7)

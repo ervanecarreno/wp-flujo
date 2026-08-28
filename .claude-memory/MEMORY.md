@@ -1,4 +1,4 @@
-- [Plugin wp-generateblocks](plugin-wp-generateblocks.md) - el flujo ya es un plugin con 4 skills; falta desactivar la skill de cuenta antigua
+- [Plugin wp-generateblocks](plugin-wp-generateblocks.md) - el flujo ya es un plugin con 5 skills; se pregunta el tipo de conversión en cada proyecto
 - [Estrategia de portabilidad](estrategia-portabilidad-maquinas.md) — ruta canónica fija, memoria versionada por junction, el chat no viaja
 - [Perfil de Javier](perfil-javier-wordpress.md) — stack fijo WordPress, sus prioridades, y qué tiene y qué NO tiene instalado
 - [Flujo WordPress+GenerateBlocks](flujo-wordpress-generateblocks.md) — el flujo definitivo de 8 fases, usar en todo proyecto nuevo

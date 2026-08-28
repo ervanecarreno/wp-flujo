@@ -406,7 +406,7 @@
       <span>8 fases</span>
       <span>3 cambios de fondo</span>
     </div>
-    <div class="plugin-note">Este flujo ya no es solo un documento: está empaquetado como plugin de Claude Code (<strong>wp-generateblocks</strong>), con 4 skills que se activan solas y las herramientas de validación ya construidas.</div>
+    <div class="plugin-note">Este flujo ya no es solo un documento: está empaquetado como plugin de Claude Code (<strong>wp-generateblocks</strong>), con 5 skills que se activan solas y las herramientas de validación ya construidas.</div>
   </div>
 </header>
 
@@ -456,6 +456,12 @@
         <div class="phase-body">
           <div class="phase-title"><h3>Diseño directo en HTML</h3></div>
           <p>Sin partir de Figma para extraer código, con MCP o con token — el límite se ata al plan del archivo del cliente, no a quien llama. Si el cliente ya trae uno, solo como referencia visual. El sistema de color se fija aquí como variables CSS reales, nunca en el panel de color del bloque.</p>
+          <p><strong>Y aquí se pregunta el tipo de conversión.</strong> Si el diseño llega ya convertido en un handoff, hay dos vías y la elección condiciona las fases 2 y 4:</p>
+          <ul>
+            <li><strong>A · GenerateBlocks Pro V2</strong> (la habitual) — llega estilada de una vez, en un paso. Los estilos viven dentro de cada bloque.</li>
+            <li><strong>B · Gutenberg nativo</strong> — un CSS de 24 KB con 12 tokens: recolorear la marca es cambiar <em>un</em> token, frente a 124 HEX repartidos por 179 bloques. A cambio, hay que instalar ese CSS antes o la página se ve sin estilos.</li>
+          </ul>
+          <p>Por defecto A. Pero si el cliente va a mantener o reteñir la web, B gana. Y si se elige A, los colores van como <code class="mono">var(--token)</code>, nunca aplanados a HEX. Cifras medidas contra un WordPress real en <code class="mono">docs/prueba-handoff.md</code>.</p>
         </div>
       </div>
       <div class="phase">

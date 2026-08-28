@@ -12,17 +12,20 @@ Para el estado del trabajo y qué toca hacer ahora, lee **[ESTADO.md](ESTADO.md)
 
 | Carpeta | Contenido |
 |---|---|
-| `skills/` | Las 4 skills: el flujo de 8 fases, generación de bloques, wp-cli en Local y la puerta de calidad |
+| `skills/` | Las 5 skills: el flujo de 8 fases, importación de handoff, generación de bloques, wp-cli en Local y la puerta de calidad |
 | `herramientas/` | Validadores Node sin dependencias (`audit-gb.js`, `audit-cross.js`, `fix-gb.js`) |
 | `herramientas/wp-cli/` | `wp.cmd` y `php.cmd`: usan el PHP y wp-cli que ya trae Local WP, sin instalar nada |
 | `docs/` | El método de referencia de GB Pro V2 y la auditoría del caso de estudio |
 | `verificacion/` | Pruebas empíricas puntuales, como el round-trip del escapado de WordPress |
 | `traspaso-2026-08-26/` | El flujo sintetizado y los 130 KB de investigación con fuentes |
 
-## Las 4 skills
+## Las 5 skills
 
 - **`flujo-wordpress-generateblocks`** — se activa al aparecer un proyecto WordPress de cliente.
-  Las 8 fases, las cinco trampas ya pagadas y lo descartado con fundamento.
+  Las 8 fases, las seis trampas ya pagadas, el punto de decisión de conversión y lo descartado con fundamento.
+- **`importar-handoff-diseno`** — cuando el marcado **ya existe** (un handoff de Claude Design u
+  otro origen). Pregunta el tipo de conversión —GenerateBlocks Pro V2 o Gutenberg nativo— y avisa de
+  las dos trampas silenciosas de la importación.
 - **`generar-bloques-generateblocks`** — al escribir o corregir marcado de bloques. Incluye el
   checklist de 10 casillas y obliga a pasar el validador.
 - **`wp-cli-en-local`** — antes de proponer cualquier comando `wp` o `php`.
@@ -38,7 +41,7 @@ interactivo: primero se añade este repositorio como *marketplace* (la ruta
 `C:\TRABAJOS\wp-flujo`, que ya contiene `.claude-plugin/marketplace.json`) y después se instala
 el plugin `wp-generateblocks`.
 
-Alternativa sin plugin, para probarlo antes: copiar las cuatro carpetas de `skills/` a
+Alternativa sin plugin, para probarlo antes: copiar las cinco carpetas de `skills/` a
 `%USERPROFILE%\.claude\skills\`. **Sin verificar todavía** en esta máquina — esa carpeta no existe
 aún, así que habría que crearla y comprobar que las skills se cargan.
 

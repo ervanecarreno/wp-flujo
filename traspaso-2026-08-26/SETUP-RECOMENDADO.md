@@ -7,7 +7,7 @@ en las lecciones del proyecto Aridane, y en un experimento propio contra un Word
 Fase 1 y Fase 4. Prioriza, en este orden: **velocidad → menos pasos → fiabilidad del prototipo**.
 
 **Este flujo ya no es solo un documento.** Está empaquetado como plugin de Claude Code
-(`wp-generateblocks`, en la raíz de este mismo repo) con 4 skills que se activan solas y las
+(`wp-generateblocks`, en la raíz de este mismo repo) con 5 skills que se activan solas y las
 herramientas de validación ya construidas y probadas. Este documento sigue siendo la referencia
 de criterio; `ESTADO.md` en la raíz lleva el estado de implementación al día.
 
@@ -65,6 +65,27 @@ En esta fase se fija también el **sistema de color como tokens reales**: variab
 Global Colors nativos de GeneratePress: `--accent`, `--contrast`, etc.) en una hoja de estilos de
 verdad — nunca elegidos en el panel de color de cada bloque GB (ver Fase 4, sigue aplicando aunque
 `var()` funcione: el problema del panel es que resuelve a HEX literal, no el escapado).
+
+**Decisión de conversión, y se pregunta aquí.** Si el diseño se va a llevar a WordPress desde un
+handoff ya convertido (Claude Design o similar), hay **dos vías** y la elección condiciona la fase 2
+y la fase 4. Medido contra un WordPress real el 28/08/2026 (`docs/prueba-handoff.md`):
+
+| | **A · GenerateBlocks Pro V2** (la habitual) | **B · Gutenberg nativo** |
+|---|---|---|
+| Al pegar solo los bloques | **ya estilada** | **sin estilos** hasta instalar su CSS |
+| Pasos para verla puesta | 1 (los bloques) | 2 (CSS en el tema **y** bloques) |
+| Marcado | 98 KB · 179 bloques | 29 KB · 126 bloques |
+| Dónde viven los estilos | dentro de cada bloque | un CSS de 24 KB con 12 tokens |
+| Recolorear la marca | 124 HEX repartidos por 179 bloques | 1 token |
+| Dependencia | requiere GB Pro activo | ninguna |
+
+**Por defecto A.** Pero si el cliente va a mantener o reteñir la web, **B gana de calle**: un token
+cambia toda la página. Y si se elige A, los colores tienen que ir como `var(--token)` en
+`styles`/`css`, nunca aplanados a HEX — eso cierra su única desventaja real, y está verificado que
+`var()` sobrevive intacto hasta el CSS del frontend.
+
+La fidelidad de las dos es exacta una vez puestas: tokens, radios, sombras, espaciados y la rejilla
+2×3 de móvil, todo medido con estilos calculados.
 
 ### Fase 2 — Esqueleto de portabilidad (dentro del WP de la Fase 0, antes de generar marcado)
 

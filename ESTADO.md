@@ -9,26 +9,24 @@
 
 ## ⏭ LO SIGUIENTE (pendiente al retomar)
 
-### 1. Decidir sobre el handoff de Claude Design
+### 1. (CERRADO el 28/08) El handoff, integrado en el plugin
 
-Prueba real hecha el 28/08 en `C:\TRABAJOS\prueba-claude-design` (carpeta separada, no interfiere).
-Informe completo en `prueba-claude-design/HALLAZGOS.md`, **incluido el pegado real contra un
-WordPress** (§7). Resumen:
+Decidido por Javier: **se integra, con las dos vías**, y **se pregunta en cada proyecto** cuál se
+quiere. La habitual es GenerateBlocks Pro V2; Gutenberg nativo se conserva como alternativa.
 
-- **`DesignSync` no es una alternativa al handoff**: sincroniza una librería de componentes
-  React/JSX, no entrega páginas de WordPress. Comprobado leyendo la cuenta.
-- **El marcado sobrevive byte a byte** al guardado real, en las dos variantes: 0 bloques sin
-  atributos, SVG intactos, y WordPress **no reescribe** el escapado canónico.
-- **La fidelidad visual es exacta**, medida con estilos calculados contra la especificación del
-  handoff: tokens, radios, sombras, espaciados, `letter-spacing` del H1 y la rejilla 2×3 de móvil.
-- **El empate está más reñido de lo que parecía.** La variante nativa gana en mantenimiento (12
-  tokens frente a 124 HEX repartidos por 179 bloques), pero **llega sin estilos** si no se instala
-  su CSS de 24,6 KB en el tema. La de GenerateBlocks llega estilada en un solo paso. Decisión por
-  proyecto: web que el cliente va a reteñir → nativa; prototipo para enseñar ya → GenerateBlocks.
+Cómo quedó montado:
 
-**Pendiente de decisión de Javier:** si el handoff entra en el flujo como fase 1, y si se le pasa
-el método corregido al proyecto de Claude Design (su copia es la versión antigua, y es lo que hace
-que la variante GB aplane los colores a HEX).
+- **Skill nueva `importar-handoff-diseno`** — se activa cuando el marcado ya existe. Empieza
+  preguntando el tipo de conversión, trae la tabla de decisión con las cifras medidas, el comando de
+  importación y las dos trampas silenciosas.
+- **Punto de decisión obligatorio** en la skill del flujo, antes de la tabla de las 8 fases, y en la
+  fase 1 de `SETUP-RECOMENDADO.md`. Fases 1 y 4 de la tabla actualizadas.
+- **Evidencia en `docs/prueba-handoff.md`**, dentro del plugin, para que no dependa de la carpeta de
+  pruebas (que se puede borrar).
+- Plugin a **0.2.0** (capacidad nueva, no un arreglo).
+
+La carpeta `C:\TRABAJOS\prueba-claude-design` puede borrarse cuando quieras: su informe
+(`HALLAZGOS.md`) es más extenso, pero lo que el plugin necesita ya está dentro del plugin.
 
 ### 2. Probar `config-tema.js` de punta a punta
 
@@ -135,9 +133,10 @@ concreto.
 | `herramientas/` | Validadores Node sin dependencias: `audit-gb.js` (checklist §8), `audit-cross.js` (marcado vs CSS/JS/assets), `fix-gb.js` (generador, ojo a su constante `PEND`) |
 | `docs/metodo-generateblocks-v2.md` | El método de referencia para generar bloques GB V2, con el checklist del §8 |
 | `docs/AUDITORIA-aridane.md` | Caso de estudio: la auditoría que descubrió los fallos de entorno |
+| `docs/prueba-handoff.md` | Evidencia medida de la importación de un handoff: escapado, kses, fidelidad visual y las dos trampas |
 | `docs/recorrido-proyecto-ejemplo.html` | Ejemplo trabajado: un proyecto ficticio de principio a fin, para ver cómo se interactúa con el plugin. Publicado en https://claude.ai/code/artifact/a607bb4e-69c8-40ef-87d9-282674329393 |
 | `verificacion/roundtrip-escapado-wp.js` | Prueba que `var(--color)` sobrevive al escapado de WP |
-| `skills/` | Las 4 skills del plugin (ver README) |
+| `skills/` | Las 5 skills del plugin (ver README) |
 | `.claude-plugin/` | Manifiestos del plugin y del marketplace |
 | `.claude/settings.json` | Hook `Stop`: versiona la memoria automáticamente |
 | `herramientas/commit-memoria.sh` | El script del hook. Defensivo: calla si no hay cambios o no es un repo |
