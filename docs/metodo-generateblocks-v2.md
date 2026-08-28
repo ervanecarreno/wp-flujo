@@ -87,47 +87,73 @@ El SVG va en el atributo `html` y repetido en el cuerpo. Usa `stroke="currentCol
 
 ## 3. Escapado del JSON en el comentario de bloque
 
-Este es el punto donde falla casi cualquier generador. El JSON vive dentro de un comentario HTML, así que hay **cuatro** sustituciones obligatorias **después** de `JSON.stringify`:
+Este es el punto donde falla casi cualquier generador. **No hay que deducirlo: WordPress lo hace en
+una función concreta de su código**, `serialize_block_attributes()` en `wp-includes/blocks.php`.
+Leída del core el 28/08/2026, hace **seis** sustituciones después de codificar el JSON:
 
-| Carácter | Se escribe |
-|---|---|
-| `&` | `\u0026` |
-| `<` | `\u003c` |
-| `>` | `\u003e` |
-| `--` | `\u002d\u002d` |
+| En el JSON | Se escribe | Dónde aparece en la práctica |
+|---|---|---|
+| `\\` (barra invertida ya escapada) | `\u005c` | rara: `content:"\2014"` y similares |
+| `--` | `\u002d\u002d` | **cualquier `var(--x)`**, comentarios CSS, guiones dobles en texto |
+| `<` | `\u003c` | SVG en línea, HTML dentro de un valor |
+| `>` | `\u003e` | igual |
+| `&` | `\u0026` | el selector `&:hover`, o sea casi todos los bloques interactivos |
+| `\"` (comilla **ya escapada**) | `\u0022` | atributos del SVG en línea: `viewBox="0 0 24 24"` |
 
 ```js
-const esc = j => j
-  .split('--').join('\u002d\u002d')
-  .split('<').join('\u003c')
-  .split('>').join('\u003e')
-  .split('&').join('\u0026');
+const BS = String.fromCharCode(92);
+const esc = (j) => j
+  .split(BS + BS).join(BS + 'u005c')
+  .split('--').join(BS + 'u002d' + BS + 'u002d')
+  .split('<').join(BS + 'u003c')
+  .split('>').join(BS + 'u003e')
+  .split('&').join(BS + 'u0026')
+  .split(BS + '"').join(BS + 'u0022');
 ```
 
-**Las comillas `"` se dejan literales.** No van a `\u0022`. Es un error de una versión anterior de
-este documento, corregido el 27/08/2026 tras verificarlo contra un WordPress real (ver más abajo):
-escapar las comillas rompe el guardado. WordPress sanea el contenido al guardar (vía REST, que es
-la misma ruta que usa el editor de bloques al pulsar "Actualizar") y su filtro de `kses` solo
-reconoce un comentario de bloque como legítimo si el JSON de dentro tiene comillas literales — si
-no, no lo detecta como bloque de Gutenberg y borra silenciosamente todo el interior del comentario,
-dejando `<!-- wp:generateblocks/element -->` sin atributos. `herramientas/audit-gb.js` nunca exigió
-este escape (solo comprueba los cuatro de la tabla), así que el validador siempre fue correcto — el
-error estaba solo aquí, en la documentación.
+### La distinción que lo decide todo: qué comilla
 
-**`--` → `\u002d\u002d` sigue siendo obligatorio**, y ya no hace falta evitar `var(--color)` por
-su culpa: **verificado el 27/08/2026 contra un WordPress real** (figma-staging, PHP 8.2.29 / WP-CLI
-2.12.0, GenerateBlocks Pro 2.7.0) que con los cuatro escapes correctos y comillas literales, un
-`var(--color-x)` en `styles`/`css` sobrevive **intacto**: el guardado vía REST, el `parse_blocks()`
-de WordPress, y el CSS que GenerateBlocks genera de verdad en el frontend
-(`wp-content/uploads/generateblocks/style-{ID}.css`) contienen exactamente
-`background-color:var(--color-x)`, sin aplanar a HEX.
+La última sustitución **no es «escapar las comillas»**. Es `\"` → `\u0022`: solo la comilla que
+ya viene escapada, es decir la que está **dentro de un valor**. Las comillas **estructurales** del
+JSON —las que delimitan claves y valores— **se dejan literales**.
 
-**Qué sigue sin probar:** este experimento usó la API REST directamente (el mismo camino que sigue
-el editor al guardar), no un clic real en el editor visual de GB Pro. Es una diferencia menor — la
-capa de saneado de WordPress es la misma en los dos casos — pero si algo cambia al comprobarlo con
-el editor abierto de verdad, anotarlo aquí.
+```
+BIEN   {"uniqueId":"x1","html":"\u003csvg viewBox=\u00220 0 24 24\u0022/\u003e"}
+MAL    {\u0022uniqueId\u0022:\u0022x1\u0022, ... }        <- JSON inválido, atributos vacíos
+```
 
-**`&` → `\u0026`**: aparece en el selector de hover (`&:hover`), así que sale en casi todos los bloques interactivos.
+**Aplicarla a todas las comillas rompe el guardado.** Verificado el 28/08/2026 con
+`node medidas/escapado-tres-variantes.js`: destruye las comillas estructurales, el JSON deja de
+parsear y `parse_blocks()` devuelve los atributos vacíos. El bloque se guarda como
+`<!-- wp:generateblocks/element -->` sin nada dentro, **sin ningún mensaje de error**.
+
+### Historial de este apartado, porque ha cambiado dos veces
+
+| Fecha | Qué decía | Veredicto |
+|---|---|---|
+| hasta el 27/08 | cinco sustituciones, tabla con `"` → `\u0022` sin matizar cuál | **ambigua**: leída al pie de la letra produce el caso MAL de arriba |
+| 27/08 | cuatro sustituciones, «comillas literales» | **segura pero no canónica**: produce JSON válido que WordPress acepta, pero no coincide con el core y le faltan `\\` y `\"` |
+| 28/08 (esta) | las seis del core, con la distinción de qué comilla | leída del código de WordPress |
+
+La corrección del 27/08 daba además una explicación equivocada del mecanismo: culpaba al filtro
+`kses` de WordPress. **No es kses**: es que el JSON no es válido, que es más simple y más tonto.
+
+Consecuencia práctica de quedarse en las cuatro: al reguardar desde el editor, WordPress reescribe
+el marcado a su forma canónica y el contenido cambia de bytes sin que nadie lo haya editado.
+
+### `var(--color)` funciona, y esto no lo cambia
+
+**Verificado el 27/08/2026 contra un WordPress real** (figma-staging, PHP 8.2.29 / WP-CLI 2.12.0,
+GenerateBlocks Pro 2.7.0): con el escapado correcto, un `var(--color-x)` en `styles`/`css` sobrevive
+intacto al guardado vía REST, al `parse_blocks()` de WordPress y al CSS que GenerateBlocks genera
+en el frontend (`wp-content/uploads/generateblocks/style-{ID}.css`), sin aplanar a HEX.
+
+Por tanto **no hay que evitar las variables CSS**, y cualquier documento que recomiende aplanar los
+colores a HEX literales por culpa del escapado está desactualizado.
+
+**Qué sigue sin probar:** que un marcado con solo las cuatro sustituciones se reescriba a la forma
+canónica al reguardarlo desde el editor visual. Es lo que dice el código del core, pero no se ha
+ejecutado con el editor abierto.
 
 ---
 

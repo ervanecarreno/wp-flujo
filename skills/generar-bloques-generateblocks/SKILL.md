@@ -35,7 +35,8 @@ Son las 10 casillas del §8 de `docs/metodo-generateblocks-v2.md`:
 1. Cada `css` coincide exactamente con su `styles` (minificado, alfabético)
 2. Ningún `className` contiene la id-class
 3. Todos los HTML del cuerpo llevan `gb-<tipo>-<id>` + `gb-<tipo>`
-4. Las cuatro sustituciones de escapado aplicadas (`--`, `<`, `>`, `&`); comillas SIN escapar
+4. Las **seis** sustituciones de escapado del core aplicadas (`\\`, `--`, `<`, `>`, `&`, `\"`); las comillas **estructurales** del JSON se dejan
+   literales — solo se escapan las de dentro de un valor
 5. `src`/`alt`/`href` dentro de `htmlAttributes`, no en el primer nivel
 6. `content` duplicado en atributo y cuerpo para todos los `text`
 7. Todo `element` con `tagName: "a"` contiene un `text`, nunca texto plano
@@ -75,14 +76,19 @@ que usa el editor al pulsar "Actualizar" (API REST), llega **intacto** hasta el 
 GenerateBlocks genera de verdad en el frontend — sin aplanar a HEX. El escapado nunca fue el
 obstáculo real.
 
-**Lo que sí era el obstáculo, y no se sabía:** escapar las comillas (el quinto escape que este
-documento y `docs/metodo-generateblocks-v2.md` daban por bueno) rompe el guardado real. WordPress
-sanea el contenido al guardar con `kses`, que solo reconoce un comentario de bloque como Gutenberg
-legítimo si el JSON de dentro tiene **comillas literales** — si no, borra silenciosamente todo el
-interior del comentario y el bloque se guarda vacío. Con los **cuatro** escapes correctos
-(`\u002d\u002d`, `\u003c`, `\u003e`, `\u0026`) y comillas literales, sobrevive perfecto. El checklist de
-arriba y `docs/metodo-generateblocks-v2.md` §3 ya reflejan esto — si ves código o memoria que
-siga escapando comillas, está desactualizado.
+**Lo que sí era el obstáculo:** el escapado, pero con una distinción que hay que tener clara.
+WordPress lo hace en `serialize_block_attributes()` (`wp-includes/blocks.php`), y son **seis**
+sustituciones. La última es `\"` → `\u0022`: **solo la comilla ya escapada**, la que
+está dentro de un valor (los atributos de un SVG en línea, por ejemplo). Las comillas
+**estructurales** del JSON —las que delimitan claves y valores— **se dejan literales**.
+
+Aplicarlo a *todas* las comillas es lo que rompe el guardado: el JSON deja de ser válido,
+`parse_blocks()` devuelve los atributos vacíos y el bloque se guarda como
+`<!-- wp:generateblocks/element -->` sin nada dentro, sin ningún error visible. No es `kses`,
+como decía una versión anterior de este texto: es simplemente que el JSON no parsea.
+
+Detalle completo, con las seis sustituciones y el historial de las dos correcciones que ha
+tenido este apartado, en `docs/metodo-generateblocks-v2.md` §3.
 
 **Nota:** el color se sigue aplicando por clase CSS, nunca por el panel visual del bloque — eso
 no cambia (ver la lección de memoria `leccion-colores-generateblocks`). Lo que cambia es que ya

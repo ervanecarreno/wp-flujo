@@ -3,34 +3,72 @@
 > **Fuente de verdad del estado del proyecto.** Al retomar, lee esto primero: ni el README ni la
 > memoria de Claude Code lo sustituyen. Actualízalo al cerrar cada sesión de trabajo.
 
-**Última actualización:** 28/08/2026.
+**Última actualización:** 28/08/2026 (tarde).
 
 ---
 
 ## ⏭ LO SIGUIENTE (pendiente al retomar)
 
-**Probar `herramientas/config-tema.js` de punta a punta contra un WordPress con GeneratePress.**
-Es lo único que queda del trabajo de hoy, y necesita un sitio arrancado en Local.
+### 1. Decidir sobre el handoff de Claude Design
 
-Hoy se escribió el script y se verificó lo que se puede verificar sin GeneratePress delante:
-sintaxis, validación de argumentos, resolución del puerto de MySQL desde `sites.json` (detectó el
-10011 solo) y detección honesta del sitio parado. Lo que **no** se ha podido comprobar todavía:
+Prueba real hecha hoy en `C:\TRABAJOS\prueba-claude-design` (carpeta separada a propósito, no
+interfiere). Informe completo en `prueba-claude-design/HALLAZGOS.md`. Resumen:
 
-- que `wp option get generate_settings --format=json` devuelve lo esperado y se escribe bien
-- que el descubrimiento (`wp option list --search='generate_*'`) lista lo que hay
-- que la reimportación con `--confirmar` deja el sitio destino con la tipografía correcta
+- **`DesignSync` no es una alternativa al handoff**: sirve para sincronizar una librería de
+  componentes React/JSX, no para entregar páginas de WordPress. Comprobado leyendo la cuenta.
+- **De las dos variantes que trae el handoff, gana la nativa de Gutenberg** bajo el criterio
+  FIDELIDAD + RAPIDEZ + POCOS PASOS: 12 tokens y 51 `var()` en un solo CSS, frente a **124 HEX de
+  marca literales repartidos por 179 bloques** en la variante GenerateBlocks.
+- **La variante GB aplana los colores porque el handoff lleva dentro nuestro método antiguo.**
+  Corregir el método en el proyecto de Claude Design arregla eso en origen.
 
-El único sitio de Local en esta máquina es `figma-staging`, que **es del otro proyecto** y no
-tiene GeneratePress: sirvió para probar la conexión, no el caso real. Hace falta un WordPress con
-GeneratePress — el primer proyecto de cliente vale.
+**Pendiente de decisión de Javier:** si el handoff entra en el flujo como fase 1, y si se le pasa
+el método corregido al proyecto de Claude Design.
+
+### 2. Probar `config-tema.js` de punta a punta
+
+Sigue pendiente de ayer: necesita un WordPress con GeneratePress arrancado en Local. Lo escrito y
+verificado hoy es la sintaxis, los argumentos, el puerto de MySQL y la detección del sitio parado.
 
 ```
 node herramientas/config-tema.js exportar --path="<sitio>"
-node herramientas/config-tema.js importar --path="<otro sitio>"              (solo informa)
-node herramientas/config-tema.js importar --path="<otro sitio>" --confirmar  (escribe)
+node herramientas/config-tema.js importar --path="<otro>" --confirmar
 ```
 
+---
+
+## Cerrado el 28/08/2026 (tarde): el escapado, corregido del todo
+
+**Corrección de la corrección de ayer, y esta vez leída del código del core.**
+
+`serialize_block_attributes()` en `wp-includes/blocks.php` hace **seis** sustituciones:
+`\\`, `--`, `<`, `>`, `&` y la comilla **ya escapada**. La distinción que lo decide todo: esa
+última se aplica **solo a la comilla de dentro de un valor**; las **estructurales** del JSON se
+dejan literales. Aplicarla a todas invalida el JSON y el bloque se guarda vacío.
+
+Qué estaba mal y qué se ha hecho:
+
+| | |
+|---|---|
+| La tabla de hasta el 27/08 | ambigua: leída al pie de la letra escapaba todas las comillas |
+| La corrección del 27/08 | segura pero **no canónica** (4 sustituciones), y con el mecanismo equivocado: culpaba a `kses`, y en realidad es JSON inválido |
+| Hoy | las seis del core, con la distinción explícita, y el historial escrito en `docs/metodo-generateblocks-v2.md` §3 |
+
+**La verificación adversarial de la investigación original ya lo señalaba bien** (nota 63 de
+`investigacion/resultados-completos.md`) y se pasó por alto al escribir la corrección del 27.
+
+Además: `herramientas/audit-gb.js` **ya avisa** cuando el escapado no es el canónico
+(`escapado-no-canonico`). No es error —el bloque funciona— pero al reguardar desde el editor
+WordPress reescribe el marcado y el contenido cambia de bytes sin que nadie lo edite.
+
+Actualizado en: `docs/metodo-generateblocks-v2.md` §3, la skill `generar-bloques-generateblocks`
+(checklist y explicación), fase 4 y erratas de `SETUP-RECOMENDADO.md`, los dos HTML publicados,
+`audit-gb.js` y la memoria `leccion-colores-generateblocks`. Plugin a **0.1.3**.
+
+---
+
 ### Cerrado hoy (28/08/2026)
+
 
 - **La laguna de portabilidad de la configuración del tema, resuelta.** `herramientas/config-tema.js`
   exporta `generate_settings`, `generate_spacing_settings` y `generate_package_font_library` a JSON

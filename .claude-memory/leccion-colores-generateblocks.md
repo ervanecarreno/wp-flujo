@@ -32,16 +32,21 @@ aplanar a HEX. Esto abre una vía real (sin usar el panel de color) para que `va
 CSS Editor de GB Pro, o cualquier mecanismo que escriba directamente en el atributo `styles`/`css`
 en vez de por el panel de color bloque a bloque.
 
-**Hallazgo colateral, más importante que el original:** el documento del método
-(`docs/metodo-generateblocks-v2.md` §3) documentaba **cinco** escapes del JSON del comentario de
-bloque, incluyendo `"` → `\u0022`. **Es incorrecto y rompe el guardado real.** WordPress sanea
-el contenido al guardar (vía REST/editor) con `kses`, que solo reconoce un comentario de bloque
-como Gutenberg legítimo si el JSON de dentro tiene **comillas literales** — si no, borra
-silenciosamente todo el interior del comentario y `parse_blocks()` devuelve atributos vacíos. Con
-solo **cuatro** escapes (`\u002d\u002d`, `\u003c`, `\u003e`, `\u0026`) y comillas literales, el
-bloque sobrevive perfecto. `herramientas/audit-gb.js` nunca exigió el quinto escape, así que el
-validador siempre fue correcto — el error estaba solo en la documentación, ya corregida, y en la
-investigación original (con addendum en `resultados-completos.md`).
+**Hallazgo colateral, corregido dos veces.** El escapado del JSON del comentario de bloque lo
+hace WordPress en `serialize_block_attributes()` (`wp-includes/blocks.php`), y son **seis**
+sustituciones: `\\`, `--`, `<`, `>`, `&` y `\"`. La última es la que importa: se aplica
+**solo a la comilla ya escapada**, la que está dentro de un valor (atributos de un SVG en
+línea). Las comillas **estructurales** del JSON se dejan literales.
+
+Escaparlas *todas* es lo que rompe el guardado: el JSON deja de ser válido y `parse_blocks()`
+devuelve los atributos vacíos, sin ningún error. **No es `kses`** — así lo decía la versión
+anterior de esta memoria y era un mecanismo equivocado. La corrección intermedia (quitar la
+sustitución de la comilla del todo) es segura pero no canónica: produce JSON válido que
+WordPress acepta, aunque lo reescribe al reguardar desde el editor.
+
+`herramientas/audit-gb.js` solo comprueba los cuatro caracteres crudos (`&`, `<`, `>`, `--`),
+así que nunca dio un falso error. La verificación adversarial de la investigación original
+(nota 63 de `resultados-completos.md`) **ya lo señalaba bien** y se pasó por alto.
 
 El nuevo CSS Editor de GB Pro 2.6 **sigue sin probar empíricamente** — el experimento hecho usó la
 API REST directamente, no un clic real en ese editor. Diferencia menor (misma capa de saneado),
@@ -50,5 +55,5 @@ pero queda como el único cabo suelto real de este asunto.
 **How to apply:** en la fase de generación de marcado de [[flujo-wordpress-generateblocks]], el
 color se sigue aplicando siempre por clase CSS, nunca por el panel visual del bloque — eso no ha
 cambiado. Lo que cambia es que ya no hay que evitar `var()` en `styles`/`css` por miedo al
-escapado: usar los cuatro escapes correctos (ver `docs/metodo-generateblocks-v2.md` §3) y dejar
-las comillas literales.
+escapado: aplicar las seis sustituciones del core (ver `docs/metodo-generateblocks-v2.md` §3),
+dejando literales las comillas estructurales del JSON.

@@ -485,7 +485,7 @@
           <div class="phase-title"><h3>Generación de marcado</h3></div>
           <ul>
             <li>Imágenes subidas <strong>primero</strong> con <code class="mono">wp media import --porcelain</code> — un ID inventado no da error, solo deja de generar tamaños responsive</li>
-            <li>Escapado del JSON: <strong>4 sustituciones</strong> (<code class="mono">--</code>, <code class="mono">&lt;</code>, <code class="mono">&gt;</code>, <code class="mono">&amp;</code>), comillas literales — ver corrección más abajo</li>
+            <li>Escapado del JSON: <strong>las 6 sustituciones del core</strong> (<code class="mono">\\</code>, <code class="mono">--</code>, <code class="mono">&lt;</code>, <code class="mono">&gt;</code>, <code class="mono">&amp;</code>, <code class="mono">\"</code>). Solo se escapa la comilla <em>ya escapada</em>, la de dentro de un valor: las estructurales del JSON van literales — ver corrección más abajo</li>
             <li>Color siempre por clase CSS o <code class="mono">var()</code> directo en <code class="mono">styles</code>/<code class="mono">css</code>, nunca por el panel del bloque</li>
             <li>Validador Node obligatorio antes de dar nada por bueno</li>
           </ul>
@@ -538,14 +538,24 @@
   </section>
 
   <section id="correccion">
-    <div class="section-head"><span class="section-num">§3</span><h2>Corrección de hoy: lo que la investigación no pudo saber</h2></div>
-    <p class="lead-text">La investigación original se hizo por desk research. Esto solo lo reveló probarlo contra un WordPress real.</p>
+    <div class="section-head"><span class="section-num">§3</span><h2>Erratas: lo que solo se supo al probarlo</h2></div>
+    <p class="lead-text">La investigación original se hizo por desk research. Estas dos correcciones solo salieron al probarlo contra un WordPress real y al leer el código del core. La segunda corrige a la primera.</p>
     <div class="erratum">
       <div class="erratum-header">Corregido 27/08/2026 (tarde)</div>
       <div class="erratum-body">
         <p class="was">Se afirmaba: "GenerateBlocks no admite var(--color) de forma fiable en el marcado pegado a mano" — y por eso se recomendaba aplanar todo a valores literales.</p>
         <p class="now">Es falso. Verificado contra un WordPress real: var(--color-x) sobrevive intacto — guardado vía la API REST (el mismo camino que el editor), parseado por WordPress, y presente en el CSS que GenerateBlocks genera de verdad en el frontend.</p>
-        <p>El problema real nunca fue <code class="mono">var()</code>: era una quinta sustitución de escapado (comillas → unicode) que ni este documento ni la investigación original sabían que rompía el guardado — con ella, WordPress guarda el bloque <strong>vacío</strong>, sin ningún error visible. Con las cuatro sustituciones correctas y comillas literales, todo funciona.</p>
+        <p>El problema real nunca fue <code class="mono">var()</code>, sino el escapado del JSON del comentario de bloque.</p>
+      </div>
+    </div>
+    <div class="erratum">
+      <div class="erratum-header">Corregido 28/08/2026 — corrección de la corrección</div>
+      <div class="erratum-body">
+        <p class="was">El 27/08 se dejó escrito que el escapado son <strong>cuatro</strong> sustituciones y que las comillas se dejan literales, culpando al filtro <code class="mono">kses</code> de WordPress de romper el guardado.</p>
+        <p class="now">Ni una cosa ni la otra. Leído del código de WordPress —<code class="mono">serialize_block_attributes()</code> en <code class="mono">wp-includes/blocks.php</code>— son <strong>seis</strong> sustituciones, y el mecanismo del fallo no era <code class="mono">kses</code>.</p>
+        <p>La distinción que lo decide todo: la sustitución de la comilla se aplica <strong>solo a la que ya viene escapada</strong>, la que está dentro de un valor (los atributos de un SVG en línea, por ejemplo). Las comillas <strong>estructurales</strong> del JSON se dejan literales. Aplicarla a todas invalida el JSON, y entonces sí: WordPress guarda el bloque <strong>vacío</strong> sin ningún error visible.</p>
+        <p>Quedarse en las cuatro es <em>seguro</em> —produce JSON válido que WordPress acepta— pero no canónico: al reguardar desde el editor, WordPress reescribe el marcado y el contenido cambia de bytes sin que nadie lo haya editado. El validador ya avisa de esto.</p>
+        <p>Detalle: la verificación adversarial de la investigación original <strong>ya lo señalaba bien</strong>, y se pasó por alto al escribir la corrección del 27.</p>
       </div>
     </div>
   </section>

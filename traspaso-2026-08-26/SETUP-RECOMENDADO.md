@@ -51,9 +51,10 @@ Enterprise sin excepción da igual el método de acceso.
 documento afirmaba que "GenerateBlocks no admite `var(--color)` de forma fiable en el marcado
 pegado a mano", y por eso recomendaba aplanar todo a literales incluso si se extrajera limpio de
 Figma. **Es falso, verificado contra un WordPress real** (ver Fase 4): `var(--color-x)` sobrevive
-intacto con el escapado correcto — el problema real nunca fue `var()`, sino un quinto escape de
-comillas que ni este documento ni la investigación original sabían que rompía el guardado. Sigue
-sin ser buena idea extraer marcado de Figma (por el límite de peticiones de arriba), pero YA NO es
+intacto con el escapado correcto — el problema real nunca fue `var()`, sino una tabla de escapado
+ambigua que llevaba a escapar *todas* las comillas del JSON, no solo las de dentro de un valor
+(corregido del todo el 28/08; ver Fase 4).
+Sigue sin ser buena idea extraer marcado de Figma (por el límite de peticiones de arriba), pero YA NO es
 por un problema técnico de `var()` — si algún día se extrae limpio, las variables sí sobrevivirían.
 
 **Si el cliente insiste en Figma o ya lo tiene armado por un tercero**, úsalo solo como referencia
@@ -110,14 +111,17 @@ se versiona es realmente código, no un volcado de base de datos.
    el destino (no da error: simplemente no genera tamaños responsive).
 2. Generar los bloques de GenerateBlocks con la skill del checklist de 10 reglas (`generar-bloques-generateblocks`
    del plugin; el §8 de `docs/metodo-generateblocks-v2.md` tiene el detalle de cada una).
-   **El escapado del JSON del comentario de bloque son 4 sustituciones, no 5**: `--`, `<`, `>`, `&`
-   → sus `\uXXXX`. **Las comillas se dejan literales** — escaparlas rompe el guardado real (ver
-   nota de la Fase 1 y el detalle completo en `docs/metodo-generateblocks-v2.md` §3).
+   **El escapado del JSON del comentario de bloque son las 6 sustituciones que hace el core**
+   (`\\`, `--`, `<`, `>`, `&`, `\"`), leídas de `serialize_block_attributes()` en
+   `wp-includes/blocks.php`. La clave está en la última: **solo se escapa la comilla que ya viene
+   escapada**, la de dentro de un valor. Las comillas **estructurales** del JSON se dejan
+   literales — escaparlas todas invalida el JSON y el bloque se guarda vacío sin dar error.
+   Detalle y historial de las dos correcciones en `docs/metodo-generateblocks-v2.md` §3.
 3. Colores: nunca elegidos en el panel de color del bloque — sigue resolviendo siempre a HEX
    literal, tenga o no Global Styles activados (ver Fase 6). Por defecto, clases utilitarias
    (`.text-accent`, `.bg-accent`...) en el CSS del tema hijo. Alternativa ya verificada: escribir
    `var(--accent)` directamente en `styles`/`css` al generar el bloque (nunca por el panel) —
-   sobrevive intacto con el escapado de 4 sustituciones de arriba.
+   sobrevive intacto con el escapado correcto de arriba.
 4. Pasar el **validador Node** — ya construido, integrado en el plugin
    (`herramientas/audit-gb.js`, reconstruye el `css` de cada bloque desde `styles` y compara
    carácter a carácter). Pendiente de ampliar con dos reglas que esta investigación señala: (a)
@@ -211,15 +215,19 @@ colores y espaciados. Es lo único de esta fase que ningún validador puede conf
   Tratarlo como paso de checklist manual antes de cada entrega, no como algo automático. Esto
   **no cambia** con el hallazgo de abajo: el problema de Global Styles nunca fue el escapado de
   `--`, es que no hay API para exportarlo/versionarlo — sigue sin poder viajar por git.
-- **El problema de `--` en el comentario HTML, resuelto (27/08/2026).** Este documento y la
-  investigación original daban por buena una quinta sustitución de escapado (comillas → `"`)
-  que resulta ser la que rompe el guardado real: WordPress guarda el bloque vacío sin dar error.
-  Con las cuatro sustituciones correctas (`--`, `<`, `>`, `&`) y comillas literales, `var(--color)`
-  sobrevive intacto hasta el CSS real del frontend — probado contra un WordPress real, no solo
-  contra el editor. Detalle completo, con la metodología, en `docs/metodo-generateblocks-v2.md`
-  §3 y en `ESTADO.md`. **Sigue sin probar**: un clic real en el CSS Editor de GB Pro 2.6 desde la
-  UI (el experimento usó la API REST directamente, el mismo camino que usa el editor al guardar,
-  pero no un clic literal en ese editor concreto).
+- **El escapado del comentario de bloque: corregido dos veces (27 y 28/08/2026).** La
+  investigación original y este documento daban por buena una tabla ambigua que, leída al pie de
+  la letra, escapaba *todas* las comillas: eso invalida el JSON y WordPress guarda el bloque
+  **vacío** sin dar error. La corrección del 27/08 quitó la sustitución por completo —seguro,
+  pero no canónico— y culpaba al filtro `kses`, que no era el mecanismo. El 28/08 se leyó
+  `serialize_block_attributes()` del core: son **seis** sustituciones, y la de la comilla se
+  aplica **solo a la que ya viene escapada** (la de dentro de un valor). La verificación
+  adversarial de `investigacion/resultados-completos.md` (nota 63) **ya lo señalaba bien**; se
+  pasó por alto. Detalle en `docs/metodo-generateblocks-v2.md` §3.
+- **`var(--color)` funciona**, verificado contra un WordPress real: sobrevive intacto hasta el CSS
+  del frontend. No hay que aplanar colores a HEX por miedo al escapado. **Sigue sin probar**: un
+  clic real en el CSS Editor de GB Pro 2.6 desde la UI (el experimento usó la API REST, el mismo
+  camino que usa el editor al guardar, pero no ese botón concreto).
 - **theme.json en GeneratePress** (tema clásico): su efecto real en frontend es ambiguo incluso en
   la documentación oficial — verificarlo contra el sitio real antes de construir nada encima, no
   darlo por hecho.

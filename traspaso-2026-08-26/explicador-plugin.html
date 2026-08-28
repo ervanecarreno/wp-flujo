@@ -740,7 +740,7 @@
 
   <section id="caso">
     <div class="section-head"><span class="section-num">04</span><h2>Caso real: el bug que encontró el propio plugin</h2></div>
-    <p class="lead-text">El 27/08/2026 se probó si <span class="mono">var(--color)</span> sobrevive al guardado real de WordPress. La respuesta importante no fue la esperada.</p>
+    <p class="lead-text">El 27/08/2026 se probó si <span class="mono">var(--color)</span> sobrevive al guardado real de WordPress. La respuesta importante no fue la esperada — y al día siguiente hubo que corregir la propia corrección.</p>
 
     <div class="case">
       <div class="case-header">
@@ -749,20 +749,20 @@
       <div class="case-body">
         <div class="verdict-row no">
           <span class="mark">✕</span>
-          <span class="text"><b>Con 5 escapes</b> (incluidas las comillas → <span class="mono-name">\u0022</span>), WordPress guardaba el bloque <b>vacío</b>. El saneado de seguridad de WordPress no reconocía el comentario como un bloque legítimo — sin ningún error visible.</span>
+          <span class="text"><b>Escapando TODAS las comillas</b> → <span class="mono-name">\u0022</span>, WordPress guardaba el bloque <b>vacío</b>, sin ningún error visible. Se destruyen las comillas estructurales del JSON y deja de parsear.</span>
         </div>
         <div class="verdict-row yes">
           <span class="mark">✓</span>
-          <span class="text"><b>Con 4 escapes</b> y comillas literales, el bloque sobrevive intacto — incluido <span class="mono-name">var(--color)</span> hasta el CSS real del frontend.</span>
+          <span class="text"><b>Con el escapado correcto</b>, el bloque sobrevive intacto — incluido <span class="mono-name">var(--color)</span> hasta el CSS real del frontend.</span>
         </div>
         <pre class="term"><span class="comment"># parse_blocks() de WordPress, antes y después de corregir el escapado</span>
-attrs: Array ( )                          <span class="comment">← con el quinto escape: vacío</span>
+attrs: Array ( )                          <span class="comment">← escapando todas las comillas: vacío</span>
 
 attrs: Array (
     [styles] => Array ( [background-color] => var(--color-x) )
     [css] => .gb-element-x{background-color:var(--color-x)}
-)                                          <span class="ok">← con los 4 escapes correctos: intacto</span></pre>
-        <p style="font-size:0.9rem;color:var(--ink-soft);margin:0">El validador propio del plugin nunca exigió ese quinto escape — siempre fue correcto. El error vivía solo en la documentación, y ya está corregido en los cinco sitios donde aparecía.</p>
+)                                          <span class="ok">← con el escapado correcto: intacto</span></pre>
+        <p style="font-size:0.9rem;color:var(--ink-soft);margin:0"><b>La corrección de la corrección (28/08/2026).</b> El arreglo del 27 quitó la sustitución de la comilla del todo y culpaba al filtro <span class="mono-name">kses</span>. Al leer el código del core —<span class="mono-name">serialize_block_attributes()</span>— resultó que son <b>seis</b> sustituciones, que la de la comilla se aplica <b>solo a la que ya viene escapada</b> (la de dentro de un valor), y que el fallo no era <span class="mono-name">kses</span> sino JSON inválido. Quedarse en cuatro es seguro pero no canónico: WordPress reescribe el marcado al reguardar. El validador del plugin ya avisa de eso.</p>
       </div>
     </div>
   </section>

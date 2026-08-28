@@ -84,12 +84,23 @@ for (const b of blocks) {
   if (rawJson.includes('>')) bad.push('> crudo (debe ser \\u003e)');
   if (rawJson.includes('--')) bad.push('-- crudo (debe ser \\u002d\\u002d) — CIERRA EL COMENTARIO HTML');
 
+  // Escapado canonico: serialize_block_attributes() de WordPress core sustituye tambien
+  // BS+BS -> uXXXX(005c) y BS+" -> uXXXX(0022). Dejarlos sin escapar produce JSON valido y
+  // WordPress lo acepta, pero no coincide con lo que escribe el core: al reguardar desde el
+  // editor, el marcado se reescribe y el contenido cambia de bytes sin que nadie lo edite.
+  // Es un AVISO, no un error: el bloque funciona.
+  const BS = String.fromCharCode(92);
+  const noCanonico = [];
+  if (rawJson.includes(BS + '"')) noCanonico.push('comilla escapada como ' + BS + '" (el core escribe ' + BS + 'u0022)');
+  if (rawJson.includes(BS + BS)) noCanonico.push('barra invertida como ' + BS + BS + ' (el core escribe ' + BS + 'u005c)');
+
   let attrs;
   try { attrs = JSON.parse(rawJson); }
   catch (e) { add('ERR', 'json', b.type, 'JSON inválido: ' + e.message, rawJson.slice(0, 120)); continue; }
 
   const id = attrs.uniqueId || '(sin uniqueId)';
   for (const m of bad) add('ERR', 'escapado', id, m);
+  for (const m of noCanonico) add('WARN', 'escapado-no-canonico', id, m);
 
   // --- 3b. uniqueId único (§8) ---
   if (!attrs.uniqueId) add('ERR', 'uniqueId', b.type, 'falta uniqueId');
