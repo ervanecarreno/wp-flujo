@@ -146,12 +146,18 @@ se versiona es realmente código, no un volcado de base de datos.
    escapada**, la de dentro de un valor. Las comillas **estructurales** del JSON se dejan
    literales — escaparlas todas invalida el JSON y el bloque se guarda vacío sin dar error.
    Detalle y historial de las dos correcciones en `docs/metodo-generateblocks-v2.md` §3.
-3. Colores: nunca elegidos en el panel de color del bloque — sigue resolviendo siempre a HEX
+3. **Si el diseño tiene componentes que se repiten, defínelos como Global Styles y emite los
+   bloques con `globalClasses`.** Es lo que hace GenerateBlocks consigo mismo: en sus propios
+   exports hay bloques con `"globalClasses":["gbp-section"]` y **sin `styles` propios**, que salen
+   con `class=""`. Ventaja: el marcado se queda sin un solo HEX y hay **un único sitio** donde
+   cambiar cada componente. Se versionan con `herramientas/global-styles.js` y se empujan al
+   destino en la Fase 8, igual que la configuración del tema.
+4. Colores: nunca elegidos en el panel de color del bloque — sigue resolviendo siempre a HEX
    literal, tenga o no Global Styles activados (ver Fase 6). Por defecto, clases utilitarias
    (`.text-accent`, `.bg-accent`...) en el CSS del tema hijo. Alternativa ya verificada: escribir
    `var(--accent)` directamente en `styles`/`css` al generar el bloque (nunca por el panel) —
    sobrevive intacto con el escapado correcto de arriba.
-4. Pasar el **validador Node** — ya construido, integrado en el plugin
+5. Pasar el **validador Node** — ya construido, integrado en el plugin
    (`herramientas/audit-gb.js`, reconstruye el `css` de cada bloque desde `styles` y compara
    carácter a carácter). Pendiente de ampliar con dos reglas que esta investigación señala: (a)
    fallar si aparece un HEX de marca literal fuera de una lista de excepciones conocida, y (b)
@@ -239,11 +245,18 @@ colores y espaciados. Es lo único de esta fase que ningún validador puede conf
 - **GenerateCloud** ($99/año): solo tiene sentido gestionando muchos sitios de cliente con
   librería de patrones compartida. Para un proyecto puntual, exportar/importar XML es gratis y
   suficiente.
-- **Global Styles de GenerateBlocks Pro** como mecanismo de sincronización entre entornos: es un
-  custom post type sin API REST ni WP-CLI oficial — no hay forma fiable de versionarlo en git hoy.
-  Tratarlo como paso de checklist manual antes de cada entrega, no como algo automático. Esto
-  **no cambia** con el hallazgo de abajo: el problema de Global Styles nunca fue el escapado de
-  `--`, es que no hay API para exportarlo/versionarlo — sigue sin poder viajar por git.
+- ~~**Global Styles de GenerateBlocks Pro** como mecanismo de sincronización entre entornos~~
+  **RESCATADO el 28/08/2026: esto era falso y ahora es la vía recomendada.** Se descartó por creer
+  que era un custom post type sin API REST ni WP-CLI. Comprobado contra GenerateBlocks Pro 2.7.0:
+  el CPT es `gblocks_styles`, **sí está expuesto en REST** (`rest_base: gblocks_styles`) y se
+  maneja perfectamente por wp-cli. Cada estilo es un post con `post_title` = el selector,
+  `menu_order` = el orden de salida (o sea la especificidad) y tres postmeta:
+  `gb_style_selector`, `gb_style_css` y `gb_style_data` (el objeto de estilos **en camelCase**, la
+  misma forma que el atributo `styles` de un bloque). Se compila a
+  `uploads/generateblocks/style-global.css`.
+
+  Hay herramienta: `herramientas/global-styles.js`, con exportación e importación idempotentes.
+  Y cambia cómo conviene generar el marcado — ver la Fase 4.
 - **El escapado del comentario de bloque: corregido dos veces (27 y 28/08/2026).** La
   investigación original y este documento daban por buena una tabla ambigua que, leída al pie de
   la letra, escapaba *todas* las comillas: eso invalida el JSON y WordPress guarda el bloque

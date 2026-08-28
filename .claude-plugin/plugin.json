@@ -1,7 +1,7 @@
 {
   "name": "wp-generateblocks",
   "description": "El flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF: bootstrap del entorno antes del diseño, marcado validado, puerta de calidad automatizada y paso a producción. Incluye los validadores Node y los envoltorios de wp-cli.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "author": {
     "name": "Javier — Metrópolis Comunicación",
     "email": "javier@metropoliscom.com"

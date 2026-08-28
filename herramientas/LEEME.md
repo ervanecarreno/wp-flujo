@@ -1,8 +1,9 @@
 # Herramientas de validación (Node, sin dependencias)
 
-Cinco scripts. Tres validan el marcado de GenerateBlocks contra el checklist de
+Seis scripts. Tres validan el marcado de GenerateBlocks contra el checklist de
 `../docs/metodo-generateblocks-v2.md` §8; `puerta-calidad.js` valida el sitio ya desplegado
-(fase 7) y `config-tema.js` lleva la configuración del tema de un sitio a otro (fases 2 y 8).
+(fase 7); `config-tema.js` lleva la configuración del tema de un sitio a otro y `global-styles.js` hace
+lo mismo con los Global Styles de GenerateBlocks (fases 2, 4 y 8).
 Requieren solo Node (probado en v24). No instalan nada ni tocan la red salvo donde se indica.
 
 ## `audit-gb.js` — checklist del método §8
@@ -13,19 +14,29 @@ node herramientas/audit-gb.js wordpress/generateblocks/home-1b-generateblocks-v2
 
 Comprueba bloque a bloque:
 
-- `css` reconstruido desde `styles` (mismo `buildCss` del método) y comparado carácter a carácter
-- `className` sin la id-class · cuerpo con `gb-<tipo>-<id>` + `gb-<tipo>` · `tagName` coherente
-- Escapado: ningún `"` `&` `<` `>` `--` crudo dentro del JSON del comentario
+- `css` reconstruido desde `styles` convirtiendo camelCase a kebab-case, como hace GB
+- `className` sin la id-class · id-class en el cuerpo **si el bloque tiene CSS propio** · `tagName` coherente
+- Escapado: ningún `&` `<` `>` `--` crudo dentro del JSON, y aviso si no es el canónico del core
 - `htmlAttributes` objeto plano, nunca array (causa #1 de "Attempt Recovery")
 - `src`/`alt`/`href` dentro de `htmlAttributes`, no en primer nivel
 - `content` duplicado en atributo y cuerpo · SVG duplicado en `html` y cuerpo
 - `element` con `tagName:"a"` conteniendo un `text`, nunca texto plano
 - `uniqueId` únicos · apertura/cierre emparejados · sintaxis de etiquetas dinámicas
 
-**Interpretar la salida:** solo importan los **ERRORES**. Los avisos incluyen falsos
-positivos conocidos: cuenta como "texto suelto" el contenido de los bloques `text` hijos,
-y marca `{{post_date dateFormat:j F, Y}}` como sintaxis dudosa por el espacio del formato
-(es correcta). Al 26/08/2026 el archivo v2 daba **0 errores / 42 avisos, todos falsos**.
+**Recalibrado el 28/08/2026 contra 732 bloques de 25 exports reales de GenerateBlocks**, que ahora
+pasa con **0 errores**. Antes daba 714: cuatro reglas eran falsas (comparaba camelCase con kebab,
+exigía que `css` fuera serialización exacta de `styles` cuando GB lo *optimiza*, y pedía siempre la
+clase base y la id-class). Detalle en `../docs/metodo-generateblocks-v2.md` §8.
+
+**Interpretar la salida:** solo importan los **ERRORES**. Los avisos incluyen falsos positivos
+conocidos: cuenta como "texto suelto" el contenido de los bloques `text` hijos, y marca
+`{{post_date dateFormat:j F, Y}}` como sintaxis dudosa por el espacio del formato (es correcta).
+
+Con `--estricto`, la comparación `css`/`styles` vuelve a ser error. Úsalo **solo** con marcado
+generado por este flujo: con marcado exportado de WordPress da falsos positivos, porque GB optimiza
+(colapsa longhands en shorthand, quita espacios de `rgba()` y `clamp()`).
+
+Lee también **exports `wp_block` en JSON**, que es como GenerateBlocks exporta los patrones.
 
 ## `audit-cross.js` — coherencia entre marcado, CSS, JS y assets
 
@@ -115,3 +126,30 @@ Local y se lo pasa a `wp.cmd` por `WP_MYSQL_PORT`.
 
 Lo único que no puede comprobar por ti: que el sitio **se vea** bien después. Míralo en el
 navegador — tipografía, colores y espaciados.
+
+## `global-styles.js` — los Global Styles de GenerateBlocks, versionables
+
+Un Global Style es una regla CSS con nombre. **Se puede versionar**, aunque este flujo dijera lo
+contrario hasta el 28/08/2026: el CPT `gblocks_styles` está expuesto en la API REST y se maneja bien
+por wp-cli.
+
+```bash
+node herramientas/global-styles.js exportar --path="<sitio>" [--fichero=global-styles.json]
+node herramientas/global-styles.js importar --path="<sitio>"              # solo informa
+node herramientas/global-styles.js importar --path="<sitio>" --confirmar  # escribe
+```
+
+Deja un JSON legible con un elemento por estilo: selector, orden, CSS compilado y el objeto de
+estilos en camelCase. **El orden del array es la especificidad** — GenerateBlocks saca el CSS de
+arriba abajo, así que reordenar el fichero cambia qué regla gana.
+
+Es **idempotente**: reimportar sin cambios dice "sin cambios 13" y no toca nada. Compara la
+estructura del JSON, no la cadena, porque al exportar se decodifica para que el diff se lea y al
+importar se vuelve a codificar — los bytes no coinciden aunque el contenido sea idéntico.
+
+**Para qué sirve de verdad:** define los componentes del diseño una vez como global styles y emite
+los bloques con `globalClasses` en vez de estilos por bloque. El marcado se queda sin un solo HEX.
+Detalle en `docs/metodo-generateblocks-v2.md` §7 bis.
+
+**Ojo:** importar afecta a **todas** las páginas que usen esas clases. Exporta los actuales antes
+para tener con qué volver atrás.

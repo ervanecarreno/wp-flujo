@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.2.0
+version: 0.3.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -62,7 +62,7 @@ Detalle completo de cada fase, con las fuentes: `traspaso-2026-08-26/SETUP-RECOM
 plugin. El respaldo con nivel de confianza por afirmación está en
 `traspaso-2026-08-26/investigacion/resultados-completos.md`.
 
-## Las seis trampas ya pagadas
+## Las siete trampas ya pagadas
 
 Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
 
@@ -80,7 +80,13 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
    DOM y llamar a `ScrollTrigger.refresh()`; nunca una NodeList cacheada.
 5. **Un desfase de breakpoint entre CSS y JS cuesta caro.** GP usa 768 y GB 767 por defecto: una
    sola fuente de verdad, anotada en la fase 0.
-6. **La configuración del tema y la tipografía no viajan con el repo git: viven en la base de
+6. **Los Global Styles de GB Pro SÍ se pueden versionar** — el flujo dijo lo contrario hasta el
+   28/08/2026 y era falso. Son el CPT `gblocks_styles`, expuesto en REST, con el selector en
+   `post_title`, el orden de salida en `menu_order` y los estilos en `gb_style_data` (camelCase).
+   Herramienta: `herramientas/global-styles.js`. **Y cambia cómo generar marcado**: si un componente
+   se repite, defínelo como global style y emite los bloques con `globalClasses` en vez de estilos
+   por bloque. Es lo que hace GB consigo mismo, y deja el marcado sin un solo HEX.
+7. **La configuración del tema y la tipografía no viajan con el repo git: viven en la base de
    datos.** Verificado contra un WordPress real: en las opciones `generate_settings`,
    `generate_spacing_settings` y `generate_package_font_library`. El repo lleva el tema hijo, los
    CPT, `acf-json/` y `/patterns/`, así que el destino recibe la maqueta bien y la tipografía y los
@@ -102,8 +108,6 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
   cliente, no al tuyo; la API de Variables exige Enterprise. Y habría que aplanar a literales
   igualmente. Como referencia visual, sí; como fuente, no.
 - **GenerateCloud** ($99/año): solo renta gestionando muchos sitios con patrones compartidos.
-- **Global Styles de GB Pro como sincronización entre entornos**: sin API REST ni WP-CLI oficial.
-  Paso manual de checklist, no automático.
 - **theme.json en GeneratePress** (tema clásico): efecto real en frontend ambiguo hasta en la doc
   oficial. No construir nada encima sin verificarlo contra el sitio real.
 - **WPCode para encolar scripts**: vive en la base de datos y no viaja entre entornos. Tema hijo.

@@ -47,6 +47,31 @@ node herramientas/config-tema.js importar --path="<otro>" --confirmar
 
 ---
 
+## Cerrado el 28/08/2026 (noche): los Global Styles, rescatados
+
+**El flujo daba los Global Styles de GB Pro por no versionables. Era falso.** Comprobado
+contra GenerateBlocks Pro 2.7.0: son el CPT `gblocks_styles`, **expuesto en la API REST**
+(`rest_base: gblocks_styles`) y manejable por wp-cli.
+
+| Dónde | Qué |
+|---|---|
+| `post_title` | el selector |
+| `menu_order` | el orden de salida del CSS = la especificidad |
+| `gb_style_css` | el CSS compilado de esa regla |
+| `gb_style_data` | el objeto de estilos en camelCase, igual que `styles` de un bloque |
+
+Herramienta nueva: **`herramientas/global-styles.js`**, exportar/importar **idempotente**
+(compara la estructura del JSON, no la cadena; probado: 13 estilos, 0 cambios al reimportar).
+
+**Y cambia cómo generar marcado.** Si un componente se repite, va como global style y el
+bloque lleva `globalClasses` sin `styles` propios — que es lo que hace GB en sus exports, y
+la razón de que la id-class no siempre esté. Deja el marcado **sin un solo HEX literal**.
+
+Documentado en el método §7 bis, la fase 4 de `SETUP-RECOMENDADO.md`, la trampa 6 de la skill
+del flujo y `herramientas/LEEME.md`. Plugin a **0.4.0**.
+
+---
+
 ## Cerrado el 28/08/2026 (noche): el validador, recalibrado contra GB real
 
 `herramientas/audit-gb.js` daba **714 errores sobre 732 bloques escritos por GenerateBlocks
@@ -162,6 +187,7 @@ concreto.
 | `herramientas/` | Validadores Node sin dependencias: `audit-gb.js` (checklist §8), `audit-cross.js` (marcado vs CSS/JS/assets), `fix-gb.js` (generador, ojo a su constante `PEND`) |
 | `docs/metodo-generateblocks-v2.md` | El método de referencia para generar bloques GB V2, con el checklist del §8 |
 | `docs/AUDITORIA-aridane.md` | Caso de estudio: la auditoría que descubrió los fallos de entorno |
+| `herramientas/global-styles.js` | Fases 2, 4 y 8: exporta e importa los Global Styles de GB (CPT `gblocks_styles`). Idempotente |
 | `docs/rutas-de-conversion.md` | Las 3 rutas de conversión comparadas y medidas: handoff, MCP de Figma y figma-gb-pipeline |
 | `docs/prueba-handoff.md` | Evidencia medida de la importación de un handoff: escapado, kses, fidelidad visual y las dos trampas |
 | `docs/recorrido-proyecto-ejemplo.html` | Ejemplo trabajado: un proyecto ficticio de principio a fin, para ver cómo se interactúa con el plugin. Publicado en https://claude.ai/code/artifact/a607bb4e-69c8-40ef-87d9-282674329393 |

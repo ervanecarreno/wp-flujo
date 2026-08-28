@@ -44,8 +44,11 @@ prototipo.** Cualquier ajuste al flujo debe respetar ese orden.
 
 - GenerateCloud ($99/año): solo rentable gestionando muchos sitios de cliente con patrones
   compartidos
-- Global Styles de GB Pro como mecanismo de sync entre entornos: sin API REST/WP-CLI oficial,
-  tratarlo como paso manual de checklist, no como algo automático
+- ~~Global Styles de GB Pro como sync entre entornos~~ **RESCATADO el 28/08/2026: era falso.**
+  El CPT `gblocks_styles` SÍ está en REST y se maneja por wp-cli. Selector en `post_title`,
+  orden de salida en `menu_order`, estilos en `gb_style_data` (camelCase). Hay herramienta:
+  `herramientas/global-styles.js`. Y cambia cómo generar marcado: componentes repetidos van
+  como global style + `globalClasses` en el bloque, no como estilos por bloque.
 - theme.json en GeneratePress (tema clásico): efecto real en frontend ambiguo incluso en la doc
   oficial — no construir nada encima sin verificarlo contra el sitio real primero
 

@@ -261,6 +261,56 @@ Criterio: si el bloque de core aporta **funcionalidad de servidor** (búsqueda, 
 
 ---
 
+## 7 bis. Global Styles: la forma canónica de no repetir estilos
+
+**Verificado el 28/08/2026 contra GenerateBlocks Pro 2.7.0.** Un Global Style es una regla CSS con
+nombre. Vive en el tipo de contenido `gblocks_styles`, uno por selector:
+
+| Dónde | Qué |
+|---|---|
+| `post_title` | el selector, p.ej. `.gbp-card` |
+| `menu_order` | el **orden de salida** del CSS, que es la especificidad, de arriba abajo |
+| `gb_style_selector` (postmeta) | el selector |
+| `gb_style_css` (postmeta) | el CSS compilado de esa regla |
+| `gb_style_data` (postmeta) | el objeto de estilos **en camelCase**, misma forma que `styles` de un bloque |
+
+Todo junto se compila a la opción `generateblocks_style_css` y al fichero
+`wp-content/uploads/generateblocks/style-global.css`.
+
+**Es versionable**, y esto corrige lo que este flujo daba por cerrado: el CPT **sí está expuesto en
+la API REST** (`rest_base: gblocks_styles`) y se maneja bien por wp-cli. Herramienta:
+`herramientas/global-styles.js` (exportar/importar, idempotente).
+
+### Cómo usarlo al generar marcado
+
+Si un componente se repite, **no lo estiles bloque a bloque**. Defínelo una vez como global style y
+emite los bloques así:
+
+```json
+{"uniqueId":"17a2a47f","tagName":"div","globalClasses":["gbp-card"]}
+```
+
+Sin `styles`, sin `css`. El bloque sale con `class=""` en el cuerpo y **eso es correcto** — es
+justo lo que hace GenerateBlocks en sus propios exports, y la razón de que la id-class no siempre
+esté (ver §8).
+
+Lo que se gana: el marcado se queda **sin un solo HEX literal**, y "cambia el color de las tarjetas"
+vuelve a ser una edición en un sitio en vez de una revisión de N bloques.
+
+### Las dos capas de tokens
+
+Los global styles referencian variables (`var(--accent-3)`, `var(--gb-container-width)`), que las
+define **GeneratePress** en sus Global Colors. Son dos capas y hay que montar las dos:
+
+1. **GeneratePress** → la paleta y los anchos, como Global Colors del tema (`generate_settings`,
+   que se lleva `herramientas/config-tema.js`).
+2. **GenerateBlocks** → los componentes, como Global Styles (`herramientas/global-styles.js`).
+
+Si falta la capa 1, los global styles resuelven a la paleta que tenga el tema puesto — y la página
+sale con los colores equivocados sin dar ningún error. Verificado.
+
+---
+
 ## 8. Checklist de validación antes de entregar
 
 **Recalibrado el 28/08/2026 contra 732 bloques de 25 exports reales de GenerateBlocks.** Tres reglas
