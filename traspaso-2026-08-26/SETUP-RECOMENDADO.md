@@ -105,6 +105,14 @@ se versiona es realmente código, no un volcado de base de datos.
 
 ### Fase 4 — Generación de marcado (con el validador como parte del proceso, no al final)
 
+0. **Si el marcado ya viene hecho (handoff), impórtalo con `wp post create <fichero>`.** Nunca con
+   un `wp_insert_post()` propio pasándole el contenido tal cual: esa función espera el contenido
+   escapado con barras y aplica `wp_unslash()` por dentro, así que **le quita la barra a todos los
+   escapes unicode del comentario de bloque** y los deja como texto literal. Verificado el
+   28/08/2026 contra un WordPress real: 543 barras eliminadas en un fichero de 179 bloques, con el
+   JSON todavía válido — o sea **sin un solo aviso**. Si hace falta PHP propio, `wp_slash()` antes.
+   Ventaja añadida: `wp post create` no aplica `kses`, así que el SVG en línea no corre el riesgo de
+   que WordPress se lo lleve (ver Fase 7).
 1. **Subir las imágenes primero**, vía `wp media import ruta/img.jpg --porcelain`, capturando el
    ID real devuelto. Generar el marcado usando ESE id — nunca uno inventado en el prototipo. Es
    el mecanismo exacto que causa la degradación silenciosa de `srcset` cuando el id no existe en

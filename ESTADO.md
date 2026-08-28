@@ -11,19 +11,24 @@
 
 ### 1. Decidir sobre el handoff de Claude Design
 
-Prueba real hecha hoy en `C:\TRABAJOS\prueba-claude-design` (carpeta separada a propósito, no
-interfiere). Informe completo en `prueba-claude-design/HALLAZGOS.md`. Resumen:
+Prueba real hecha el 28/08 en `C:\TRABAJOS\prueba-claude-design` (carpeta separada, no interfiere).
+Informe completo en `prueba-claude-design/HALLAZGOS.md`, **incluido el pegado real contra un
+WordPress** (§7). Resumen:
 
-- **`DesignSync` no es una alternativa al handoff**: sirve para sincronizar una librería de
-  componentes React/JSX, no para entregar páginas de WordPress. Comprobado leyendo la cuenta.
-- **De las dos variantes que trae el handoff, gana la nativa de Gutenberg** bajo el criterio
-  FIDELIDAD + RAPIDEZ + POCOS PASOS: 12 tokens y 51 `var()` en un solo CSS, frente a **124 HEX de
-  marca literales repartidos por 179 bloques** en la variante GenerateBlocks.
-- **La variante GB aplana los colores porque el handoff lleva dentro nuestro método antiguo.**
-  Corregir el método en el proyecto de Claude Design arregla eso en origen.
+- **`DesignSync` no es una alternativa al handoff**: sincroniza una librería de componentes
+  React/JSX, no entrega páginas de WordPress. Comprobado leyendo la cuenta.
+- **El marcado sobrevive byte a byte** al guardado real, en las dos variantes: 0 bloques sin
+  atributos, SVG intactos, y WordPress **no reescribe** el escapado canónico.
+- **La fidelidad visual es exacta**, medida con estilos calculados contra la especificación del
+  handoff: tokens, radios, sombras, espaciados, `letter-spacing` del H1 y la rejilla 2×3 de móvil.
+- **El empate está más reñido de lo que parecía.** La variante nativa gana en mantenimiento (12
+  tokens frente a 124 HEX repartidos por 179 bloques), pero **llega sin estilos** si no se instala
+  su CSS de 24,6 KB en el tema. La de GenerateBlocks llega estilada en un solo paso. Decisión por
+  proyecto: web que el cliente va a reteñir → nativa; prototipo para enseñar ya → GenerateBlocks.
 
 **Pendiente de decisión de Javier:** si el handoff entra en el flujo como fase 1, y si se le pasa
-el método corregido al proyecto de Claude Design.
+el método corregido al proyecto de Claude Design (su copia es la versión antigua, y es lo que hace
+que la variante GB aplane los colores a HEX).
 
 ### 2. Probar `config-tema.js` de punta a punta
 
@@ -60,6 +65,13 @@ Qué estaba mal y qué se ha hecho:
 Además: `herramientas/audit-gb.js` **ya avisa** cuando el escapado no es el canónico
 (`escapado-no-canonico`). No es error —el bloque funciona— pero al reguardar desde el editor
 WordPress reescribe el marcado y el contenido cambia de bytes sin que nadie lo edite.
+
+**Hallazgo nuevo de la prueba de pegado:** `wp_insert_post()` con el contenido tal cual **destruye
+el escapado en silencio**. Espera el contenido escapado con barras y aplica `wp_unslash()`, así que
+le quita la barra a todos los escapes unicode: 543 eliminadas en un fichero de 179 bloques, con el
+JSON todavía válido y por tanto **sin un solo aviso**. La regla es importar con
+`wp post create <fichero>`, que además no aplica `kses` y salva el SVG en línea. Escrito en la
+fase 4 de `SETUP-RECOMENDADO.md` y en la skill de bloques.
 
 Actualizado en: `docs/metodo-generateblocks-v2.md` §3, la skill `generar-bloques-generateblocks`
 (checklist y explicación), fase 4 y erratas de `SETUP-RECOMENDADO.md`, los dos HTML publicados,

@@ -12,6 +12,20 @@ queries, contenido dinámico y estrategia de `uniqueId`. **Léelo antes de gener
 
 Lo que sigue es lo que no se puede saltar.
 
+## Si el marcado ya existe: cómo importarlo sin romperlo
+
+**Siempre `wp post create <fichero>`.** Nunca un `wp_insert_post()` propio con el contenido
+tal cual: espera el contenido escapado con barras y aplica `wp_unslash()` por dentro, así que
+**le quita la barra a todos los escapes unicode** del comentario de bloque y los deja como
+texto literal. Verificado el 28/08/2026 contra un WordPress real: 543 barras eliminadas en un
+fichero de 179 bloques, y **el JSON sigue siendo válido**, así que no salta ningún aviso ni
+aparece ningún bloque sin atributos. Si hace falta PHP propio: `wp_slash()` antes.
+
+Y avisa al usuario de esto: **el SVG en línea desaparece si lo pega alguien sin
+`unfiltered_html`** (o sea, no administrador). Comprobado: se van los 16 SVG de una home y los
+126 bloques quedan intactos — la página se ve entera y sin iconos, sin ninguna alerta.
+`wp post create` no aplica `kses`, así que importar por línea de comandos lo evita del todo.
+
 ## Reglas duras
 
 **El color nunca se elige en el panel del bloque.** GenerateBlocks resuelve siempre el valor a HEX
