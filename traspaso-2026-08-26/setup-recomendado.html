@@ -573,9 +573,9 @@
         <h3>GenerateCloud</h3>
         <p>$99/año. Solo rentable gestionando muchos sitios con librería de patrones compartida. Para un proyecto puntual, exportar/importar XML es gratis y suficiente.</p>
       </div>
-      <div class="discard-card">
+      <div class="discard-card resolved">
         <h3>Global Styles como sincronización</h3>
-        <p>Custom post type sin API REST ni WP-CLI oficial. No hay forma fiable de versionarlo en git — esto no cambia con la corrección de arriba: el problema de Global Styles nunca fue el escapado.</p>
+        <p><strong>Se daba por descartado y era falso. Rescatado el 28/08/2026:</strong> el CPT <code class="mono">gblocks_styles</code> <strong>sí está expuesto en la API REST</strong> y se maneja por wp-cli. Selector en <code class="mono">post_title</code>, orden de salida en <code class="mono">menu_order</code>, estilos en <code class="mono">gb_style_data</code> (camelCase). Hay herramienta: <code class="mono">global-styles.js</code>. Y ahora es la vía recomendada: componentes repetidos como global style + <code class="mono">globalClasses</code> en el bloque, que deja el marcado sin un solo HEX.</p>
       </div>
       <div class="discard-card resolved">
         <h3>var() en el marcado</h3>

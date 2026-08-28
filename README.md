@@ -22,7 +22,7 @@ Para el estado del trabajo y qué toca hacer ahora, lee **[ESTADO.md](ESTADO.md)
 ## Las 5 skills
 
 - **`flujo-wordpress-generateblocks`** — se activa al aparecer un proyecto WordPress de cliente.
-  Las 8 fases, las seis trampas ya pagadas, el punto de decisión de conversión y lo descartado con fundamento.
+  Las 8 fases, las siete trampas ya pagadas, el punto de decisión de conversión y lo descartado con fundamento.
 - **`importar-handoff-diseno`** — cuando el marcado **ya existe** (un handoff de Claude Design u
   otro origen). Pregunta el tipo de conversión —GenerateBlocks Pro V2 o Gutenberg nativo— y avisa de
   las dos trampas silenciosas de la importación.
