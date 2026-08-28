@@ -52,11 +52,13 @@ node herramientas/config-tema.js importar --path="<otro sitio>" --confirmar  (es
   `flujo-wordpress-generateblocks` (nueva trampa 6, y las fases 2/6/8 de su tabla),
   `herramientas/LEEME.md` (con la sección de `puerta-calidad.js`, que faltaba) y
   `herramientas/wp-cli/LEEME.md`. Plugin subido a **0.1.2** para que `/plugin` lo detecte.
+- **La versión visual del flujo, al día.** `traspaso-2026-08-26/setup-recomendado.html` republicado
+  con la configuración del tema en las fases 2 y 8, y el orden query loops → animación en la 5.
+  Misma URL de siempre (no cambia el enlace):
+  https://claude.ai/code/artifact/e0637e21-fdca-432a-b83e-133b1362bef4
 
 ### Sigue abierto, sin urgencia
 
-- **Actualizar el HTML publicado** `traspaso-2026-08-26/setup-recomendado.html`: es la versión
-  visual del flujo y todavía no lleva la configuración del tema en las fases 2 y 8.
 - **El plugin no cubre la traducción Figma → GenerateBlocks.** Empieza cuando el marcado ya
   existe. Javier tiene un pipeline propio para ese paso en `C:\TRABAJOSigma-gb-pipeline`
   (proyecto distinto, no mezclar), pero conviene decidir si se documenta el enlace entre ambos.

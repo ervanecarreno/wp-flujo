@@ -468,6 +468,7 @@
             <li>CPTs registrados <strong>por código</strong>, nunca por plugin de UI</li>
             <li><code class="mono">acf-json/</code> activo desde el día uno — gratis, no requiere PRO</li>
             <li><code class="mono">/patterns/</code> para secciones reutilizables, vía WordPress core</li>
+            <li><strong>Exportar la configuración del tema y la tipografía</strong> con <code class="mono">node herramientas/config-tema.js exportar</code> — no están en código, viven en la base de datos, y son lo único de esta fase que el repo no recoge solo</li>
           </ul>
         </div>
       </div>
@@ -495,6 +496,7 @@
         <div class="phase-body">
           <div class="phase-title"><h3>Plantillas, noticias, CPT</h3></div>
           <p>Los CPT ya están registrados por código desde la fase 2. Las plantillas y secciones se guardan como archivos PHP en <code class="mono">/patterns</code>, no como contenido que solo vive en la base de datos.</p>
+          <p><strong>Los query loops se montan aquí, y la animación viene después.</strong> Animar una sección con un número fijo de tarjetas y convertirla luego en query loop rompe la animación: los selectores dejan de encajar y las tarjetas del bucle nunca se registran.</p>
         </div>
       </div>
       <div class="phase">
@@ -529,6 +531,7 @@
         <div class="phase-body">
           <div class="phase-title"><h3>Producción</h3></div>
           <p><code class="mono">wp search-replace --dry-run --skip-columns=guid</code> primero, revisar el informe, y solo entonces sin <code class="mono">--dry-run</code>. Nunca editar URLs a mano. Tras desplegar, repetir la fase 7 completa contra la URL de producción real.</p>
+          <p>El <code class="mono">search-replace</code> arregla las URLs, pero <strong>la configuración del tema y la tipografía no llegan solas</strong>: reimportar con <code class="mono">node herramientas/config-tema.js importar --path=&lt;destino&gt; --confirmar</code>. Sin <code class="mono">--confirmar</code> solo informa; con él, deja copia de los valores anteriores. Y luego mirarlo en el navegador: es lo único que ningún validador confirma por ti.</p>
         </div>
       </div>
     </div>
