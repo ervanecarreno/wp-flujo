@@ -1,0 +1,1021 @@
+<title>Reformas Bermúdez paso a paso</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  /* Sistema de diseño heredado de setup-recomendado.html y explicador-plugin.html:
+     los tres documentos son la misma familia. No se reinventa aquí. */
+
+  :root {
+    --paper: #f5f7f3;
+    --paper-raised: #ffffff;
+    --ink: #1a2420;
+    --ink-soft: #4d5850;
+    --ink-faint: #808c83;
+    --line: #d7ddd3;
+    --line-soft: #e6eae2;
+    --accent: #0e6e6d;
+    --accent-ink: #ffffff;
+    --accent-tint: #e2f0ef;
+    --good: #3f7d4f;
+    --good-tint: #e6f1e8;
+    --warn: #a5690f;
+    --warn-tint: #f7ecdb;
+    --bad: #a63a2e;
+    --bad-tint: #f8e6e3;
+    --code-bg: #101816;
+    --code-ink: #dce8e2;
+    --code-accent: #6bd6c9;
+    --code-faint: #7b8d85;
+    --code-ok: #7fcf95;
+    --code-no: #e58f80;
+    --code-hi: #e8c979;
+    --shadow: 0 1px 2px rgba(20, 30, 26, 0.06), 0 8px 24px -12px rgba(20, 30, 26, 0.18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #101613;
+      --paper-raised: #171f1b;
+      --ink: #e7ede9;
+      --ink-soft: #a9b6ae;
+      --ink-faint: #6d7a72;
+      --line: #2a352e;
+      --line-soft: #202a24;
+      --accent: #4fc3bd;
+      --accent-ink: #0a1a19;
+      --accent-tint: #16302e;
+      --good: #6fbf7f;
+      --good-tint: #16281a;
+      --warn: #d9a44e;
+      --warn-tint: #2e2517;
+      --bad: #e07a6b;
+      --bad-tint: #331e1a;
+      --code-bg: #0a100e;
+      --code-ink: #d5e3dc;
+      --code-accent: #6bd6c9;
+      --code-faint: #6f827a;
+      --code-ok: #7fcf95;
+      --code-no: #e58f80;
+      --code-hi: #e8c979;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #101613;
+    --paper-raised: #171f1b;
+    --ink: #e7ede9;
+    --ink-soft: #a9b6ae;
+    --ink-faint: #6d7a72;
+    --line: #2a352e;
+    --line-soft: #202a24;
+    --accent: #4fc3bd;
+    --accent-ink: #0a1a19;
+    --accent-tint: #16302e;
+    --good: #6fbf7f;
+    --good-tint: #16281a;
+    --warn: #d9a44e;
+    --warn-tint: #2e2517;
+    --bad: #e07a6b;
+    --bad-tint: #331e1a;
+    --code-bg: #0a100e;
+    --code-ink: #d5e3dc;
+    --code-accent: #6bd6c9;
+    --code-faint: #6f827a;
+    --code-ok: #7fcf95;
+    --code-no: #e58f80;
+    --code-hi: #e8c979;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  code, .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+  h1, h2, h3, h4 {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-weight: 600;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  p { margin: 0; }
+  strong { color: var(--ink); }
+
+  /* ---------- cabecera ---------- */
+
+  .masthead {
+    border-bottom: 1px solid var(--line);
+    padding: 3.5rem 1.5rem 3rem;
+  }
+
+  .masthead-inner {
+    max-width: 52rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+
+  .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .masthead h1 {
+    font-size: clamp(2rem, 5vw, 2.9rem);
+    line-height: 1.14;
+    letter-spacing: -0.015em;
+  }
+
+  .standfirst {
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    max-width: 40rem;
+  }
+
+  .byline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.4rem;
+    font-size: 0.82rem;
+    color: var(--ink-faint);
+    border-top: 1px solid var(--line-soft);
+    padding-top: 1rem;
+    margin-top: 0.4rem;
+  }
+
+  .byline .mono { color: var(--ink-soft); }
+
+  /* ---------- estructura ---------- */
+
+  main {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.4rem;
+  }
+
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.8rem;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 0.7rem;
+    margin-top: 3rem;
+  }
+
+  .section-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent);
+    font-weight: 600;
+    flex: none;
+  }
+
+  .section-head h2 {
+    font-size: clamp(1.35rem, 3vw, 1.7rem);
+    letter-spacing: -0.01em;
+  }
+
+  .lead-text {
+    font-size: 1.04rem;
+    color: var(--ink-soft);
+  }
+
+  /* ---------- aviso de honestidad ---------- */
+
+  .disclaimer {
+    background: var(--warn-tint);
+    border-left: 3px solid var(--warn);
+    padding: 1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.94rem;
+    color: var(--ink-soft);
+  }
+
+  .disclaimer strong { color: var(--warn); }
+
+  /* ---------- ficha del proyecto ---------- */
+
+  .brief {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    padding: 1.4rem 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 1.1rem 2rem;
+  }
+
+  .brief-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .brief-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+  }
+
+  .brief-value { font-size: 0.95rem; }
+
+  /* ---------- el recorrido: turnos de conversación ---------- */
+
+  .walk {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .turn {
+    display: grid;
+    grid-template-columns: 2.6rem 1fr;
+    gap: 0 1.1rem;
+  }
+
+  .turn-rail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .turn-dot {
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 50%;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    margin-top: 0.15rem;
+  }
+
+  .turn.is-tool .turn-dot {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .turn-thread {
+    flex: 1;
+    width: 1px;
+    background: var(--line);
+    min-height: 1.4rem;
+  }
+
+  .turn-body {
+    padding-bottom: 2.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    min-width: 0;
+  }
+
+  .turn-title {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .turn-title h3 { font-size: 1.16rem; }
+
+  .tag {
+    font-size: 0.66rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 0.14rem 0.5rem;
+    border-radius: 2px;
+    background: var(--line-soft);
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  .tag.tool { background: var(--accent-tint); color: var(--accent); }
+  .tag.watch { background: var(--warn-tint); color: var(--warn); }
+
+  .turn-body p { color: var(--ink-soft); }
+  .turn-body p strong { color: var(--ink); }
+
+  /* lo que escribe Javier */
+
+  .says {
+    background: var(--accent-tint);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 3px 3px 0;
+    padding: 0.85rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .says-who {
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .says-text {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 1.02rem;
+    font-style: italic;
+    color: var(--ink);
+  }
+
+  /* la consola */
+
+  .term {
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 0.95rem 1.1rem;
+    overflow-x: auto;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 0.815rem;
+    line-height: 1.65;
+    color: var(--code-ink);
+  }
+
+  .term pre { margin: 0; }
+  .term .cmd { color: var(--code-accent); }
+  .term .dim { color: var(--code-faint); }
+  .term .ok { color: var(--code-ok); }
+  .term .no { color: var(--code-no); }
+  .term .hi { color: var(--code-hi); }
+
+  /* nota lateral dentro de un turno */
+
+  .note {
+    border-left: 2px solid var(--line);
+    padding-left: 0.95rem;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+  }
+
+  .note.trap {
+    border-left-color: var(--bad);
+    background: var(--bad-tint);
+    padding: 0.75rem 1rem;
+    border-radius: 0 3px 3px 0;
+  }
+
+  .note.trap strong { color: var(--bad); }
+
+  .note.good {
+    border-left-color: var(--good);
+    background: var(--good-tint);
+    padding: 0.75rem 1rem;
+    border-radius: 0 3px 3px 0;
+  }
+
+  .note.good strong { color: var(--good); }
+
+  ul.tight {
+    margin: 0;
+    padding-left: 1.15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+
+  ul.tight strong { color: var(--ink); }
+
+  /* ---------- tabla de errores ---------- */
+
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--paper-raised);
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.9rem;
+    min-width: 34rem;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+
+  th {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+    background: var(--paper);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  td .mono { font-size: 0.82rem; color: var(--ink); }
+  td:last-child { color: var(--ink-soft); }
+
+  /* ---------- cierre ---------- */
+
+  .closer {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--accent);
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    padding: 1.5rem 1.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .closer h3 { font-size: 1.2rem; }
+  .closer p { color: var(--ink-soft); }
+
+  footer {
+    border-top: 1px solid var(--line);
+    padding: 2rem 1.5rem 3rem;
+    font-size: 0.82rem;
+    color: var(--ink-faint);
+  }
+
+  .footer-inner {
+    max-width: 52rem;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  @media (max-width: 34rem) {
+    .turn { grid-template-columns: 1.9rem 1fr; gap: 0 0.8rem; }
+    .turn-dot { width: 1.75rem; height: 1.75rem; font-size: 0.78rem; }
+    .term { font-size: 0.75rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <span class="eyebrow">Ejemplo trabajado · plugin wp-generateblocks</span>
+    <h1>Reformas Bermúdez paso a paso</h1>
+    <p class="standfirst">Un proyecto ficticio de principio a fin, para ver cómo se habla con el plugin.
+      El supuesto es el real: un diseño ya aprobado en Figma que hay que llevar a WordPress, con una
+      home, un CPT de servicios, las noticias del blog, animación y query loops.</p>
+    <div class="byline">
+      <span>Cliente <span class="mono">ficticio</span></span>
+      <span>Flujo de <span class="mono">8 fases</span></span>
+      <span>Plugin <span class="mono">v0.1.2</span></span>
+      <span>28 de agosto de 2026</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section>
+    <div class="disclaimer">
+      <p><strong>Los comandos son reales; los datos concretos, inventados.</strong></p>
+      <p>Todo lo que aparece escrito en consola es un comando que existe de verdad y se ejecuta tal
+        cual. Pero los <em>valores</em> del ejemplo —el ID que devuelve una imagen, el número de claves
+        de una opción, el nombre del cliente— están inventados para que el recorrido se lea. Cuando
+        hagas esto de verdad, los números serán los tuyos. No copies los de aquí.</p>
+    </div>
+
+    <div class="brief">
+      <div class="brief-item">
+        <span class="brief-label">Cliente</span>
+        <span class="brief-value">Reformas Bermúdez, pyme de 9 personas</span>
+      </div>
+      <div class="brief-item">
+        <span class="brief-label">Encargo</span>
+        <span class="brief-value">Home + 6 servicios + noticias</span>
+      </div>
+      <div class="brief-item">
+        <span class="brief-label">Punto de partida</span>
+        <span class="brief-value">Diseño aprobado en Figma</span>
+      </div>
+      <div class="brief-item">
+        <span class="brief-label">Sitio en Local</span>
+        <span class="brief-value mono">reformas-bermudez</span>
+      </div>
+      <div class="brief-item">
+        <span class="brief-label">Producción</span>
+        <span class="brief-value mono">reformasbermudez.es</span>
+      </div>
+      <div class="brief-item">
+        <span class="brief-label">Duración del ejemplo</span>
+        <span class="brief-value">4 sesiones de trabajo</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">§0</span><h2>Antes de escribir nada</h2></div>
+    <p class="lead-text">Un paso que no es del flujo pero que decide si el flujo funciona: <strong>desde
+      dónde abres Claude Code</strong>.</p>
+
+    <p class="note trap"><strong>La trampa que ya se pagó.</strong> Claude Code guarda la memoria en una
+      carpeta cuyo nombre sale de la ruta de trabajo. Si abres el proyecto desde otra ruta —o mueves la
+      carpeta— la memoria anterior queda huérfana y empiezas de cero sin darte cuenta. Cada proyecto,
+      siempre desde su misma ruta.</p>
+
+    <div class="term"><pre><span class="dim"># la carpeta del proyecto de cliente, no la del flujo</span>
+<span class="cmd">cd</span> C:\TRABAJOS\reformas-bermudez
+<span class="cmd">claude</span></pre></div>
+
+    <p>El plugin <span class="mono">wp-generateblocks</span> ya está instalado en la cuenta, así que sus
+      cuatro skills están disponibles aquí sin hacer nada. No hay que copiar el flujo a cada proyecto:
+      va contigo.</p>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">§1</span><h2>El recorrido</h2></div>
+    <p class="lead-text">Nueve turnos. En cada uno: lo que escribes tú, y lo que hace el plugin.</p>
+
+    <div class="walk">
+
+      <!-- FASE 0 -->
+      <div class="turn is-tool">
+        <div class="turn-rail"><div class="turn-dot">0</div><div class="turn-thread"></div></div>
+        <div class="turn-body">
+          <div class="turn-title"><h3>Bootstrap del entorno</h3><span class="tag tool">skill: flujo</span></div>
+
+          <div class="says">
+            <span class="says-who">Tú escribes</span>
+            <p class="says-text">Proyecto nuevo de cliente: Reformas Bermúdez. Tengo el diseño aprobado
+              en Figma: una home y una sección de servicios que será un CPT. Acabo de crear el sitio en
+              Local WP, se llama reformas-bermudez. Empezamos.</p>
+          </div>
+
+          <p>Con solo mencionar un proyecto WordPress de cliente se activa la skill del flujo. Lo primero
+            que hace <strong>no es maquetar</strong>: es preguntarte por el entorno, porque los tres datos
+            de abajo condicionan todo lo que venga después y salen gratis ahora.</p>
+
+          <ul class="tight">
+            <li><strong>¿Hay subdirectorio?</strong> Aquí no: irá en la raíz del dominio. Anotado.</li>
+            <li><strong>Breakpoint real:</strong> GeneratePress usa 768px y GenerateBlocks 767px. Se elige
+              uno y se anota como fuente única de verdad.</li>
+            <li><strong>Carpeta de uploads:</strong> <span class="mono">2026/08</span> este mes.</li>
+          </ul>
+
+          <p class="note">Si intentas saltar a maquetar sin esto, la skill te frena. Es deliberado: es el
+            error que costó caro en el proyecto Aridane, donde el diseño se cerró a ciegas y luego 11 de
+            13 imágenes daban 404 en producción.</p>
+        </div>
+      </div>
+
+      <!-- FASE 1 -->
+      <div class="turn">
+        <div class="turn-rail"><div class="turn-dot">1</div><div class="turn-thread"></div></div>
+        <div class="turn-body">
+          <div class="turn-title"><h3>Del diseño al HTML</h3><span class="tag watch">aquí el plugin no llega</span></div>
+
+          <div class="says">
+            <span class="says-who">Tú escribes</span>
+            <p class="says-text">El diseño está aprobado. Te paso las capturas de la home y los tokens de
+              color y tipografía que usa.</p>
+          </div>
+
+          <p><strong>Este es el único paso que el plugin no cubre.</strong> El flujo empieza cuando el
+            marcado ya existe: no traduce Figma a GenerateBlocks. Figma vale como <em>referencia visual</em>
+            —capturas, medidas, comentarios— nunca como fuente del código.</p>
+
+          <p class="note trap"><strong>Y no es un olvido.</strong> El límite de la API de Figma se ata al
+            plan del archivo <em>del cliente</em>, no al tuyo, y la API de Variables exige Enterprise. Un
+            flujo que dependa de eso se rompe en el primer cliente que no pague el plan. Para ese paso
+            tienes tu propio pipeline, aparte.</p>
+
+          <p>Lo que sí se decide aquí, y es lo que importa para las fases siguientes: el color se fija como
+            <strong>variables CSS reales</strong> en la hoja de estilos del tema hijo. Nunca elegido en el
+            panel de color de cada bloque.</p>
+
+          <div class="note good"><p><strong>Por qué esto no es una manía.</strong> GenerateBlocks resuelve a
+            HEX literal cualquier color elegido en su panel —confirmado por su propio soporte—. Si el azul
+            del cliente se elige bloque a bloque y luego pide cambiarlo, no es una edición: es repasar
+            179 bloques a mano.</p></div>
+        </div>
+      </div>
+
+      <!-- FASE 2 -->
+      <div class="turn is-tool">
+        <div class="turn-rail"><div class="turn-dot">2</div><div class="turn-thread"></div></div>
+        <div class="turn-body">
+          <div class="turn-title"><h3>Esqueleto de portabilidad</h3><span class="tag tool">3 herramientas</span></div>
+
+          <div class="says">
+            <span class="says-who">Tú escribes</span>
+            <p class="says-text">Vamos con la fase 2. Prepara el esqueleto: quiero el CPT de servicios y
+              la tipografía del tema ya configurada.</p>
+          </div>
+
+          <p>Aquí se monta todo lo que tiene que poder viajar del portátil a producción. Es la fase más
+            aburrida y la que decide si la entrega será tranquila o un domingo de trabajo.</p>
+
+          <ul class="tight">
+            <li><span class="mono">git init</span> dentro de <span class="mono">wp-content/</span></li>
+            <li>Tema hijo de GeneratePress, versionado</li>
+            <li><strong>El CPT de servicios, registrado por código</strong>, en un plugin propio</li>
+            <li><span class="mono">acf-json/</span> activo desde el minuto uno — es gratis, no requiere PRO</li>
+            <li><span class="mono">/patterns/</span> para las secciones reutilizables</li>
+          </ul>
+
+          <div class="note trap"><p><strong>El CPT va aquí, no al final.</strong> En tu supuesto original
+            los servicios aparecían como último paso. Si se deja para el final, la sección de servicios se
+            construye <em>dos veces</em>: una a mano para el diseño y otra cuando llega el CPT. Registrarlo
+            ahora, vacío, cuesta diez minutos y ahorra rehacer la sección.</p></div>
+
+          <p>Y el paso que cierra la fase, el más fácil de olvidar porque no se ve:</p>
+
+          <div class="term"><pre><span class="dim"># con el tema ya configurado: colores, tipografía, espaciados</span>
+<span class="cmd">node</span> herramientas/config-tema.js exportar --path=<span class="hi">"C:\Users\David\Local Sites\reformas-bermudez\app\public"</span>
+
+=== EXPORTAR configuracion del tema ===
+  Sitio:      C:\Users\David\Local Sites\reformas-bermudez\app\public
+  WordPress:  6.9.1   (MySQL en el puerto 10023)
+  Destino:    C:\TRABAJOS\reformas-bermudez\config-tema
+
+  <span class="ok">OK</span>       generate_settings   (configuracion del tema) - 214 claves
+  <span class="ok">OK</span>       generate_spacing_settings   (espaciados) - 18 claves
+  <span class="ok">OK</span>       generate_package_font_library   (tipografia) - 3 claves
+
+--- TAMBIEN HAY ESTO EN LA BASE DE DATOS, Y NO SE LLEVA (2) ---
+  generate_package_secondary_nav
+      activacion de modulos de GP Premium: revisa que el destino tenga licencia
+  theme_mods_generatepress-child
+      lleva IDs de adjunto (logo, favicon): los IDs no coinciden entre sitios
+
+Si alguna de esas hace falta:  --incluir=generate_package_secondary_nav</pre></div>
+
+          <p><strong>Por qué existe este comando.</strong> La configuración del tema y la tipografía no
+            están en ningún fichero: viven en la base de datos. El repo se lleva el tema hijo, los CPT y
+            los patrones, así que sin este paso el destino recibe la maqueta correcta <em>con la tipografía
+            y los espaciados de fábrica</em>. El diseño llega roto y no hay ningún error que lo avise.</p>
+
+          <div class="note"><p>Fíjate en que lista dos opciones y <strong>no las toca</strong>. Solo exporta
+            las tres que están verificadas; lo demás lo enseña para que decidas tú. El
+            <span class="mono">theme_mods</span>, por ejemplo, lleva dentro el ID del logo — y ese ID no
+            existirá en producción.</p></div>
+
+          <div class="term"><pre><span class="cmd">git</span> add config-tema
+<span class="cmd">git</span> commit -m <span class="hi">"Configuración del tema y tipografía"</span></pre></div>
+
+          <p class="note">Y cada vez que retoques la tipografía o un espaciado: volver a exportar. Es el
+            equivalente a guardar.</p>
+        </div>
+      </div>
+
+      <!-- FASE 3 -->
+      <div class="turn">
+        <div class="turn-rail"><div class="turn-dot">3</div><div class="turn-thread"></div></div>
+        <div class="turn-body">
+          <div class="turn-title"><h3>Repositorio</h3></div>
+          <p>Push del esqueleto. Nunca el core de WordPress, nunca <span class="mono">uploads/</span>,
+            nunca plugins de terceros: sus versiones se anotan en un README en vez de comitear binarios.
+            A partir de aquí el push diario tiene sentido, porque lo que se versiona es código de verdad
+            y no un volcado de base de datos.</p>
+        </div>
+      </div>
+
+      <!-- FASE 4 -->
+      <div class="turn is-tool">
+        <div class="turn-rail"><div class="turn-dot">4</div><div class="turn-thread"></div></div>
+        <div class="turn-body">
+          <div class="turn-title"><h3>Generación del marcado</h3><span class="tag tool">skill: bloques</span></div>
+
+          <div class="says">
+            <span class="says-who">Tú escribes</span>
+            <p class="says-text">Monta la sección hero de la home: imagen de fondo, titular, subtítulo y
+              dos botones. Te paso la captura y las imágenes.</p>
+          </div>
+
+          <p>Se activa la segunda skill, la del método de bloques. Y lo primero que hace es
+            <strong>subir las imágenes</strong>, antes de escribir una línea de marcado:</p>
+
+          <div class="term"><pre><span class="cmd">herramientas\wp-cli\wp.cmd</span> media import obra-salon.jpg --porcelain --path=<span class="hi">$sitio</span>
+<span class="ok">312</span>
+
+<span class="cmd">herramientas\wp-cli\wp.cmd</span> media import cocina-abierta.jpg --porcelain --path=<span class="hi">$sitio</span>
+<span class="ok">313</span></pre></div>
+
+          <p>Ese <span class="mono">312</span> es el ID real, y es el que va al marcado. Un ID inventado
+            en el prototipo <strong>no da ningún error</strong>: simplemente deja de generar los tamaños
+            responsive, y la imagen llega pesando cuatro veces lo que debería.</p>
+
+          <p class="note trap"><strong>El fallo silencioso de detrás.</strong> Si el PHP no tiene cargadas
+            las extensiones <span class="mono">gd</span> y <span class="mono">exif</span>,
+            <span class="mono">wp media import</span> sube la imagen pero tampoco genera los tamaños — y
+            también calla. El envoltorio <span class="mono">wp.cmd</span> del plugin ya las carga; es la
+            razón de que exista en vez de usar <span class="mono">wp</span> a secas.</p>
+
+          <p>Luego se genera el marcado y <strong>se valida antes de pegarlo</strong>, no después:</p>
+
+          <div class="term"><pre><span class="cmd">node</span> herramientas/audit-gb.js secciones/hero.html
+
+Bloques analizados: 7
+<span class="ok">ERRORES: 0</span>
+<span class="hi">Avisos: 3</span>  <span class="dim">(texto suelto en bloques `text` hijos: falso positivo conocido)</span></pre></div>
+
+          <p>Solo importan los errores. Lo que comprueba, bloque a bloque: que el
+            <span class="mono">css</span> reconstruido desde <span class="mono">styles</span> coincide
+            carácter a carácter, que el escapado del JSON es correcto, que
+            <span class="mono">htmlAttributes</span> es un objeto y no un array —causa número uno del
+            temido <em>«este bloque contiene contenido inesperado»</em>—, y que los
+            <span class="mono">uniqueId</span> no se repiten.</p>
+
+          <div class="note good"><p><strong>Un detalle que costó encontrar.</strong> El escapado del JSON
+            son <strong>cuatro</strong> sustituciones: <span class="mono">--</span>,
+            <span class="mono">&lt;</span>, <span class="mono">&gt;</span> y
+            <span class="mono">&amp;</span>. Las comillas se dejan <em>literales</em>. Durante meses la
+            documentación pedía una quinta —escapar las comillas— y era justo la que rompía el guardado:
+            WordPress guardaba el bloque <strong>vacío</strong>, sin un solo mensaje de error. El validador
+            nunca la exigió, así que siempre estuvo bien; el fallo estaba en el papel.</p></div>
+        </div>
+      </div>
+
+      <!-- FASE 5 -->
+      <div class="turn">
+        <div class="turn-rail"><div class="turn-dot">5</div><div class="turn-thread"></div></div>
+        <div class="turn-body">
+          <div class="turn-title"><h3>Servicios y noticias: los query loops</h3></div>
+
+          <div class="says">
+            <span class="says-who">Tú escribes</span>
+            <p class="says-text">La home ya está montada. Ahora la rejilla de los 6 servicios tirando del
+              CPT, y las 3 últimas noticias del blog abajo.</p>
+          </div>
+
+          <p>El CPT ya existe desde la fase 2, así que la rejilla se monta directamente como query loop:
+            no hay que deshacer nada. Las plantillas y secciones se guardan como ficheros PHP en
+            <span class="mono">/patterns</span>, no como contenido pegado que solo vive en la base de datos
+            y no viaja.</p>
+
+          <div class="note trap"><p><strong>Y aquí va el orden que importa: los query loops primero, la
+            animación después.</strong> Es la otra corrección a tu planteamiento original. Si animas una
+            rejilla de 6 tarjetas fijas y luego la conviertes en query loop, la animación se rompe: los
+            selectores dejan de encajar y las tarjetas que llegan del bucle no se registran nunca. Se ve
+            perfecto en tu pantalla y roto en cuanto el cliente añade un servicio.</p></div>
+        </div>
+      </div>
+
+      <!-- FASE 6 -->
+      <div class="turn">
+        <div class="turn-rail"><div class="turn-dot">6</div><div class="turn-thread"></div></div>
+        <div class="turn-body">
+          <div class="turn-title"><h3>Animación con GSAP</h3></div>
+
+          <div class="says">
+            <span class="says-who">Tú escribes</span>
+            <p class="says-text">Ahora sí: quiero que las tarjetas de servicios entren al hacer scroll, y
+              el hero con un fundido al cargar.</p>
+          </div>
+
+          <ul class="tight">
+            <li>GSAP es <strong>100% gratuito desde abril de 2025</strong>, ScrollTrigger incluido</li>
+            <li>Se encola con <span class="mono">wp_enqueue_script</span> en el tema hijo, <strong>nunca
+              con WPCode</strong>: WPCode vive en la base de datos y no viaja entre entornos</li>
+            <li>GenerateBlocks Pro no anima por scroll — su panel <em>Effects</em> es solo hover y focus.
+              Está confirmado dos veces por su propio soporte, así que no hay que volver a buscarlo</li>
+            <li>Sobre contenido que viene de un bucle: <strong>re-consultar el DOM y refrescar
+              ScrollTrigger</strong>, nunca guardar una lista de nodos y confiar en ella</li>
+            <li><span class="mono">prefers-reduced-motion</span> no es opcional: es exigible por el
+              RD 1112/2018</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- FASE 7 -->
+      <div class="turn is-tool">
+        <div class="turn-rail"><div class="turn-dot">7</div><div class="turn-thread"></div></div>
+        <div class="turn-body">
+          <div class="turn-title"><h3>Puerta de calidad</h3><span class="tag tool">skill: puerta</span></div>
+
+          <div class="says">
+            <span class="says-who">Tú escribes</span>
+            <p class="says-text">Ya está subido a staging. Pásale la puerta de calidad.</p>
+          </div>
+
+          <p>Contra el sitio <strong>desplegado de verdad</strong>, con su URL real. Nunca contra un HTML
+            local: el entorno es justo lo que rompe, y un fichero en tu disco no tiene entorno.</p>
+
+          <div class="term"><pre><span class="cmd">node</span> herramientas/puerta-calidad.js https://staging.reformasbermudez.es/ --max-kb=200
+
+--- ROTAS EN TU SITIO (1) - las que bloquean la entrega ---
+  <span class="no">[404]</span> imagen  https://staging.reformasbermudez.es/wp-content/uploads/2026/08/equipo-obra.jpg
+
+--- ROTAS HACIA FUERA (1) - revisar, no siempre es culpa tuya ---
+  <span class="hi">[0]</span> enlace  https://www.colegiooficial-ejemplo.org/directorio
+
+--- IMÁGENES POR ENCIMA DE 200 KB (2) ---
+    418 KB  .../obra-salon.jpg
+    236 KB  .../cocina-abierta.jpg
+
+=== RESUMEN ===
+  URLs comprobadas:   64
+  Rotas en tu sitio:  1   <span class="dim">&lt;- las que bloquean la entrega</span>
+  Rotas hacia fuera:  1
+  Imágenes pesadas:   2</pre></div>
+
+          <p>Esa imagen en 404 es el fallo que ningún validador de marcado puede ver: el marcado es
+            perfecto, la imagen no está. En Aridane fueron 11 de 13, con cero errores de marcado sobre
+            179 bloques.</p>
+
+          <div class="note"><p><strong>Fíjate en la separación.</strong> Lo roto <em>en tu sitio</em>
+            bloquea la entrega. Lo roto <em>hacia fuera</em> —una web ajena caída— se informa y no bloquea
+            nada: no tiene sentido no entregar porque el servidor de otro esté de mantenimiento.</p></div>
+
+          <p>La skill te recuerda además los tres pasos que este script no cubre, y que descargan software
+            la primera vez, así que te pide permiso antes: <span class="mono">pa11y-ci</span> y
+            <span class="mono">@axe-core/cli</span> para accesibilidad WCAG 2.1 AA,
+            <span class="mono">lhci autorun</span> para rendimiento, y
+            <span class="mono">wp doctor check --all</span> para la salud del WordPress.</p>
+        </div>
+      </div>
+
+      <!-- FASE 8 -->
+      <div class="turn is-tool">
+        <div class="turn-rail"><div class="turn-dot">8</div></div>
+        <div class="turn-body">
+          <div class="turn-title"><h3>Producción</h3><span class="tag tool">config-tema, otra vez</span></div>
+
+          <div class="says">
+            <span class="says-who">Tú escribes</span>
+            <p class="says-text">Aprobado por el cliente. Vamos a producción.</p>
+          </div>
+
+          <div class="term"><pre><span class="dim"># siempre en seco primero, y leer el informe</span>
+<span class="cmd">wp</span> search-replace <span class="hi">"http://reformas-bermudez.local"</span> <span class="hi">"https://reformasbermudez.es"</span> --dry-run --skip-columns=guid</pre></div>
+
+          <p>Nunca editar URLs a mano: WordPress guarda URLs absolutas por diseño intencional. Y entonces,
+            el paso que cierra el círculo de la fase 2:</p>
+
+          <div class="term"><pre><span class="dim"># sin --confirmar no escribe nada: solo te dice qué haría</span>
+<span class="cmd">node</span> herramientas/config-tema.js importar --path=<span class="hi">$produccion</span>
+
+--- SE VA A SOBRESCRIBIR ESTO (3) ---
+  generate_settings                 distinta: se sobrescribe
+  generate_spacing_settings         no existe aqui: se creara
+  generate_package_font_library     no existe aqui: se creara
+
+=== NO SE HA ESCRITO NADA ===
+Esto sobrescribe la configuracion del tema del sitio destino, y eso no se
+deshace solo. Si es lo que quieres, repite el comando anadiendo --confirmar
+(se guarda copia de lo actual antes de tocar nada).</pre></div>
+
+          <p>Se lee, y solo entonces se repite en serio:</p>
+
+          <div class="term"><pre><span class="cmd">node</span> herramientas/config-tema.js importar --path=<span class="hi">$produccion</span> --confirmar
+
+  Copia de lo anterior en: config-tema\copias-previas\2026-09-04T11-42-08
+
+  <span class="ok">OK</span>       generate_settings
+  <span class="ok">OK</span>       generate_spacing_settings
+  <span class="ok">OK</span>       generate_package_font_library
+
+=== COMPRUEBALO EN EL NAVEGADOR ===
+Abre el sitio y confirma tipografia, colores y espaciados.</pre></div>
+
+          <p>Y para terminar, repetir la fase 7 completa contra la URL de producción real. Con el
+            subdirectorio si lo hubiera — aquí no lo hay, pero es donde se cae la mitad de las entregas.</p>
+
+          <div class="note good"><p><strong>Lo único que ninguna herramienta confirma por ti:</strong> que
+            el sitio <em>se vea</em> bien. Abre la home y mira la tipografía, los colores y los
+            espaciados. Todo lo demás está automatizado precisamente para que te quede tiempo de hacer
+            esto con calma.</p></div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">§2</span><h2>Cuando algo falle</h2></div>
+    <p class="lead-text">Los cuatro mensajes que vas a ver de verdad, y qué significan. Ninguno es
+      misterioso una vez sabes cuál es cuál.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>El mensaje</th><th>Qué pasa en realidad</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="mono">mysqli_real_connect(): conexión denegada</span></td>
+            <td>El sitio está parado en Local. Arráncalo con <em>Start site</em>. Si ya está arrancado,
+              es el puerto: Local da uno propio a cada sitio, y las herramientas del plugin lo resuelven
+              solas leyendo su <span class="mono">sites.json</span>.</td>
+          </tr>
+          <tr>
+            <td><span class="mono">This does not seem to be a WordPress installation</span></td>
+            <td>El <span class="mono">--path</span> está mal escrito o mal entrecomillado. Tiene que
+              acabar en <span class="mono">\app\public</span>. Si la ruta lleva espacios, guárdala en una
+              variable de PowerShell primero.</td>
+          </tr>
+          <tr>
+            <td><span class="mono">missing the MySQL extension</span></td>
+            <td>El <span class="mono">php.ini</span> del plugin no se está aplicando. Suele pasar tras
+              actualizar Local, porque cambia la versión de PHP y con ella la ruta.</td>
+          </tr>
+          <tr>
+            <td><em>«Este bloque contiene contenido inesperado o no válido»</em></td>
+            <td>El editor de WordPress rechazando el marcado. Pásalo por
+              <span class="mono">audit-gb.js</span>: en la práctica siempre es
+              <span class="mono">htmlAttributes</span> como array en vez de objeto, o el escapado del
+              JSON.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="note"><strong>Un aviso sobre un falso amigo.</strong> <span class="mono">wp core version</span>
+      responde tan tranquilo con el sitio apagado, porque lee un fichero y no la base de datos. No sirve
+      para comprobar si el WordPress está vivo. Para eso: <span class="mono">wp option get siteurl</span>.
+      Este documento lo menciona porque el propio script cayó en la trampa el primer día.</p>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">§3</span><h2>Lo que hace y lo que no</h2></div>
+
+    <div class="closer">
+      <h3>Sí hace</h3>
+      <p>Te obliga a fijar el entorno antes de diseñar. Genera marcado de GenerateBlocks canónico y lo
+        valida antes de que llegue al editor. Te da wp-cli y PHP funcionando sin instalar nada. Lleva la
+        configuración del tema de un sitio a otro. Y comprueba el sitio desplegado contra el servidor
+        real, no contra tu disco.</p>
+      <p><strong>Sobre todo:</strong> guarda las trampas ya pagadas para que no se vuelvan a pagar. Cada
+        aviso de este documento salió de un fallo real, no de una buena práctica leída en un blog.</p>
+    </div>
+
+    <div class="closer" style="border-top-color: var(--warn);">
+      <h3>No hace</h3>
+      <p>No traduce Figma a GenerateBlocks: el flujo empieza cuando el marcado ya existe. No diseña por ti.
+        No sustituye a mirar la web con tus ojos antes de entregarla.</p>
+      <p>Y no sincroniza los <em>Global Styles</em> de GenerateBlocks Pro entre entornos, porque hoy no hay
+        forma fiable de hacerlo: no tienen API REST ni comando de wp-cli. Eso sigue siendo un paso manual
+        de checklist antes de cada entrega.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <p>Ejemplo trabajado del plugin <span class="mono">wp-generateblocks</span> v0.1.2 · Metrópolis
+      Comunicación.</p>
+    <p>El cliente y sus datos son ficticios. El detalle de cada fase, con las fuentes, está en
+      <span class="mono">traspaso-2026-08-26/SETUP-RECOMENDADO.md</span>.</p>
+  </div>
+</footer>

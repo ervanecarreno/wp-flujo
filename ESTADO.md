@@ -85,6 +85,7 @@ concreto.
 | `herramientas/` | Validadores Node sin dependencias: `audit-gb.js` (checklist §8), `audit-cross.js` (marcado vs CSS/JS/assets), `fix-gb.js` (generador, ojo a su constante `PEND`) |
 | `docs/metodo-generateblocks-v2.md` | El método de referencia para generar bloques GB V2, con el checklist del §8 |
 | `docs/AUDITORIA-aridane.md` | Caso de estudio: la auditoría que descubrió los fallos de entorno |
+| `docs/recorrido-proyecto-ejemplo.html` | Ejemplo trabajado: un proyecto ficticio de principio a fin, para ver cómo se interactúa con el plugin. Publicado en https://claude.ai/code/artifact/a607bb4e-69c8-40ef-87d9-282674329393 |
 | `verificacion/roundtrip-escapado-wp.js` | Prueba que `var(--color)` sobrevive al escapado de WP |
 | `skills/` | Las 4 skills del plugin (ver README) |
 | `.claude-plugin/` | Manifiestos del plugin y del marketplace |
