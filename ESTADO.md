@@ -60,7 +60,7 @@ node herramientas/config-tema.js importar --path="<otro sitio>" --confirmar  (es
 ### Sigue abierto, sin urgencia
 
 - **El plugin no cubre la traducción Figma → GenerateBlocks.** Empieza cuando el marcado ya
-  existe. Javier tiene un pipeline propio para ese paso en `C:\TRABAJOSigma-gb-pipeline`
+  existe. Javier tiene un pipeline propio para ese paso en `C:\TRABAJOS\figma-gb-pipeline`
   (proyecto distinto, no mezclar), pero conviene decidir si se documenta el enlace entre ambos.
 - Las dos reglas de validador que la investigación recomienda y no están: fallar ante un HEX de
   marca literal, y comprobar contra un WordPress real que cada `wp-image-{ID}` existe.
