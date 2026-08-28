@@ -9,24 +9,31 @@
 
 ## ⏭ LO SIGUIENTE (pendiente al retomar)
 
-### 1. (CERRADO el 28/08) El handoff, integrado en el plugin
+### 1. Decidir sobre las rutas de conversión (medido, falta decidir)
 
-Decidido por Javier: **se integra, con las dos vías**, y **se pregunta en cada proyecto** cuál se
-quiere. La habitual es GenerateBlocks Pro V2; Gutenberg nativo se conserva como alternativa.
+Comparadas las tres rutas contra un WordPress real. Informe: `docs/rutas-de-conversion.md`.
 
-Cómo quedó montado:
+**El cuello de botella no es la herramienta: es que la paleta del diseño no existe como variables
+en Figma** (la API devuelve `colors: []`). De ahí todo lo demás:
 
-- **Skill nueva `importar-handoff-diseno`** — se activa cuando el marcado ya existe. Empieza
-  preguntando el tipo de conversión, trae la tabla de decisión con las cifras medidas, el comando de
-  importación y las dos trampas silenciosas.
-- **Punto de decisión obligatorio** en la skill del flujo, antes de la tabla de las 8 fases, y en la
-  fase 1 de `SETUP-RECOMENDADO.md`. Fases 1 y 4 de la tabla actualizadas.
-- **Evidencia en `docs/prueba-handoff.md`**, dentro del plugin, para que no dependa de la carpeta de
-  pruebas (que se puede borrar).
-- Plugin a **0.2.0** (capacidad nueva, no un arreglo).
+| Ruta | Fidelidad del color medida |
+|---|---|
+| 1 · Handoff (integrado ya en el plugin) | **exacta** — 47 elementos en `#EE743B` |
+| 2 · MCP de Figma | **no disponible**: no hay MCP conectado ni en el registro |
+| 3 · `figma-gb-pipeline` | tokens perfectos, **colores del tema equivocado** (0 elementos en naranja) |
 
-La carpeta `C:\TRABAJOS\prueba-claude-design` puede borrarse cuando quieras: su informe
-(`HALLAZGOS.md`) es más extenso, pero lo que el plugin necesita ya está dentro del plugin.
+**Lo que hay que decidir:** si se hace el mapeo de tokens que le falta al pipeline
+(`scripts/wp-push-tokens.mjs` + `tokens/map.json`, que solo tiene `#ffffff` y `#000000`). Con ese
+paso hecho, la ruta 3 da fidelidad exacta **y** un solo token para recolorear. Sin él, produce un
+marcado impecable con la paleta equivocada, que es peor que aplanar a HEX porque parece correcto.
+
+**Y una corrección que afecta al handoff:** escribe `styles` en kebab-case y GenerateBlocks lo
+escribe en **camelCase**. Renderiza bien (GB usa `css` tal cual), pero si alguien abre uno de esos
+bloques en el editor y lo toca, GB regenera el `css` desde `styles` y esas claves no son las que
+espera. Hay que pedir camelCase a Claude Design.
+
+Páginas de prueba levantadas en `figma-staging` (borrar cuando ya no hagan falta):
+`/aridane-gb/` · `/aridane-nativa/` · `/ruta3-pipeline/` · `/ruta3b-pipeline-tokens/`
 
 ### 2. Probar `config-tema.js` de punta a punta
 
@@ -37,6 +44,28 @@ verificado hoy es la sintaxis, los argumentos, el puerto de MySQL y la detecció
 node herramientas/config-tema.js exportar --path="<sitio>"
 node herramientas/config-tema.js importar --path="<otro>" --confirmar
 ```
+
+---
+
+## Cerrado el 28/08/2026 (noche): el validador, recalibrado contra GB real
+
+`herramientas/audit-gb.js` daba **714 errores sobre 732 bloques escritos por GenerateBlocks
+mismo**. Eran suyos, no del marcado. Cuatro reglas equivocadas:
+
+1. Comparaba `styles` con `css` sin convertir camelCase a kebab-case. GB escribe `styles` en
+   camelCase (1423 claves frente a 75) y `css` en kebab (532 bloques, 0 en camel).
+2. Exigía que `css` fuera una serialización exacta de `styles`. **GB no serializa: optimiza.**
+   Colapsa longhands en shorthand, quita espacios de `rgba()` y `clamp()`. No es reconstruible.
+   Ahora es aviso; con `--estricto` vuelve a ser error, para marcado propio.
+3. Exigía la clase base `gb-<tipo>`: el 60% de los cuerpos reales no la lleva.
+4. Exigía la id-class siempre: los bloques sin `styles` propios salen con `class=""`.
+
+Además ahora lee **exports `wp_block` en JSON**, que es como GB exporta los patrones, y
+recurre bien en las claves anidadas (`@media` dentro de un selector descendiente daba
+`[object Object]`).
+
+**Resultado: 0 errores sobre los 732 bloques de referencia.** Método §8 reescrito con las
+cuatro reglas correctas y la tabla de claves anidadas.
 
 ---
 
@@ -133,6 +162,7 @@ concreto.
 | `herramientas/` | Validadores Node sin dependencias: `audit-gb.js` (checklist §8), `audit-cross.js` (marcado vs CSS/JS/assets), `fix-gb.js` (generador, ojo a su constante `PEND`) |
 | `docs/metodo-generateblocks-v2.md` | El método de referencia para generar bloques GB V2, con el checklist del §8 |
 | `docs/AUDITORIA-aridane.md` | Caso de estudio: la auditoría que descubrió los fallos de entorno |
+| `docs/rutas-de-conversion.md` | Las 3 rutas de conversión comparadas y medidas: handoff, MCP de Figma y figma-gb-pipeline |
 | `docs/prueba-handoff.md` | Evidencia medida de la importación de un handoff: escapado, kses, fidelidad visual y las dos trampas |
 | `docs/recorrido-proyecto-ejemplo.html` | Ejemplo trabajado: un proyecto ficticio de principio a fin, para ver cómo se interactúa con el plugin. Publicado en https://claude.ai/code/artifact/a607bb4e-69c8-40ef-87d9-282674329393 |
 | `verificacion/roundtrip-escapado-wp.js` | Prueba que `var(--color)` sobrevive al escapado de WP |

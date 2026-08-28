@@ -263,18 +263,51 @@ Criterio: si el bloque de core aporta **funcionalidad de servidor** (búsqueda, 
 
 ## 8. Checklist de validación antes de entregar
 
-- [ ] Cada `css` coincide exactamente con su `styles` (minificado, alfabético).
+**Recalibrado el 28/08/2026 contra 732 bloques de 25 exports reales de GenerateBlocks.** Tres reglas
+de la versión anterior eran falsas: `herramientas/audit-gb.js` daba errores sobre marcado que GB
+mismo había escrito. Ahora pasa esos 732 bloques con **0 errores**.
+
+- [ ] **`styles` en camelCase, `css` en kebab-case.** Es lo que hace GB: `marginBottom` en `styles`,
+      `margin-bottom` en `css`. Medido: 1423 claves camelCase frente a 75 kebab, y 0 bloques con
+      `css` en camel. Escribir `styles` en kebab es lo que hacen algunos generadores y **no es
+      canónico**: si alguien abre ese bloque en el editor y lo toca, GB regenera el `css` desde
+      `styles` y esas claves no son las que espera.
+- [ ] **No intentes que `css` sea una serialización exacta de `styles`: GB lo OPTIMIZA.** Colapsa
+      longhands en shorthand (`padding-top/right/bottom/left` → `padding:16rem 4rem`), quita los
+      espacios de dentro de `rgba()` y `clamp()`, y ordena los bloques anidados a su manera.
+      Comparar carácter a carácter solo tiene sentido con marcado generado por este mismo flujo
+      (`audit-gb.js --estricto`); con marcado exportado de WordPress da falsos positivos.
+- [ ] **La id-class solo hace falta si el bloque tiene CSS propio.** Un bloque sin `styles`, o
+      estilado con una clase global de GB Pro, sale con `class=""` y es correcto.
+- [ ] **La clase base `gb-<tipo>` no es obligatoria.** El 60% de los cuerpos de los exports reales
+      solo lleva la id-class.
 - [ ] Ningún `className` contiene la id-class.
-- [ ] Todos los HTML del cuerpo llevan `gb-<tipo>-<id>` + `gb-<tipo>`.
-- [ ] Las cuatro sustituciones de escapado aplicadas (`--`, `<`, `>`, `&`); comillas SIN escapar (ver §3).
+- [ ] Las seis sustituciones de escapado del core aplicadas (ver §3), con las comillas
+      **estructurales** del JSON literales.
 - [ ] `src`/`alt`/`href` dentro de `htmlAttributes`, no en el primer nivel.
-- [ ] `content` duplicado en atributo y cuerpo para todos los `text`.
+- [ ] `htmlAttributes` es un objeto plano, nunca un array (causa nº 1 de "Attempt Recovery").
 - [ ] Todo `element` con `tagName: "a"` contiene un `text`, nunca texto plano.
 - [ ] Los `uniqueId` son únicos y deterministas.
 - [ ] Los breakpoints que cruzan bloques están en el CSS externo, no intentados con `styles`.
 - [ ] Ninguna tipografía declarada si el tema ya la define.
 
-Si el editor dice *"este bloque contiene contenido inesperado o no válido"*, casi siempre es el punto 1 o el 4. **Intentar recuperación de bloque** arregla y deja el marcado ya canónico para esa instalación — sirve como verificación: si tras recuperar y guardar el HTML no cambia, el generador serializa igual que GB.
+**Claves anidadas dentro de `styles`** — las cuatro formas que emite GB, y cómo se traducen:
+
+| Clave | CSS que produce |
+|---|---|
+| `@media (max-width:767px)` | `@media(...){ SEL{...} }` |
+| `&:is(:hover, :focus)` | `SEL:is(:hover, :focus){...}` — el `&` se sustituye, sin espacio |
+| `svg` | `SEL svg{...}` — descendiente, **con** espacio |
+| `.gb-shape svg` | `SEL .gb-shape svg{...}` |
+
+Si el editor dice *"este bloque contiene contenido inesperado o no válido"*, en la práctica es el
+escapado (§3) o `htmlAttributes` como array. **Intentar recuperación de bloque** arregla y deja el
+marcado canónico para esa instalación — y sirve de verificación: si tras recuperar y guardar el HTML
+no cambia, tu generador serializa como GB.
+
+**La única verificación que de verdad cierra el asunto** es pegar el marcado en un WordPress real y
+comprobar con `parse_blocks()` que ningún bloque vuelve sin atributos. El validador de fichero no
+puede ver eso (ver `docs/prueba-handoff.md`).
 
 ---
 

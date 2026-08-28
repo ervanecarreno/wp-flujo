@@ -2,7 +2,34 @@
 const fs = require('fs');
 
 const FILE = process.argv[2];
-const src = fs.readFileSync(FILE, 'utf8');
+const bruto = fs.readFileSync(FILE, 'utf8');
+
+// GenerateBlocks exporta sus patrones como `wp_block` en JSON: el marcado va dentro del
+// campo `content`, con las comillas escapadas. Se acepta ese formato ademas del HTML suelto,
+// porque es justo el fichero que uno quiere validar despues de exportar de WordPress.
+function extraerMarcado(texto) {
+  const t = texto.trimStart();
+  if (t[0] !== '{' && t[0] !== '[') return texto;
+  let j;
+  try { j = JSON.parse(texto); } catch { return texto; }
+  const trozos = [];
+  const recorrer = (n) => {
+    if (!n) return;
+    if (Array.isArray(n)) { n.forEach(recorrer); return; }
+    if (typeof n === 'object') {
+      if (typeof n.content === 'string' && n.content.includes('<!-- wp:')) trozos.push(n.content);
+      Object.values(n).forEach(recorrer);
+    }
+  };
+  recorrer(j);
+  return trozos.length ? trozos.join(String.fromCharCode(10)) : texto;
+}
+
+const src = extraerMarcado(bruto);
+
+// Con --estricto, la comparacion css/styles vuelve a ser error. Usalo solo con marcado
+// generado por este flujo; con exports de WordPress da falsos positivos (GB optimiza).
+const ESTRICTO = process.argv.includes('--estricto');
 
 const PREFIX = {
   element: 'gb-element', text: 'gb-text', media: 'gb-media',
@@ -51,16 +78,32 @@ function scan(s) {
 const blocks = scan(src);
 
 // ---------- 2. buildCss idéntico al del método ----------
+// GenerateBlocks escribe `styles` en camelCase y `css` en kebab-case. Medido el 28/08/2026
+// sobre 732 bloques de 25 exports reales: 1423 claves camelCase frente a 75 kebab, y 0 bloques
+// con `css` en camel. Comparar sin convertir daba un error falso por cada declaracion.
+const aKebab = k => (k[0] === '-' || k[0] === '&' || k[0] === '@')
+  ? k
+  : k.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+
 function buildCss(sel, styles) {
   const own = {}, nest = [];
   for (const k of Object.keys(styles)) {
     const v = styles[k];
     if (v && typeof v === 'object') nest.push([k, v]); else own[k] = v;
   }
-  const decl = o => Object.keys(o).sort().map(k => k + ':' + o[k]).join(';');
+  const decl = o => Object.keys(o).map(k => [aKebab(k), o[k]])
+    .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    .map(([k, v]) => k + ':' + v).join(';');
   let out = Object.keys(own).length ? sel + '{' + decl(own) + '}' : '';
+  // Las tres formas de clave anidada que emite GB de verdad (medidas en 25 exports reales):
+  //   '@media (...)'          -> la media query envuelve al selector
+  //   '&:is(:hover, :focus)'  -> el & se sustituye por el selector, sin espacio
+  //   'svg' / '.gb-shape svg' -> selector descendiente, CON espacio
   for (const [k, v] of nest) {
-    out += k[0] === '@' ? k + '{' + sel + '{' + decl(v) + '}}' : sel + k.slice(1) + '{' + decl(v) + '}';
+    // Puede haber otro nivel dentro (una media query dentro de un selector descendiente),
+    // asi que se recurre en vez de volcar el objeto tal cual.
+    if (k[0] === '@') out += k + '{' + buildCss(sel, v) + '}';
+    else out += buildCss(k[0] === '&' ? sel + k.slice(1) : sel + ' ' + k, v);
   }
   return out;
 }
@@ -140,7 +183,14 @@ for (const b of blocks) {
       const expected = buildCss(sel, attrs.styles);
       const actual = attrs.css == null ? '' : String(attrs.css);
       if (actual !== expected) {
-        add('ERR', 'css≠styles', id, 'css no coincide con styles',
+        // GenerateBlocks no serializa `styles`: lo OPTIMIZA. Medido el 28/08/2026 sobre 732
+        // bloques de 25 exports reales, colapsa longhands en shorthand (padding-top/right/
+        // bottom/left -> padding), quita los espacios de dentro de rgba() y clamp(), y ordena
+        // los bloques anidados a su manera. Reconstruirlo carácter a carácter NO es posible.
+        // Por eso es AVISO: solo con --estricto vuelve a ser error, y eso tiene sentido
+        // unicamente para marcado que genera este mismo flujo, no para marcado exportado de WP.
+        add(ESTRICTO ? 'ERR' : 'WARN', 'css≠styles', id,
+          ESTRICTO ? 'css no coincide con styles' : 'css no coincide con la reconstruccion (GB optimiza: revisar solo si lo generaste tu)',
           'esperado: ' + expected + '\n      actual:   ' + actual);
       }
     }
@@ -203,8 +253,17 @@ for (const b of blocks) {
   } else {
     const [, tag, rest] = openTag;
     const cls = (rest.match(/class="([^"]*)"/) || [, ''])[1];
-    if (!cls.includes(idClass)) add('ERR', 'cuerpo', id, `falta la id-class "${idClass}" en class="${cls}"`);
-    if (!cls.split(/\s+/).includes(pfx)) add('ERR', 'cuerpo', id, `falta la clase base "${pfx}" en class="${cls}"`);
+    // La id-class solo hace falta si el bloque tiene CSS propio: si no tiene `styles`, o si se
+    // estila con una clase global de GB Pro, GenerateBlocks no la emite. Medido sobre los
+    // exports reales: bloques como {"uniqueId":"x","tagName":"div"} salen con class="".
+    const tieneCssPropio = !!(attrs.css || (attrs.styles && Object.keys(attrs.styles).length));
+    if (!cls.includes(idClass)) {
+      if (tieneCssPropio) add('ERR', 'cuerpo', id, `falta la id-class "${idClass}" en class="${cls}" (el bloque tiene css propio)`);
+      else add('WARN', 'cuerpo', id, `sin id-class en class="${cls}" (correcto: el bloque no tiene css propio)`);
+    }
+    // La clase base NO es obligatoria: medido sobre 732 bloques de exports reales de GB, el 60%
+    // del cuerpo solo lleva la id-class. Se deja como aviso informativo, no como error.
+    if (!cls.split(/\s+/).includes(pfx)) add('WARN', 'cuerpo', id, `sin la clase base "${pfx}" en class="${cls}" (GB no siempre la emite)`);
     if (attrs.tagName && tag !== attrs.tagName)
       add('ERR', 'cuerpo', id, `tagName="${attrs.tagName}" pero el cuerpo usa <${tag}>`);
     // htmlAttributes reflejados en el cuerpo
@@ -220,7 +279,7 @@ for (const b of blocks) {
   // content duplicado en atributo y cuerpo (§8)
   if (b.type === 'text') {
     const c = attrs.content;
-    if (c == null) add('ERR', 'content', id, 'bloque text sin atributo content');
+    if (c == null) add('WARN', 'content', id, 'bloque text sin atributo content (valido si lleva bloques hijos)');
     else {
       const inner = body.replace(/^\s*<[^>]+>/, '').replace(/<\/[^>]+>\s*$/, '').trim();
       if (inner !== String(c).trim()) add('ERR', 'content', id, 'content NO coincide con el cuerpo', `attr: ${JSON.stringify(c)}\n      body: ${JSON.stringify(inner)}`);
@@ -242,7 +301,7 @@ for (const b of blocks) {
 
   // shape: svg duplicado en atributo html y cuerpo
   if (b.type === 'shape') {
-    if (!attrs.html) add('ERR', 'shape', id, 'shape sin atributo html');
+    if (!attrs.html) add('WARN', 'shape', id, 'shape sin atributo html (GB no siempre lo emite)');
     else {
       const norm = x => String(x).replace(/\s+/g, ' ').trim();
       const innerSvg = body.replace(/^\s*<span[^>]*>/, '').replace(/<\/span>\s*$/, '');
