@@ -15,7 +15,15 @@ set "WP_PHAR=C:\Program Files (x86)\Local\resources\extraResources\bin\wp-cli\wp
 set "PHP_INI=%~dp0php.ini"
 if not exist "%LOCAL_PHP%" goto :sinphp
 if not exist "%WP_PHAR%" goto :sinwp
+rem  Si WP_MYSQL_PORT esta definida, se le pasa a PHP el puerto de MySQL del sitio.
+rem  Local usa un puerto propio por sitio (esta en sites.json de %APPDATA%\Local) y
+rem  sin esto los comandos que tocan la base de datos dan "conexion denegada".
+if defined WP_MYSQL_PORT goto :conpuerto
 "%LOCAL_PHP%" -c "%PHP_INI%" "%WP_PHAR%" %*
+exit /b %ERRORLEVEL%
+
+:conpuerto
+"%LOCAL_PHP%" -c "%PHP_INI%" -d mysqli.default_port=%WP_MYSQL_PORT% "%WP_PHAR%" %*
 exit /b %ERRORLEVEL%
 
 :sinphp

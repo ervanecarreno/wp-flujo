@@ -3,53 +3,67 @@
 > **Fuente de verdad del estado del proyecto.** Al retomar, lee esto primero: ni el README ni la
 > memoria de Claude Code lo sustituyen. Actualízalo al cerrar cada sesión de trabajo.
 
-**Última actualización:** 27/08/2026, final de jornada.
+**Última actualización:** 28/08/2026.
 
 ---
 
-## ⏭ LO SIGUIENTE (pendiente al retomar — 28/08/2026)
+## ⏭ LO SIGUIENTE (pendiente al retomar)
 
-**Cerrar la laguna de portabilidad de la configuración del tema.** Es lo único que quedó a medias.
+**Probar `herramientas/config-tema.js` de punta a punta contra un WordPress con GeneratePress.**
+Es lo único que queda del trabajo de hoy, y necesita un sitio arrancado en Local.
 
-Javier planteó un supuesto real al final de la sesión: un diseño ya aprobado en Figma (una home
-más un CPT fijo de "servicios") que hay que trasladar a WordPress en Local WP, ajustar secciones,
-noticias del blog y **configuración del tema y tipografía**, confirmar fiabilidad del diseño,
-animar con GSAP y añadir query loops. El flujo cubre todo eso… **menos un hueco verificado**:
+Hoy se escribió el script y se verificó lo que se puede verificar sin GeneratePress delante:
+sintaxis, validación de argumentos, resolución del puerto de MySQL desde `sites.json` (detectó el
+10011 solo) y detección honesta del sitio parado. Lo que **no** se ha podido comprobar todavía:
 
-La configuración del tema y la tipografía **viven en la base de datos, no en código**, así que
-**no viajan con el repo git**. Comprobado contra un WordPress real (figma-staging):
+- que `wp option get generate_settings --format=json` devuelve lo esperado y se escribe bien
+- que el descubrimiento (`wp option list --search='generate_*'`) lista lo que hay
+- que la reimportación con `--confirmar` deja el sitio destino con la tipografía correcta
 
-```
-generate_settings              ← toda la configuración del tema
-generate_spacing_settings      ← espaciados
-generate_package_font_library  ← la tipografía
-```
-
-La fase 2 versiona el tema hijo, los CPT, `acf-json/` y `/patterns/`, pero no esto. Al migrar a
-producción no van solas.
-
-**La tarea:** un script en `herramientas/` (Node sin dependencias, como los demás) que exporte
-esas opciones a un JSON versionado en el repo y las reimporte en el destino. Base del comando:
+El único sitio de Local en esta máquina es `figma-staging`, que **es del otro proyecto** y no
+tiene GeneratePress: sirvió para probar la conexión, no el caso real. Hace falta un WordPress con
+GeneratePress — el primer proyecto de cliente vale.
 
 ```
-wp option get generate_settings --format=json --path="<sitio>"
-wp option update generate_settings --format=json --path="<sitio>" < fichero.json
+node herramientas/config-tema.js exportar --path="<sitio>"
+node herramientas/config-tema.js importar --path="<otro sitio>"              (solo informa)
+node herramientas/config-tema.js importar --path="<otro sitio>" --confirmar  (escribe)
 ```
 
-Al terminarlo: documentarlo en la fase 2 de `SETUP-RECOMENDADO.md` y en la skill
-`flujo-wordpress-generateblocks`, y **subir el `version` de `.claude-plugin/plugin.json`** para
-que `/plugin` detecte la actualización (ver Bloqueos abiertos).
+### Cerrado hoy (28/08/2026)
 
-### También conversado y sin cerrar
+- **La laguna de portabilidad de la configuración del tema, resuelta.** `herramientas/config-tema.js`
+  exporta `generate_settings`, `generate_spacing_settings` y `generate_package_font_library` a JSON
+  versionable y las reimporta en el destino. Exporta **solo esas tres**: lo demás que encuentra en
+  la base de datos lo lista para que lo decida Javier, no lo asume. Importar exige `--confirmar` y
+  deja copia previa.
+- **`wp.cmd` ya resuelve el puerto de MySQL de Local** por la variable `WP_MYSQL_PORT`. Era el
+  papelito suelto de ayer: Local da a cada sitio un puerto propio y sin eso wp-cli da "conexión
+  denegada" aunque el sitio esté arrancado. `config-tema.js` lo saca solo de `sites.json`.
+- **Hallazgo, con consecuencia real:** `wp core version` **lee un fichero, no la base de datos**,
+  así que funciona igual con el sitio parado. La primera versión del script lo usaba como prueba de
+  conexión, daba el sitio por bueno y luego reportaba las tres opciones como "no existen" — un
+  falso negativo perfecto, del mismo tipo que los que este flujo existe para evitar. Ahora
+  comprueba con `wp option get siteurl`. Documentado en `herramientas/wp-cli/LEEME.md`.
+- **Las dos correcciones de orden, ya escritas en el flujo.** La del CPT por código en la fase 2 ya
+  estaba; la de GSAP después de los query loops estaba implícita en la fase 6 y ahora es explícita
+  también en la fase 5, donde se decide el orden de trabajo.
+- Documentado en: fases 2, 5 y 8 de `SETUP-RECOMENDADO.md`, la skill
+  `flujo-wordpress-generateblocks` (nueva trampa 6, y las fases 2/6/8 de su tabla),
+  `herramientas/LEEME.md` (con la sección de `puerta-calidad.js`, que faltaba) y
+  `herramientas/wp-cli/LEEME.md`. Plugin subido a **0.1.2** para que `/plugin` lo detecte.
 
-- **Correcciones de orden al supuesto de Javier**, ya explicadas pero no escritas en el flujo: el
-  CPT de servicios debe registrarse por código en la fase 2 (no al final, o se construye la
-  sección dos veces), y **GSAP va después de los query loops** — animar una sección con un número
-  fijo de tarjetas y convertirla luego en query loop rompe la animación. Valorar si merece una
-  nota explícita en `SETUP-RECOMENDADO.md`.
+### Sigue abierto, sin urgencia
+
+- **Actualizar el HTML publicado** `traspaso-2026-08-26/setup-recomendado.html`: es la versión
+  visual del flujo y todavía no lleva la configuración del tema en las fases 2 y 8.
 - **El plugin no cubre la traducción Figma → GenerateBlocks.** Empieza cuando el marcado ya
-  existe. Javier tiene un pipeline propio para ese paso en `C:\TRABAJOS\figma-gb-pipeline`
+  existe. Javier tiene un pipeline propio para ese paso en `C:\TRABAJOSigma-gb-pipeline`
   (proyecto distinto, no mezclar), pero conviene decidir si se documenta el enlace entre ambos.
+- Las dos reglas de validador que la investigación recomienda y no están: fallar ante un HEX de
+  marca literal, y comprobar contra un WordPress real que cada `wp-image-{ID}` existe.
+- El clic literal en el CSS Editor de GB Pro 2.6 desde la UI (el experimento usó la API REST, el
+  mismo camino que usa el editor al guardar, pero no ese botón concreto).
 
 ---
 
@@ -76,6 +90,7 @@ concreto.
 | `herramientas/commit-memoria.sh` | El script del hook. Defensivo: calla si no hay cambios o no es un repo |
 | `herramientas/wp-cli/` | `wp.cmd` y `php.cmd`: usan el PHP y wp-cli que trae Local, sin instalar nada. Ver su LEEME |
 | `herramientas/puerta-calidad.js` | Fase 7: comprueba URLs rotas y peso de imagen contra el servidor real |
+| `herramientas/config-tema.js` | Fases 2 y 8: exporta e importa la configuración del tema y la tipografía, que viven en la base de datos y no viajan con el repo |
 | `config-heredada/` | Config de Claude Code de la máquina anterior, como referencia (sin secretos, verificado) |
 
 ## Estado actual

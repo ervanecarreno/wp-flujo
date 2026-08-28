@@ -81,6 +81,21 @@ verdad — nunca elegidos en el panel de color de cada bloque GB (ver Fase 4, si
   viajan con el código
 - `.gitignore`: fuera core, `uploads/`, plugins de terceros (documentar versiones en un README en
   vez de comitear binarios)
+- **La configuración del tema y la tipografía no están en código: están en la base de datos.** Es
+  la laguna que el resto de esta fase no cubre. Verificado contra un WordPress real: viven en tres
+  opciones de WordPress (`generate_settings`, `generate_spacing_settings` y
+  `generate_package_font_library`), así que no viajan con el repo. Sin exportarlas, el destino
+  recibe la maqueta correcta con la tipografía y los espaciados de fábrica. Expórtalas en cuanto
+  el tema esté configurado, y **cada vez que lo toques**:
+
+  ```
+  node herramientas/config-tema.js exportar --path="<sitio>"
+  ```
+
+  Deja un JSON legible por opción en `config-tema/` (más un `MANIFIESTO.json`), listo para
+  comitear. Solo lleva esas tres; si encuentra otras opciones `generate_*` en la base de datos te
+  las lista para que decidas tú si hacen falta (`--incluir=`), no lo asume. En el destino, la
+  reimportación pide `--confirmar` y guarda copia de lo anterior antes de sobrescribir.
 
 ### Fase 3 — Repo GitHub (igual que la propuesta original, con el alcance correcto)
 
@@ -115,6 +130,11 @@ se versiona es realmente código, no un volcado de base de datos.
 Con la diferencia de que los CPT ya están registrados por código desde la Fase 2, y las
 plantillas/secciones se guardan como archivos PHP en `/patterns`, no como contenido pegado que
 solo vive en la base de datos.
+
+**Los query loops se montan aquí, y la animación va después (Fase 6). No al revés.** Animar una
+sección con un número fijo de tarjetas y convertirla luego en query loop rompe la animación: los
+selectores dejan de encajar y las tarjetas que llegan del bucle nunca se registran en
+ScrollTrigger. Es el mismo fallo descrito en la Fase 6, pero causado por el orden de trabajo.
 
 ### Fase 6 — Animación (confirmado: después de la Fase 5, tu instinto original era correcto)
 
@@ -164,6 +184,20 @@ Migrar con `wp search-replace "http://local.test" "https://dominio.com/subdirect
 URLs relativas a mano — WordPress guarda URLs absolutas por diseño intencional (el contenido es
 "migratorio", se sindica fuera del sitio). Tras el despliegue, re-ejecutar la Fase 7 completa
 contra la URL de producción real.
+
+**Antes de dar la migración por buena, importar la configuración del tema.** El `search-replace`
+arregla las URLs, pero la configuración de GeneratePress y la tipografía no llegan solas: son las
+tres opciones de base de datos de la Fase 2.
+
+```
+node herramientas/config-tema.js importar --path="<sitio destino>"             (solo informa)
+node herramientas/config-tema.js importar --path="<sitio destino>" --confirmar  (escribe)
+```
+
+Sin `--confirmar` no escribe nada: lista opción por opción si es idéntica, si cambia o si hay que
+crearla. Con `--confirmar` guarda copia de los valores anteriores en `config-tema/copias-previas/`
+y te da el comando exacto para volver atrás. Después, mirar el sitio en el navegador: tipografía,
+colores y espaciados. Es lo único de esta fase que ningún validador puede confirmar por ti.
 
 ---
 

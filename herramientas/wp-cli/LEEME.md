@@ -34,9 +34,34 @@ Cómo distinguir el error:
 
 | Mensaje | Significa |
 |---|---|
-| `mysqli_real_connect(): conexión denegada` | el sitio está parado — arráncalo en Local |
+| `mysqli_real_connect(): conexión denegada` | el sitio está parado — arráncalo en Local; si ya está arrancado, es el puerto (ver abajo) |
 | `missing the MySQL extension` | el `php.ini` no se está aplicando — revisa la ruta en `wp.cmd` |
 | `This does not seem to be a WordPress installation` | el `--path` está mal escrito o mal entrecomillado |
+
+## El puerto de MySQL: `WP_MYSQL_PORT`
+
+Local no usa el 3306: **da a cada sitio un puerto propio**. Si el sitio está arrancado y aún sale
+"conexión denegada", es esto. El puerto está en `sites.json`, dentro de
+`services.mysql.ports.MYSQL`:
+
+```powershell
+Get-Content "$env:APPDATA\Local\sites.json" | ConvertFrom-Json
+```
+
+Se le pasa a `wp.cmd` por una variable de entorno, y él se encarga del resto:
+
+```powershell
+$env:WP_MYSQL_PORT = "10011"
+& "C:\TRABAJOS\wp-flujo\herramientas\wp-cli\wp.cmd" option get siteurl --path=$site
+```
+
+`herramientas/config-tema.js` lo resuelve solo: lee `sites.json`, encuentra el sitio por su ruta y
+define la variable antes de llamar. Si escribes un script propio que use `wp.cmd`, copia ese
+mecanismo en vez de escribir el puerto a mano.
+
+**Ojo al comprobar si la base de datos responde:** `wp core version` lee un fichero, no la base de
+datos, así que funciona igual con el sitio parado. Para saber si responde de verdad hay que pedirle
+un dato: `wp option get siteurl`.
 
 ## Por qué existe el php.ini de esta carpeta
 
