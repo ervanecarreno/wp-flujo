@@ -191,6 +191,18 @@ Actualizado en: `docs/metodo-generateblocks-v2.md` §3, la skill `generar-bloque
 
 ### Sigue abierto, sin urgencia
 
+- **`conversion/scripts/wp-push-tokens.mjs` no tiene el *fallback* que promete.** Su docstring
+  describe una "estrategia dual" (abilities MCP, y si no, endpoint REST de opciones), pero solo la
+  primera esta implementada. Medido el 2/09/2026 contra `figma-staging`: las abilities de
+  GeneratePress no estaban registradas (2 abilities en total, 0 de GP) y el script murio con
+  `HTTP 404 rest_ability_not_found`, sin alternativa. Hay que anadir la via wp-cli
+  (`update_option('generate_settings', ...)`), que es la que funciono.
+- **Dato nuevo para unificar los validadores.** En la misma prueba, un marcado con comillas dobles
+  dentro del atributo `css` (pilas de fuente tipo `"Fraunces", Georgia, serif`) rompia el JSON del
+  bloque: `validate-blocks.mjs` lo paro con 12 errores y **`audit-gb.js` dio 0 errores**. Sumado al
+  caso inverso ya registrado (audit-gb caza `shape` sin `html`), queda confirmado que ninguno domina
+  y que hay que pasar los dos hasta unificarlos.
+
 - Las dos reglas de validador que la investigación recomienda y no están: fallar ante un HEX de
   marca literal, y comprobar contra un WordPress real que cada `wp-image-{ID}` existe.
 - **Unificar los dos validadores.** Desde la promoción del 2/09 conviven `audit-gb.js` y
