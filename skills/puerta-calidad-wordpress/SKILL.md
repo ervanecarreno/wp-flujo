@@ -1,7 +1,7 @@
 ---
 name: puerta-calidad-wordpress
-description: Puerta de calidad antes de entregar o subir a producción un WordPress: enlaces e imágenes rotas, peso de imagen, accesibilidad WCAG, CLS/LCP y salud de WordPress. Úsala cuando se vaya a entregar, revisar o publicar un sitio, cuando se hable de accesibilidad, Lighthouse, imágenes pesadas o enlaces rotos, y siempre antes de dar por bueno un despliegue.
-version: 0.1.0
+description: Puerta de calidad antes de entregar o subir a producción un WordPress: contrato de diseño publicado (tokens y tipografía que resuelven de verdad), enlaces e imágenes rotas, peso de imagen, accesibilidad WCAG, CLS/LCP y salud de WordPress. Úsala cuando se vaya a entregar, revisar o publicar un sitio, cuando se hable de accesibilidad, Lighthouse, imágenes pesadas o enlaces rotos, y siempre antes de dar por bueno un despliegue.
+version: 0.2.0
 ---
 
 # Puerta de calidad antes de producción
@@ -16,7 +16,28 @@ Ejecútalo **contra el sitio desplegado en staging, con la URL real, incluido el
 hay**. Nunca contra un HTML local suelto: es precisamente el subdirectorio lo que rompió Aridane, y
 en local no se ve.
 
-## Los cinco pasos
+## Los seis pasos
+
+**0. ¿Llegó el contrato de diseño al navegador?**
+
+```
+node herramientas/conversion/scripts/qa-contrato-publicado.mjs <url-real> [--tokens x.tokens.css]
+```
+
+Comprueba, sobre la página **servida**, que cada `var(--token)` del marcado tiene una definición
+real y que cada familia tipográfica declarada tiene un `@font-face` que la cargue.
+
+Existe porque este flujo cometió el mismo fallo dos veces en dos semanas: 14 Global Colors
+empujados y verificados que el navegador no veía (WP los publica como `--wp--preset--color--X`),
+y dos fuentes declaradas 47 veces entre las dos que se servían **sin un solo `@font-face`** — todo
+salía en Georgia. **Declarar no es publicar**, y ninguna de las dos cosas da error en ningún sitio:
+el navegador coge otra cosa y calla.
+
+Ningún otro paso de esta puerta lo ve: los pasos 1 y 2 miran URLs, el 3 accesibilidad, el 4
+rendimiento y el 5 la salud de WordPress. Ninguno mira si lo que el marcado *referencia* existe.
+
+Es Node sin dependencias y tarda un segundo. Distingue el token usado **sin respaldo** —que rompe
+y hace fallar la puerta— del que lleva `var(--x, valor)`, que degrada y solo se informa.
 
 **1 y 2. Rotas y peso de imagen — un solo comando, sin descargar nada**
 
@@ -82,5 +103,5 @@ Migrar con `wp search-replace "<url-local>" "<url-produccion>" --dry-run --skip-
 revisar el informe, y solo entonces repetir sin `--dry-run`. Nunca editar URLs a mano: WordPress las
 guarda absolutas por diseño intencional.
 
-Y **repetir estos cinco pasos contra la URL de producción real** una vez desplegado. Que pasara en
+Y **repetir estos seis pasos contra la URL de producción real** una vez desplegado. Que pasara en
 staging no garantiza producción: cambia el dominio, y a veces el subdirectorio.

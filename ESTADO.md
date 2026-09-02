@@ -7,6 +7,55 @@
 
 ---
 
+## Añadido el 2/09/2026: la puerta que faltaba — «declarar no es publicar»
+
+Segunda revisión de `C:\TRABAJOS\figma-gb-pipeline`, buscando qué más mejora la **fidelidad de
+la conversión**. Resultado: el código útil ya estaba promovido, pero **el método no lo ejecutaba**,
+y faltaba una capa entera.
+
+**Lo que sí faltaba: `herramientas/conversion/scripts/qa-contrato-publicado.mjs`** (nuevo).
+
+Comprueba sobre la página **servida** que cada `var(--token)` del marcado tiene definición real y
+que cada familia tipográfica declarada tiene un `@font-face` que la cargue. Node, sin
+dependencias, un segundo.
+
+Existe porque el flujo cometió **el mismo fallo dos veces en dos semanas**, y ninguna capa lo vio:
+
+| | Declarado y verificado | Lo que recibía el navegador |
+|---|---|---|
+| Colores | 14 Global Colors empujados, comprobados uno a uno | WP los expone como `--wp--preset--color--X`. **0 definiciones** de `--bg-page` y compañía |
+| Tipografía | `Fraunces` ×16, `Public Sans` ×31 | **0 `@font-face`, 0 enlaces a Google Fonts.** Todo en Georgia |
+
+Ninguna capa existente lo cubría, y no por descuido: el validador mira el **marcado**, el
+round-trip mira lo que **WordPress guarda**, y la puerta de calidad mira **enlaces, imágenes y
+accesibilidad**. Ninguno mira si lo que el marcado *referencia* existe en el navegador.
+
+**Verificado por regresión**, no por argumento: desactivando el plugin del proyecto de prueba, la
+puerta cantó **24 referencias sin resolver y las 2 familias**, con las cifras exactas (16 y 31);
+reactivado, sale limpia. Distingue el token usado sin respaldo —que rompe— del que lleva
+`var(--x, valor)`, que solo degrada.
+
+Integrada como **paso 0** de la skill `puerta-calidad-wordpress` (ahora 0.2.0, seis pasos).
+
+**Lo que la revisión también dejó claro:**
+
+1. **`wp-roundtrip.mjs` es el árbitro para unificar los dos validadores.** No es un tercer linter:
+   los dos existentes codifican una *creencia* sobre lo que WordPress hace al guardar; el
+   round-trip **se lo pregunta**. Medido: con `>` y `&` crudos, WP devolvió `\u003e` — confirmó con
+   sus propios bytes la regla 1.3 de `validate-blocks.mjs`. Cuando dos reglas discrepen, gana la
+   que sobreviva al round-trip. Y sobre la landing real de la prueba: **0 drift en 95 bloques**,
+   que valida de paso el orden canónico de claves de `canonical.mjs`.
+2. **Dos entradas del LEEME describían mal su script.** `fidelity-check.mjs` no comprueba «color y
+   tipografía»: comprueba `sizingH:FILL`, `clipsContent` y `textAlign`, y **solo funciona en la
+   ruta `convert-frame`**, porque trabaja sobre sus `fidelityRecords`. En la ruta de autoría con
+   `emit.mjs` —la que se usó en la prueba— no es aplicable. Corregido.
+3. **`qa-editor-check.mjs` sigue sin ejecutarse y es el que más falta hará.** La validación real de
+   GenerateBlocks (*«Attempt Recovery»*) vive en el editor JS, no en REST: ni los linters ni el
+   round-trip la ven. Pide `playwright` y la contraseña de login real. **No instalado**; queda
+   como la siguiente pieza a montar.
+
+---
+
 ## Cerrado el 2/09/2026: la traducción Figma → GenerateBlocks, dentro del plugin
 
 **La laguna que este documento reconocía —*"el plugin no cubre la traducción Figma →
