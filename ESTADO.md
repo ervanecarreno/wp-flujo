@@ -3,7 +3,37 @@
 > **Fuente de verdad del estado del proyecto.** Al retomar, lee esto primero: ni el README ni la
 > memoria de Claude Code lo sustituyen. Actualízalo al cerrar cada sesión de trabajo.
 
-**Última actualización:** 28/08/2026 (tarde).
+**Última actualización:** 2/09/2026.
+
+---
+
+## Cerrado el 2/09/2026: la traducción Figma → GenerateBlocks, dentro del plugin
+
+**La laguna que este documento reconocía —*"el plugin no cubre la traducción Figma →
+GenerateBlocks, empieza cuando el marcado ya existe"*— queda cerrada.**
+
+Promovido a `herramientas/conversion/` el toolkit que vivía en `C:\TRABAJOS\figma-gb-pipeline`:
+11 módulos en `lib/` y 11 scripts. Node ≥18, sin dependencias salvo el diff visual.
+
+**El motivo es de arquitectura, no de comodidad.** `figma-gb-pipeline` es un **proyecto**, con
+remoto propio en GitHub y material de proyecto dentro. Un proyecto de cliente debe depender del
+**plugin**, nunca de otro proyecto. Se detectó al plantear la web de la Fundación Santa Cruz de La
+Palma: la ruta de conversión que se le iba a proponer la ataba a ese repo.
+
+Solo se ha traído herramienta. Queda fuera todo lo que es material de proyecto —el handoff,
+`patterns/`, `pages/`, `tokens/`, `app/`, `bridge-plugin/`—; cada cliente crea los suyos.
+
+**Pieza clave que entra:** `lib/convert-frame.mjs`, que convierte un frame de Figma en bloques.
+Con ella el flujo cubre por primera vez de Figma a WordPress sin salto manual.
+
+**Los dos validadores conviven a propósito.** Enfrentados al mismo fichero real: los dos dan
+**0 errores**; `audit-gb.js` da 23 avisos y `validate-blocks.mjs` 1. Ninguno domina — `audit-gb.js`
+caza `shape` sin `html`, pero tiene un falso positivo (confunde declaraciones CSS con etiquetas
+dinámicas: 5 de sus 23 avisos). Reparto: `validate-blocks.mjs` es el pre-check del pipeline,
+`audit-gb.js` sigue siendo la puerta del método §8. Unificarlos queda como tarea abierta, con
+método escrito.
+
+Plugin a **0.5.0**.
 
 ---
 
@@ -161,11 +191,12 @@ Actualizado en: `docs/metodo-generateblocks-v2.md` §3, la skill `generar-bloque
 
 ### Sigue abierto, sin urgencia
 
-- **El plugin no cubre la traducción Figma → GenerateBlocks.** Empieza cuando el marcado ya
-  existe. Javier tiene un pipeline propio para ese paso en `C:\TRABAJOS\figma-gb-pipeline`
-  (proyecto distinto, no mezclar), pero conviene decidir si se documenta el enlace entre ambos.
 - Las dos reglas de validador que la investigación recomienda y no están: fallar ante un HEX de
   marca literal, y comprobar contra un WordPress real que cada `wp-image-{ID}` existe.
+- **Unificar los dos validadores.** Desde la promoción del 2/09 conviven `audit-gb.js` y
+  `conversion/scripts/validate-blocks.mjs`. Método para resolverlo, no opinar: correr los dos
+  contra el corpus de 732 bloques y quedarse con la unión de reglas verdaderas. Detalle y
+  medición en `herramientas/conversion/LEEME.md`.
 - El clic literal en el CSS Editor de GB Pro 2.6 desde la UI (el experimento usó la API REST, el
   mismo camino que usa el editor al guardar, pero no ese botón concreto).
 

@@ -14,6 +14,7 @@ Para el estado del trabajo y qué toca hacer ahora, lee **[ESTADO.md](ESTADO.md)
 |---|---|
 | `skills/` | Las 5 skills: el flujo de 8 fases, importación de handoff, generación de bloques, wp-cli en Local y la puerta de calidad |
 | `herramientas/` | Validadores Node sin dependencias (`audit-gb.js`, `audit-cross.js`, `fix-gb.js`) |
+| `herramientas/conversion/` | **Figma → GenerateBlocks**: conversión de frames, emisores canónicos, ensamblador y QA. Cierra la laguna que el flujo tenía reconocida. Ver su [LEEME](herramientas/conversion/LEEME.md) |
 | `herramientas/wp-cli/` | `wp.cmd` y `php.cmd`: usan el PHP y wp-cli que ya trae Local WP, sin instalar nada |
 | `docs/` | El método de referencia de GB Pro V2 y la auditoría del caso de estudio |
 | `verificacion/` | Pruebas empíricas puntuales, como el round-trip del escapado de WordPress |
