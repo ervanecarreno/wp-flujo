@@ -80,9 +80,61 @@ Coinciden en lo que importa —0 errores— y difieren en la sensibilidad. Ningu
   antes de emitir.
 - `audit-gb.js` es la **puerta**, la del método §8. Nada entra en WordPress sin pasarla.
 
-**Tarea abierta:** unificarlos. El método no es opinar, es correr los dos contra el corpus de
-732 bloques, quedarse con la unión de reglas verdaderas y tirar la heurística de `dynamic-tag`
-que confunde CSS con etiquetas. Hasta que eso se haga, se ejecutan los dos.
+### Resuelto el 2/09/2026: calibrados contra el corpus
+
+La tarea llevaba abierta desde agosto. Se resolvió midiendo, no opinando.
+
+El criterio: `herramientas/corpus-gb/` son **25 exports reales de GenerateBlocks, 742 bloques**.
+GB los produjo y GB los acepta. **Si una regla salta ahí, la regla está mal.** Y hay una segunda
+forma de estar mal: saltar *igual* sobre los dos conjuntos, porque entonces no distingue nada.
+Herramienta: `herramientas/calibrar-validadores.mjs`, que normaliza por bloque —los ficheros van
+de 8 a 156 bloques— y da veredicto por regla.
+
+**Primera medición:**
+
+| | Errores falsos | Avisos sobre marcado válido |
+|---|---|---|
+| `validate-blocks.mjs` | **0** | 81 (regla 2.6) |
+| `audit-gb.js` | **0** | **847**, en 6 categorías |
+
+Ninguno de los dos producía un error falso: como puertas, los dos eran seguros. Pero las seis
+categorías de aviso de `audit-gb.js` saltaban a tasas iguales o **mayores** sobre la salida del
+propio GB que sobre la nuestra. Un informe con 847 avisos sobre marcado correcto no se lee: enseña
+a ignorarlo, y el día que aparezca uno de verdad pasa desapercibido.
+
+**Dos reglas tenían arreglo real, y se arreglaron:**
+
+- **`dynamic-tag`, llaves sueltas.** Buscaba `/\{[a-z_]+[^}]*\}/`, que es también la forma de
+  cualquier declaración CSS: `{background-color:var(--accent)}`. 125 disparos, todos falsos, en
+  25 de 25 ficheros. Ahora exige un **nombre de etiqueta conocido**; ninguna propiedad CSS se
+  llama `post_title`, así que la regla pasó a ser exacta. Cero falsos, y sigue cazando el
+  `{post_title}` de una sola llave, que falla en silencio.
+- **`content`, text sin contenido.** Avisaba siempre, aunque el bloque llevara hijos. Se afinó a
+  «no hay hijos» — y luego hubo que afinarla otra vez: un `text` con solo un `<svg>` **no está
+  vacío**, y el corpus tenía justo ese caso. Vacío es que dentro de la envolvente no quede nada.
+
+**Cuatro no tenían arreglo, y bajaron de rango.** Se conservan —a veces describen algo cierto—
+pero fuera del informe por defecto, en un tercer nivel **`nota`**, visible con `--todo`:
+`cuerpo` (la clase base que GB tampoco emite), `css≠styles` (GB optimiza el CSS y reconstruirlo
+carácter a carácter no es posible), `shape` sin `html`, y `enlace` con texto suelto.
+
+Igual la mitad `warn` de la regla **2.6** de `validate-blocks.mjs`: alfabetización en selectores
+descendientes. Su mitad `error` —selectores base— sí está validada, 0 disparos sobre los 742
+bloques. La otra mitad medía **quién escribió el fichero**, no si está bien: nosotros alfabetizamos
+y GB no.
+
+**Resultado: 0 disparos de cualquiera de los dos sobre los dos conjuntos**, sin perder una sola
+detección real. Comprobado por regresión con marcado roto a propósito: escapado crudo,
+`htmlAttributes` como array, `uniqueId` duplicado, `:hover` sin clave en `styles`, etiqueta de una
+llave y un `text` de verdad vacío — los seis siguen saltando.
+
+**Y siguen siendo dos a propósito**, ahora con la prueba delante: en ese mismo fichero roto,
+`validate-blocks.mjs` fue el único que vio el `:hover` sin clave en `styles`, y `audit-gb.js` el
+único que vio el `uniqueId` duplicado y la etiqueta de una llave. Ninguno domina al otro. Se
+ejecutan los dos, y ahora los dos callan cuando no hay nada que decir.
+
+**Regla para el futuro:** una regla nueva no entra por parecer razonable. Pasa por
+`calibrar-validadores.mjs` y demuestra que distingue.
 
 **Y ya hay árbitro para esa unificación: `wp-roundtrip.mjs`.** Los dos validadores codifican una
 *creencia* sobre lo que WordPress hace al guardar. El round-trip no cree: publica un borrador,

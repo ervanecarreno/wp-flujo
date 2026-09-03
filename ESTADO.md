@@ -7,6 +7,54 @@
 
 ---
 
+## Cerrado el 2/09/2026: los dos validadores, calibrados contra el corpus
+
+La tarea llevaba abierta desde agosto —«unificar los dos validadores»— y se resolvió **midiendo**.
+
+El criterio: `herramientas/corpus-gb/` son **25 exports reales de GenerateBlocks, 742 bloques**,
+traídos de `figma-gb-pipeline` porque calibran herramienta, no proyecto. GB los produjo y GB los
+acepta: **si una regla salta ahí, la regla está mal.** Y hay una segunda forma de estar mal,
+saltar *igual* sobre los dos conjuntos, porque entonces no distingue nada. Herramienta nueva:
+`herramientas/calibrar-validadores.mjs`, que normaliza por bloque y da veredicto por regla.
+
+**Lo que midió:**
+
+| | Errores falsos | Avisos sobre marcado válido |
+|---|---|---|
+| `validate-blocks.mjs` | **0** | 81 |
+| `audit-gb.js` | **0** | **847**, en 6 categorías |
+
+Ninguno producía errores falsos: como puertas, los dos eran seguros, y eso confirma la decisión de
+conservar los dos. Pero las seis categorías de aviso saltaban a tasas **iguales o mayores** sobre
+la salida del propio GB que sobre la nuestra. 847 avisos sobre marcado correcto no se leen:
+enseñan a ignorar el informe.
+
+**Dos reglas tenían arreglo real:** la de llaves sueltas de `dynamic-tag`, que confundía cualquier
+declaración CSS con una etiqueta (125 falsos, 25 de 25 ficheros) y ahora exige un nombre de
+etiqueta conocido; y la de `text` sin `content`, que avisaba aunque el bloque llevara hijos — y
+que hubo que afinar **dos** veces, porque un `text` con solo un `<svg>` no está vacío y el corpus
+tenía justo ese caso.
+
+**Cuatro no lo tenían y bajaron a un tercer nivel, `nota`**, fuera del informe por defecto y
+visible con `--todo`: `cuerpo`, `css≠styles`, `shape` y `enlace`. Igual la mitad `warn` de la
+regla 2.6 de `validate-blocks.mjs`: su mitad `error` sí está validada (0 disparos sobre 742
+bloques), pero la de selectores descendientes medía **quién escribió el fichero**, no si está
+bien — nosotros alfabetizamos y GB no.
+
+**Resultado: 0 disparos de los dos sobre los dos conjuntos, sin perder una sola detección real.**
+Comprobado por regresión con marcado roto a propósito: escapado crudo, `htmlAttributes` como
+array, `uniqueId` duplicado, `:hover` sin clave en `styles`, etiqueta de una llave y un `text` de
+verdad vacío. Los seis siguen saltando. Y en ese mismo fichero se ve por qué siguen siendo dos:
+`validate-blocks.mjs` fue el único que vio el `:hover`, y `audit-gb.js` el único que vio el
+`uniqueId` duplicado y la etiqueta de una llave.
+
+**Regla nueva del método:** una regla no entra por parecer razonable. Pasa por
+`calibrar-validadores.mjs` y demuestra que distingue.
+
+Plugin en **0.7.0**.
+
+---
+
 ## Añadido el 2/09/2026: el flujo ya se reproduce en un proyecto nuevo
 
 La pregunta era «¿cómo repito esto en un proyecto real: hago un plugin, una extensión, una app?».

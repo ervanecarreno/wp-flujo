@@ -116,7 +116,12 @@ export function validate(markup, allowedValues = null) {
         const sorted = [...core].sort();
         if (JSON.stringify(core) !== JSON.stringify(sorted)) {
           const isBase = /^\.gb-(element|text|media|shape|query|looper|loop-item|carousel|carousel-items|carousel-item|carousel-control|carousel-pagination)-[0-9a-f]+(::(before|after))?$/.test(sel) || sel.startsWith("@");
-          push(isBase ? "error" : "warn", "2.6", `${where}: propiedades css no alfabetizadas en '${sel}' (${all.join(",")})`);
+          // La mitad `error` (selectores base) esta VALIDADA: 0 disparos sobre los 742
+          // bloques de herramientas/corpus-gb. La mitad de selectores descendientes no:
+          // saltaba 81 veces sobre marcado que GenerateBlocks produjo, 10,9 por cada 100
+          // bloques, y 0 sobre el nuestro. No mide correccion, mide quien escribio el
+          // fichero: nosotros alfabetizamos y GB no. Baja a nota.
+          push(isBase ? "error" : "nota", "2.6", `${where}: propiedades css no alfabetizadas en '${sel}' (${all.join(",")})`);
         }
       }
 

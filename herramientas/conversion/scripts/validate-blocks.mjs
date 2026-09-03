@@ -64,11 +64,23 @@ function extractJsonContent(raw, file) {
 function report(file, errors) {
   const errs = errors.filter((e) => e.level === "error");
   const warns = errors.filter((e) => e.level === "warn");
+  /* Tercer nivel, 2/09/2026. Una comprobacion que salta sobre marcado que
+     GenerateBlocks produjo no esta midiendo correccion. Se conserva, pero fuera
+     del informe por defecto: se ve con --todo. Quien decide el rango es
+     herramientas/calibrar-validadores.mjs, no una opinion. */
+  const notas = errors.filter((e) => e.level === "nota");
+  const verNotas = process.argv.includes("--todo");
   console.log(`\n== ${file} ==`);
   if (!errors.length) { console.log("  ✔ OK — sin problemas detectados"); return; }
   for (const e of errors) {
-    console.log(`  ${e.level === "error" ? "✖" : "⚠"} [${e.rule}] ${e.msg}`);
+    if (e.level === "nota" && !verNotas) continue;
+    console.log(`  ${e.level === "error" ? "✖" : e.level === "warn" ? "⚠" : "·"} [${e.rule}] ${e.msg}`);
     if (e.ctx) console.log(`      …${e.ctx}…`);
   }
-  console.log(`  ${errs.length} errores, ${warns.length} avisos`);
+  const cola = notas.length ? `, ${notas.length} nota(s) ocultas (--todo)` : "";
+  if (!errs.length && !warns.length && notas.length && !verNotas) {
+    console.log(`  ✔ OK — sin problemas detectados${cola}`);
+    return;
+  }
+  console.log(`  ${errs.length} errores, ${warns.length} avisos${verNotas ? "" : cola}`);
 }

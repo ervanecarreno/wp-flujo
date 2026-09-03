@@ -202,3 +202,41 @@ Nombres: la ruta del token unida por guiones (`space.md` → `--space-md`). Dos 
 no encaje: `$metadata.renombres` para renombrar el primer tramo (`font-family` → `font`), y
 `"$css"` dentro de un token, que manda sobre todo lo demás. Avisa de colisiones de nombre y de
 alias `{ruta}` que no resuelven.
+
+## `calibrar-validadores.mjs` — ¿esta regla distingue algo?
+
+```
+node herramientas/calibrar-validadores.mjs                    # solo el corpus
+node herramientas/calibrar-validadores.mjs <carpeta-propia>   # compara los dos
+```
+
+Corre `audit-gb.js` y `conversion/scripts/validate-blocks.mjs` sobre `corpus-gb/` —25 exports
+reales de GenerateBlocks, 742 bloques— y, si le das una carpeta, también sobre tu marcado.
+Normaliza por bloque, porque los ficheros van de 8 a 156 y comparar totales crudos no dice nada.
+
+El criterio no admite discusión: **GB produjo ese marcado y GB lo acepta. Si una regla salta ahí,
+la regla está mal.** Y hay una segunda forma de estar mal, más sutil: saltar *igual* sobre los dos
+conjuntos. Entonces la regla no distingue nada, y da lo mismo lo que diga.
+
+Da veredicto por regla:
+
+| | |
+|---|---|
+| `✔ no salta sobre marcado válido` | la regla sirve |
+| `✖ FALSA` | es ERROR sobre marcado que GB acepta |
+| `✖ NO DISTINGUE` | misma tasa en los dos conjuntos |
+| `◦ solo describe exports de GB` | no valida lo nuestro |
+
+Sale con 1 si alguna regla no supera el corte. **Una regla nueva no entra por parecer razonable:
+pasa por aquí y demuestra que distingue.**
+
+Con esto se cerró en el 2/09/2026 la unificación de los dos validadores, que llevaba abierta desde
+agosto: 847 avisos sobre marcado válido bajaron a **0**, sin perder una sola detección real. El
+detalle está en `conversion/LEEME.md`.
+
+### Los tres niveles
+
+Los dos validadores tienen ahora `error`, `aviso` y **`nota`**. La nota es lo que se conserva
+porque a veces describe algo cierto, pero que no distingue marcado bueno de malo. No sale en el
+informe por defecto; se ve con **`--todo`**. Quién baja a nota no es una opinión: lo decide la
+calibración.

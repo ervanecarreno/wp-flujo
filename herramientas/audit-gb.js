@@ -189,13 +189,13 @@ for (const b of blocks) {
         // los bloques anidados a su manera. Reconstruirlo carácter a carácter NO es posible.
         // Por eso es AVISO: solo con --estricto vuelve a ser error, y eso tiene sentido
         // unicamente para marcado que genera este mismo flujo, no para marcado exportado de WP.
-        add(ESTRICTO ? 'ERR' : 'WARN', 'css≠styles', id,
+        add(ESTRICTO ? 'ERR' : 'NOTA', 'css≠styles', id,
           ESTRICTO ? 'css no coincide con styles' : 'css no coincide con la reconstruccion (GB optimiza: revisar solo si lo generaste tu)',
           'esperado: ' + expected + '\n      actual:   ' + actual);
       }
     }
   } else if (attrs.css) {
-    add('WARN', 'css≠styles', id, 'tiene css pero styles vacío');
+    add(ESTRICTO ? 'WARN' : 'NOTA', 'css≠styles', id, 'tiene css pero styles vacío');
   }
 
   // --- 3f. tipografía declarada (§8 último punto) ---
@@ -259,11 +259,13 @@ for (const b of blocks) {
     const tieneCssPropio = !!(attrs.css || (attrs.styles && Object.keys(attrs.styles).length));
     if (!cls.includes(idClass)) {
       if (tieneCssPropio) add('ERR', 'cuerpo', id, `falta la id-class "${idClass}" en class="${cls}" (el bloque tiene css propio)`);
-      else add('WARN', 'cuerpo', id, `sin id-class en class="${cls}" (correcto: el bloque no tiene css propio)`);
+      // Su propio mensaje dice «correcto»: un aviso que anuncia que algo esta bien
+      // no es un aviso. 12,5 disparos por cada 100 bloques del corpus real.
+      else add('NOTA', 'cuerpo', id, `sin id-class en class="${cls}" (correcto: el bloque no tiene css propio)`);
     }
     // La clase base NO es obligatoria: medido sobre 732 bloques de exports reales de GB, el 60%
     // del cuerpo solo lleva la id-class. Se deja como aviso informativo, no como error.
-    if (!cls.split(/\s+/).includes(pfx)) add('WARN', 'cuerpo', id, `sin la clase base "${pfx}" en class="${cls}" (GB no siempre la emite)`);
+    if (!cls.split(/\s+/).includes(pfx)) add('NOTA', 'cuerpo', id, `sin la clase base "${pfx}" en class="${cls}" (GB tampoco la emite: 38,9 por cada 100 bloques del corpus real)`);
     if (attrs.tagName && tag !== attrs.tagName)
       add('ERR', 'cuerpo', id, `tagName="${attrs.tagName}" pero el cuerpo usa <${tag}>`);
     // htmlAttributes reflejados en el cuerpo
@@ -279,7 +281,19 @@ for (const b of blocks) {
   // content duplicado en atributo y cuerpo (§8)
   if (b.type === 'text') {
     const c = attrs.content;
-    if (c == null) add('WARN', 'content', id, 'bloque text sin atributo content (valido si lleva bloques hijos)');
+    // Un `text` sin `content` es correcto cuando lleva bloques hijos: el texto lo
+    // ponen ellos. La regla no lo comprobaba y avisaba siempre — 188 veces sobre
+    // el corpus real. Ahora solo avisa del caso que de verdad queda vacio.
+    if (c == null) {
+      // «Sin texto» no es «vacio»: un text puede llevar solo un icono. Medido en
+      // corpus-gb/testimonials.html, un text sin content contiene un <svg> y
+      // renderiza perfectamente. Vacio es que dentro de la etiqueta envolvente no
+      // quede NADA — ni texto, ni marcado, ni bloques hijos.
+      const tieneHijos = /<!--\s+wp:/.test(body);
+      const interior = body.replace(/^\s*<[^>]+>/, '').replace(/<\/[^>]+>\s*$/, '').trim();
+      if (!tieneHijos && interior === '') add('WARN', 'content', id, 'bloque text sin content y con el cuerpo vacio: no renderiza nada');
+      else if (!tieneHijos) add('NOTA', 'content', id, 'bloque text sin atributo content; el cuerpo trae el contenido');
+    }
     else {
       const inner = body.replace(/^\s*<[^>]+>/, '').replace(/<\/[^>]+>\s*$/, '').trim();
       if (inner !== String(c).trim()) add('ERR', 'content', id, 'content NO coincide con el cuerpo', `attr: ${JSON.stringify(c)}\n      body: ${JSON.stringify(inner)}`);
@@ -294,14 +308,14 @@ for (const b of blocks) {
     if (stripped.length > 0 && !hasChildBlock)
       add('ERR', 'enlace', id, `element <a> con texto plano: "${stripped.slice(0, 50)}"`);
     else if (stripped.length > 0)
-      add('WARN', 'enlace', id, `element <a> con texto suelto además de bloques hijos: "${stripped.slice(0, 50)}"`);
+      add('NOTA', 'enlace', id, `element <a> con texto suelto además de bloques hijos: "${stripped.slice(0, 50)}" (GB lo emite así)`);
     if (!attrs.htmlAttributes || !attrs.htmlAttributes.href)
       add('WARN', 'enlace', id, 'element <a> sin href en htmlAttributes');
   }
 
   // shape: svg duplicado en atributo html y cuerpo
   if (b.type === 'shape') {
-    if (!attrs.html) add('WARN', 'shape', id, 'shape sin atributo html (GB no siempre lo emite)');
+    if (!attrs.html) add('NOTA', 'shape', id, 'shape sin atributo html (GB tampoco lo emite en 15 de 25 exports reales)');
     else {
       const norm = x => String(x).replace(/\s+/g, ' ').trim();
       const innerSvg = body.replace(/^\s*<span[^>]*>/, '').replace(/<\/span>\s*$/, '');
@@ -323,13 +337,30 @@ while ((t = TAG.exec(src))) {
   if (opts && !/^([a-zA-Z]+:[^\s]+\s*)+$/.test(opts.replace(/,\s*/g, ',')))
     add('WARN', 'dynamic-tag', name, `opciones con sintaxis dudosa: ${t[0]}`);
 }
-// llaves sueltas
-const single = src.match(/(?<!\{)\{[a-z_]+\s*[^}]*\}(?!\})/g);
-if (single) for (const s2 of single.slice(0, 5)) add('WARN','dynamic-tag','-', `posible etiqueta con una sola llave: ${s2.slice(0,40)}`);
+// Llaves sueltas: {post_title} en vez de {{post_title}}, que falla en silencio.
+// La regla exigia solo /\{[a-z_]+[^}]*\}/ y eso es tambien la forma de CUALQUIER
+// declaracion CSS: {background-color:var(--accent)}. Medido el 2/09/2026 sobre el
+// corpus de 742 bloques reales de GB, disparaba 125 veces, todas falsas, en 25 de
+// 25 ficheros. Ahora exige un nombre de etiqueta CONOCIDO, que es lo unico que
+// puede ser de verdad una etiqueta mal escrita. Ninguna propiedad CSS se llama
+// post_title, asi que la regla pasa a ser exacta.
+const UNA_LLAVE = new RegExp(String.raw`(?<!\{)\{\s*(${KNOWN.join('|')})\s*([^}]*)\}(?!\})`, 'g');
+let u1;
+while ((u1 = UNA_LLAVE.exec(src))) {
+  add('WARN', 'dynamic-tag', u1[1], `etiqueta con UNA sola llave: ${u1[0].slice(0, 40)} — GB espera {{...}} y esto falla en SILENCIO`);
+}
 
 // ---------- 6. Salida ----------
 const errs = issues.filter(i => i.sev === 'ERR');
 const warns = issues.filter(i => i.sev === 'WARN');
+/* Tercer nivel, añadido el 2/09/2026 tras calibrar contra corpus-gb/ (742 bloques
+   reales de GenerateBlocks). Una comprobación que salta igual sobre marcado que
+   GB produjo que sobre el nuestro no distingue nada: no es un aviso, es una
+   observación. Se conserva —a veces describe algo cierto— pero fuera del informe
+   por defecto, porque 847 avisos sobre marcado válido enseñan a ignorarlo todo.
+   Se ven con --todo, y `calibrar-validadores.mjs` es quien decide el rango. */
+const notas = issues.filter(i => i.sev === 'NOTA');
+const VER_NOTAS = process.argv.includes('--todo');
 
 console.log('=== BLOQUES ===');
 console.log('Total:', blocks.length, '|', JSON.stringify(counts));
@@ -357,4 +388,24 @@ for (const [rule, list] of Object.entries(byRuleW)) {
     if (i.extra) console.log('      ' + i.extra);
   }
   if (list.length > 15) console.log(`  … y ${list.length - 15} más`);
+}
+
+if (notas.length) {
+  if (VER_NOTAS) {
+    console.log('\n=== NOTAS (' + notas.length + ') ===');
+    const byRuleN = {};
+    for (const i of notas) (byRuleN[i.rule] = byRuleN[i.rule] || []).push(i);
+    for (const [rule, list] of Object.entries(byRuleN)) {
+      console.log(`\n-- ${rule} (${list.length}) --`);
+      for (const i of list.slice(0, 15)) {
+        console.log(`  [${i.id}] ${i.msg}`);
+        if (i.extra) console.log('      ' + i.extra);
+      }
+      if (list.length > 15) console.log(`  … y ${list.length - 15} más`);
+    }
+  } else {
+    const cats = [...new Set(notas.map(i => i.rule))].join(', ');
+    console.log(`\n${notas.length} nota(s) ocultas (${cats}). Se ven con --todo.`);
+    console.log('No distinguen marcado bueno de malo: saltan igual sobre exports reales de GB.');
+  }
 }
