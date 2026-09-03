@@ -15,7 +15,7 @@ node verificar.mjs [--url <url>]
 Si **no** existe (proyecto anterior al generador), corre la cadena a mano, en este orden, y luego
 ofrece crear el `verificar.mjs` que falta:
 
-1. **Contrato sincronizado** — `herramientas/tokens-a-css.js <x.tokens.json> --verificar <x.tokens.css>`
+1. **Contrato sincronizado** — `herramientas/tokens-a-css.mjs <x.tokens.json> --verificar <x.tokens.css>`
 2. **Los dos validadores** sobre cada `build/*.html` — `herramientas/conversion/scripts/validate-blocks.mjs`
    y `herramientas/audit-gb.js`. **Los dos, siempre**: ninguno domina al otro.
 3. **Round-trip** — `herramientas/conversion/scripts/wp-roundtrip.mjs`, si hay credenciales.

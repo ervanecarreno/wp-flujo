@@ -35,7 +35,7 @@ Node ≥ 18, **sin dependencias** salvo donde se indica.
 |---|---|---|
 | `extract.mjs` | 1 | Extrae un frame de Figma |
 | `map-tokens.mjs` | 2 | Construye el mapa de tokens |
-| `wp-push-tokens.mjs` | 2 | Empuja los tokens a GeneratePress y GB Pro |
+| `wp-push-tokens.mjs` | 2 | Lee **el contrato** y escribe los Global Colors y los campos de espaciado que el contrato mapee. Canal por defecto: **wp-cli** |
 | `wp-discover-abilities.mjs` | 2 | Descubre qué admite el WordPress de destino |
 | `assemble.mjs` | 4 | Patrón validado + manifest de slots + contenido → página. `--reid` remapea `uniqueId` |
 | `validate-blocks.mjs` | 4 | Linter estático (ver abajo) |
@@ -142,6 +142,60 @@ lo relee con `context=edit` y compara. Medido el 2/09/2026 sobre marcado con `>`
 WordPress devolvió `>` — o sea, confirmó con sus propios bytes la regla 1.3 de
 `validate-blocks.mjs`. Cuando las dos reglas discrepen, la que gana es la que sobrevive al
 round-trip, no la que mejor suene.
+
+---
+
+## `wp-push-tokens.mjs` — lo que GeneratePress sí puede recibir
+
+Reescrito el 2/09/2026. Lo que había fallaba en tres cosas:
+
+1. **Leía un payload copiado a mano** (`tokens/generatepress-global-colors.json`): otro espejo
+   del contrato que nadie mantenía. Ahora lee el `.tokens.json` directamente.
+2. **Solo tenía el canal de abilities**, que aquí no funciona, y prometía en su documentación un
+   respaldo que no existía. El canal por defecto pasa a ser **wp-cli**, que es el que funciona;
+   abilities queda en `--via abilities`, con el diagnóstico medido en el mensaje de error.
+3. **No tocaba el padding de contenido.** Ese sí era un hueco de fidelidad.
+
+```bash
+node herramientas/conversion/scripts/wp-push-tokens.mjs design/x.tokens.json   --sitio "<Local Sites>/<sitio>/app/public" --puerto <N> [--live]
+```
+
+Sin `--live` no escribe: enseña exactamente lo que haría, color a color.
+
+### Lo que NO puede hacer, que también hay que saberlo
+
+**GeneratePress no tiene dónde recibir una escala de espaciado ni un radio.**
+`generate_spacing_settings` es un conjunto **fijo** de campos del chrome —padding de cabecera y
+de contenido, anchos de barra lateral, padding de widgets—, todos números sueltos en px. No hay
+un `--space-xl` que empujar. Así que «solo escribía colores» **no era un fallo del script**: es
+la forma del tema. Lo que sí faltaba era conectar los campos que sí existen.
+
+Por eso el mapeo es **explícito y por proyecto**, nunca por adivinación. En el contrato:
+
+```json
+"$metadata": {
+  "wordpress": {
+    "spacing": {
+      "content_top": "core.space.xl",  "content_bottom": "core.space.xl",
+      "content_right": "core.space.md", "content_left": "core.space.md"
+    }
+  }
+}
+```
+
+Medido en el proyecto de referencia: el sitio tenía **128/32 px inventados** en el panel de
+ajustes mientras el contrato decía otra cosa. Tras empujar, 96/32 salidos del contrato. Es el
+tipo de desviación que no rompe nada y que nadie mira.
+
+`nuevo-proyecto.js` ya genera ese mapeo, así que un proyecto nuevo nace con el chrome del tema
+saliendo del contrato.
+
+### Y esto sigue sin publicar el contrato
+
+Los Global Colors dan la paleta al **editor**. WordPress los expone como
+`--wp--preset--color--<slug>`, no como `--<slug>`. El contrato llega al navegador por el CSS que
+encola el plugin del proyecto, y quien lo comprueba es `qa-contrato-publicado.mjs`. El script lo
+recuerda por escrito cada vez que se ejecuta, porque confundir las dos cosas ya costó una tarde.
 
 ---
 

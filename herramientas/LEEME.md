@@ -181,11 +181,11 @@ Se niega a escribir sobre una carpeta con contenido salvo con `--forzar`.
 
 Atajo: **`/wp-nuevo-proyecto`**.
 
-## `tokens-a-css.js` — el CSS del contrato es una derivada
+## `tokens-a-css.mjs` — el CSS del contrato es una derivada
 
 ```
-node herramientas/tokens-a-css.js design/x.tokens.json -o design/x.tokens.css
-node herramientas/tokens-a-css.js design/x.tokens.json --verificar design/x.tokens.css
+node herramientas/tokens-a-css.mjs design/x.tokens.json -o design/x.tokens.css
+node herramientas/tokens-a-css.mjs design/x.tokens.json --verificar design/x.tokens.css
 ```
 
 El contrato vive en **un** fichero, el JSON en formato W3C / Tokens Studio. El CSS se genera.

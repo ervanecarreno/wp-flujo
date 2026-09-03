@@ -7,6 +7,42 @@
 
 ---
 
+## Reescrito el 2/09/2026: `wp-push-tokens.mjs`
+
+Tenía tres cosas mal, y una de las tres resultó no ser lo que parecía.
+
+1. **Leía un payload copiado a mano.** Otro espejo del contrato sin nada que lo sincronizara —
+   la misma familia de fallo que el CSS. Ahora lee el `.tokens.json` directamente.
+2. **Solo tenía el canal de abilities**, que aquí no funciona, y su documentación prometía un
+   respaldo por wp-cli que no existía. El canal por defecto pasa a ser wp-cli; abilities queda
+   en `--via abilities` y su mensaje de error lleva el diagnóstico medido.
+3. **No escribía el padding de contenido.**
+
+**Lo que resultó no ser un fallo:** «solo empuja colores». Comprobado leyendo un export real de
+`generate_spacing_settings`: es un conjunto **fijo** de campos del chrome —padding de cabecera y
+contenido, anchos de barra lateral, padding de widgets—, números sueltos en px. **GeneratePress
+no tiene dónde recibir una escala de espaciado ni un radio.** El script no se quedaba corto: el
+tema no da más. Lo que faltaba era conectar los campos que sí existen, y por mapeo explícito en
+`$metadata.wordpress.spacing` del contrato, nunca por adivinación.
+
+**El hueco de fidelidad real estaba ahí:** el proyecto de referencia tenía **128/32 px
+inventados** en el panel de ajustes mientras el contrato decía otra cosa. Dos escalas de
+espaciado en el mismo sitio y nada que las comparase. Tras empujar, y verificado releyendo la
+base de datos: 96/32 salidos del contrato. `nuevo-proyecto.js` ya genera ese mapeo.
+
+**Dos cosas más que salieron por el camino:**
+
+- El aplanador del contrato estaba a punto de existir dos veces. Se sacó a
+  `herramientas/lib-contrato.mjs`, que ahora usan `tokens-a-css.mjs` y `wp-push-tokens.mjs`.
+  `tokens-a-css.js` pasó a `.mjs` para poder compartirlo; actualizadas todas las referencias.
+- **Se cayó en la trampa que la propia skill `wp-cli-en-local` avisa:** el `--path` con espacios
+  («Local Sites») partido por el shell, y wp-cli diciendo que en `C:/Users/David/Local/` no hay
+  WordPress. Documentada en el código, esta vez con el porqué.
+
+Plugin en **0.8.0**.
+
+---
+
 ## Cerrado el 2/09/2026: los dos validadores, calibrados contra el corpus
 
 La tarea llevaba abierta desde agosto —«unificar los dos validadores»— y se resolvió **midiendo**.
@@ -72,7 +108,7 @@ que vive en un checklist se olvida; uno que viene de fábrica, no.
 1. **`herramientas/nuevo-proyecto.js`** — genera los 12 ficheros del punto de partida. El plugin
    de WordPress que emite **encola el CSS del contrato y las fuentes**, en frontend y en el editor,
    desde el primer minuto. Las dos lecciones vienen hechas.
-2. **`herramientas/tokens-a-css.js`** — el CSS del contrato pasa a ser una **derivada** del JSON,
+2. **`herramientas/tokens-a-css.mjs`** — el CSS del contrato pasa a ser una **derivada** del JSON,
    no una segunda fuente. La cabecera del CSS del primer proyecto decía *«espejo exacto del JSON:
    si cambias uno, cambia el otro»*, y **ya habían divergido**: el JSON decía `Fraunces` y el CSS
    `"Fraunces", Georgia, serif`. La pila de respaldo es parte del contrato y estaba en un solo

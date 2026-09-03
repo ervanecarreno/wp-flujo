@@ -98,6 +98,19 @@ ficheros[`design/${sistema}.tokens.json`] = JSON.stringify({
     tokenSetOrder: ["core", "light"],
     description: `${sistema} — sistema de diseño de ${nombre}.`,
     renombres: { "font-family": "font" },
+    /* El padding del contenido lo pone el TEMA, no el marcado. Si no sale de
+       aquí sale de un número inventado en un panel de ajustes, y entonces el
+       sitio tiene dos escalas de espaciado que nadie compara. Lo empuja
+       `conversion/scripts/wp-push-tokens.mjs`. GeneratePress solo admite estos
+       campos fijos: no existe una escala general que empujar. */
+    wordpress: {
+      spacing: {
+        content_top: "core.space.xl", content_bottom: "core.space.xl",
+        content_right: "core.space.md", content_left: "core.space.md",
+        mobile_content_top: "core.space.lg", mobile_content_bottom: "core.space.lg",
+        mobile_content_right: "core.space.sm", mobile_content_left: "core.space.sm",
+      },
+    },
   },
   core: {
     radius: { none: d("0px"), pill: d("999px") },
@@ -153,7 +166,7 @@ Reglas que no se negocian:
 3. **Ninguna pila tipográfica literal en el marcado.** Se usa \`var(--font-display)\` y
    \`var(--font-text)\`, nunca \`"Fraunces", Georgia, serif\` escrito a mano. Si la pila está en
    el marcado, cambiarla deja de ser una edición y pasa a ser una migración.
-4. El CSS del contrato **se genera**: \`node <plugin>/herramientas/tokens-a-css.js\`. Editarlo a
+4. El CSS del contrato **se genera**: \`node <plugin>/herramientas/tokens-a-css.mjs\`. Editarlo a
    mano hace fallar la verificación, que es justo lo que se pretende.
 5. Un cambio de valor va al JSON y se repropaga. Nunca al CSS del sitio.
 
@@ -351,7 +364,7 @@ const paso = (titulo, cmd, args) => {
 /* 1. ¿El CSS del contrato corresponde al JSON? */
 paso(
   "1 · Contrato sincronizado",
-  PLUGIN + "/herramientas/tokens-a-css.js",
+  PLUGIN + "/herramientas/tokens-a-css.mjs",
   ["design/" + SISTEMA + ".tokens.json", "--verificar", "design/" + SISTEMA + ".tokens.css"]
 );
 
@@ -518,7 +531,7 @@ for (const [rel, contenido] of Object.entries(ficheros)) {
 
 /* El CSS del contrato es derivado: se genera, no se plantilla. */
 execFileSync("node", [
-  path.join(RAIZ_PLUGIN, "herramientas", "tokens-a-css.js"),
+  path.join(RAIZ_PLUGIN, "herramientas", "tokens-a-css.mjs"),
   path.join(destino, "design", `${sistema}.tokens.json`),
   "-o", path.join(destino, "design", `${sistema}.tokens.css`),
 ], { stdio: "inherit" });
@@ -536,12 +549,15 @@ Lo siguiente, por orden:
   1. cd "${destino}" && git init
   2. Copia .env.local.ejemplo a .env.local y rellena (con comillas).
   3. Congela el contrato: edita design/${sistema}.tokens.json y regenera el CSS con
-       node "${rutaPluginJs}/herramientas/tokens-a-css.js" design/${sistema}.tokens.json -o design/${sistema}.tokens.css
+       node "${rutaPluginJs}/herramientas/tokens-a-css.mjs" design/${sistema}.tokens.json -o design/${sistema}.tokens.css
   4. Rellena ${PREFIJO_PHP}_FUENTES en wp/${slug}.php con SOLO los pesos que uses.
   5. Copia wp/ y design/${sistema}.tokens.css al sitio:
        <Local Sites>/${sitio}/app/public/wp-content/plugins/${slug}/
      y actívalo. Recuerda WP_MYSQL_PORT=${puerto} para wp-cli.
-  6. node verificar.mjs
+  6. Empuja el contrato a los ajustes del tema (paleta del editor y padding de contenido):
+       node "${rutaPluginJs}/herramientas/conversion/scripts/wp-push-tokens.mjs" \
+         design/${sistema}.tokens.json --sitio "<Local Sites>/${sitio}/app/public" --puerto ${puerto} --live
+  7. node verificar.mjs
 
 El método está en la skill 'flujo-wordpress-generateblocks' del plugin wp-generateblocks,
 que Claude Code carga sola en esta carpeta. No hay nada que instalar.
