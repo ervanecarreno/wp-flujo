@@ -24,6 +24,13 @@ export function leerContrato(ruta) {
   const meta = doc.$metadata ?? {};
   const renombres = meta.renombres ?? {};
   const orden = meta.tokenSetOrder ?? Object.keys(doc).filter((k) => !k.startsWith("$"));
+  /* `$metadata.modos` mapea nombre de set → selector CSS. Un set que aparezca ahí
+     no va a `:root`: va a su selector, y REDEFINE los mismos nombres de token.
+     Es la forma CSS de lo que en Figma son los modos de una colección, y evita la
+     alternativa mala: duplicar cada token en una versión «inversa» que hay que
+     acordarse de usar. Un diseño que alterna secciones claras y oscuras lo
+     necesita; uno que no, simplemente no declara `modos`. */
+  const modos = meta.modos ?? {};
 
   const tokens = [];
 
@@ -47,6 +54,8 @@ export function leerContrato(ruta) {
           valor: valor.$value,
           tipo: valor.$type ?? null,
           grupo: rutaToken.split(".")[0],
+          selector: modos[set] ?? ":root",
+          esModo: Boolean(modos[set]),
         });
       } else {
         recorrer(valor, set, rutaToken);
@@ -64,18 +73,28 @@ export function leerContrato(ruta) {
   const porRuta = new Map();
   for (const t of tokens) { porRuta.set(t.set + "." + t.ruta, t); porRuta.set(t.ruta, t); }
 
-  /* Dos tokens distintos que produzcan el mismo nombre CSS son un error: uno
-     pisaría al otro en silencio. */
-  const vistos = new Map();
+  /* Dos tokens distintos con el mismo nombre CSS son un error: uno pisaría al
+     otro en silencio. Pero se compara DENTRO de cada selector: que `bg/page`
+     exista en el modo claro y en el oscuro no es una colisión, es exactamente
+     para lo que sirven los modos. */
   const colisiones = [];
+  const porSelector = new Map();
   for (const t of tokens) {
+    if (!porSelector.has(t.selector)) porSelector.set(t.selector, new Map());
+    const vistos = porSelector.get(t.selector);
     if (vistos.has(t.nombre) && vistos.get(t.nombre) !== t.ruta) {
-      colisiones.push({ nombre: t.nombre, a: vistos.get(t.nombre), b: t.ruta });
+      colisiones.push({ nombre: t.nombre, a: vistos.get(t.nombre), b: t.ruta, selector: t.selector });
     }
     vistos.set(t.nombre, t.ruta);
   }
 
-  return { meta, orden, tokens, porRuta, colisiones, setsAusentes };
+  /* Un modo que redefine un token que la base no declara deja un hueco: fuera de
+     ese modo, `var()` no resuelve. Es la misma familia del fallo «declarar no es
+     publicar», así que se detecta aquí. */
+  const enBase = new Set(tokens.filter((t) => !t.esModo).map((t) => t.nombre));
+  const huerfanos = [...new Set(tokens.filter((t) => t.esModo && !enBase.has(t.nombre)).map((t) => t.nombre))];
+
+  return { meta, orden, tokens, porRuta, colisiones, setsAusentes, modos, huerfanos };
 }
 
 /**
@@ -106,6 +125,9 @@ export function resolverAlias(valor, porRuta) {
  */
 export function coloresGlobales(tokens) {
   return tokens
+    /* Solo la base: los modos redefinen los MISMOS nombres, y meterlos daría
+       slugs duplicados en la paleta del editor —el último ganaría, en silencio. */
+    .filter((t) => !t.esModo)
     .filter((t) => t.tipo === "color" || /^#|^rgb|^hsl/i.test(String(t.valor)))
     .map((t) => ({
       name: t.ruta.replace(/\./g, "/"),

@@ -36,7 +36,7 @@ const opt = (n) => { const i = args.indexOf(n); return i !== -1 ? args[i + 1] : 
 const salida = opt("-o");
 const verificar = opt("--verificar");
 
-const { meta, orden, tokens, porRuta, colisiones, setsAusentes } = leerContrato(entrada);
+const { meta, orden, tokens, porRuta, colisiones, setsAusentes, modos, huerfanos } = leerContrato(entrada);
 
 for (const s of setsAusentes) console.error(`⚠ El set «${s}» está en tokenSetOrder pero no existe en el fichero.`);
 
@@ -57,24 +57,42 @@ lineas.push(" *");
 lineas.push(" * Para cambiar un valor, cámbialo en el JSON y regenera. Si editas");
 lineas.push(" * este fichero, `--verificar` fallará: es lo que se pretende. */");
 lineas.push("");
-lineas.push(":root {");
 
-let grupoActual = null;
+/* Un bloque por selector: `:root` con la base, y uno por cada modo declarado en
+   `$metadata.modos`. Los modos REDEFINEN los mismos nombres, así que una sección
+   marcada con la clase del modo hereda todo lo demás y solo cambia lo que el
+   modo dice. Es lo que evita duplicar cada token en una versión «inversa». */
+const porSelector = new Map();
 for (const t of tokens) {
-  if (t.grupo !== grupoActual) {
-    if (grupoActual !== null) lineas.push("");
-    lineas.push("  /* " + (ROTULOS[t.grupo] ?? t.grupo) + " */");
-    grupoActual = t.grupo;
-  }
-  const r = resolverAlias(t.valor, porRuta);
-  for (const s of r.sinResolver) sinResolver.push({ de: t.ruta, ref: s });
-  let v = r.texto;
-  /* Una familia con espacios necesita comillas para ser una pila CSS válida. */
-  if (t.tipo === "fontFamilies" && /\s/.test(v) && !/["']/.test(v)) v = '"' + v + '"';
-  lineas.push("  " + t.nombre + ": " + v + ";");
+  if (!porSelector.has(t.selector)) porSelector.set(t.selector, []);
+  porSelector.get(t.selector).push(t);
 }
 
-lineas.push("}");
+const nombreDelModo = new Map(Object.entries(modos).map(([set, sel]) => [sel, set]));
+
+for (const [selector, lista] of porSelector) {
+  if (selector !== ":root") {
+    lineas.push("");
+    lineas.push("/* Modo «" + (nombreDelModo.get(selector) ?? selector) + "»: pon esta clase en la sección");
+    lineas.push("   y todo lo de dentro cambia de valores sin cambiar de token. */");
+  }
+  lineas.push(selector + " {");
+  let grupoActual = null;
+  for (const t of lista) {
+    if (t.grupo !== grupoActual) {
+      if (grupoActual !== null) lineas.push("");
+      lineas.push("  /* " + (ROTULOS[t.grupo] ?? t.grupo) + " */");
+      grupoActual = t.grupo;
+    }
+    const r = resolverAlias(t.valor, porRuta);
+    for (const x of r.sinResolver) sinResolver.push({ de: t.ruta, ref: x });
+    let v = r.texto;
+    /* Una familia con espacios necesita comillas para ser una pila CSS válida. */
+    if (t.tipo === "fontFamilies" && /\s/.test(v) && !/["']/.test(v)) v = '"' + v + '"';
+    lineas.push("  " + t.nombre + ": " + v + ";");
+  }
+  lineas.push("}");
+}
 lineas.push("");
 const css = lineas.join("\n");
 
@@ -87,6 +105,10 @@ for (const c of colisiones) {
 }
 for (const s of sinResolver) {
   console.error(`✖ Alias sin resolver en «${s.de}»: {${s.ref}} no existe.`);
+  problemas++;
+}
+for (const h of huerfanos) {
+  console.error(`✖ ${h} solo existe dentro de un modo: fuera de él, var(${h}) no resuelve.`);
   problemas++;
 }
 if (problemas) process.exit(1);
@@ -121,7 +143,7 @@ if (verificar) {
 
 if (salida) {
   fs.writeFileSync(salida, css, "utf8");
-  console.log(`✔ ${salida} — ${tokens.length} tokens de ${orden.length} set(s).`);
+  console.log(`✔ ${salida} — ${tokens.length} tokens, ${orden.length} set(s), ${porSelector.size} bloque(s) CSS.`);
 } else {
   process.stdout.write(css);
 }

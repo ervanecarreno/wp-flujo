@@ -168,4 +168,9 @@ for (let n = 0; n < posts.length; n++) {
 console.error(fallos
   ? `\n✖ ${fallos} página(s) siguen sin su CSS completo.\n`
   : `\n✔ CSS regenerado (${borradas} hoja(s) borradas y reescritas).\n`);
-process.exit(fallos ? 1 : 0);
+/* Se marca el código y se deja que Node termine solo. Con `process.exit()` en
+   caliente, las conexiones que `fetch` deja abiertas hacen que libuv aborte en
+   Windows con «Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)». El
+   trabajo ya estaba hecho, pero un aviso así en una herramienta de QA resta
+   confianza a todo lo demás que imprime. */
+process.exitCode = fallos ? 1 : 0;
