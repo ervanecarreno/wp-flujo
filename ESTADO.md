@@ -7,6 +7,63 @@
 
 ---
 
+## Ejecutado por primera vez el 2/09/2026: `qa-editor-check.mjs`
+
+La capa que ve el **«Attempt Recovery»** existía desde agosto y **no se había ejecutado nunca**.
+Al ejecutarla encontró **tres fallos reales** en el marcado del proyecto de referencia, y ninguno
+lo veía ninguna otra capa:
+
+| | validate-blocks | audit-gb | round-trip | **editor real** |
+|---|---|---|---|---|
+| `text` con `tagName="blockquote"` | ✔ | ✔ | ✔ | **✖ inválido** |
+| `query` sin etiqueta envolvente en el cuerpo | ✔ | ✔ | ✔ | **✖ inválido** |
+| `looper` con clase base de más | ✔ | ✔ | ✔ | ✖ drift al guardar |
+
+El primero estaba **publicado**: el testimonio de la landing salía roto para cualquiera que
+abriera la página en WordPress. La validación de bloques vive en el JavaScript del editor, no en
+REST ni en el marcado, y sin abrir el editor no hay forma de verlo.
+
+**Reescrito, y en dos cosas de fondo:**
+
+1. **Ya no pide contraseñas.** La versión anterior necesitaba la contraseña real de login —la de
+   aplicación no vale para el formulario de wp-admin— y la escribía en un campo del navegador.
+   Ahora WordPress emite su propia cookie de sesión con `wp_generate_auth_cookie()` desde wp-cli.
+   Son **tres** cookies: wp-admin valida con la de `auth`, no con la de `logged_in`, y en dos
+   rutas distintas.
+2. **Le pregunta al editor, no al DOM.** Antes buscaba `.block-editor-warning`, una clase CSS que
+   cambia con cada Gutenberg. Ahora lee `isValid === false` y `core/missing`, que **son** la
+   condición del aviso. Y eso importa: cuando un bloque es inválido, Gutenberg **conserva su
+   marcado intacto**, así que al guardar no hay drift. Comprobado. Comparar marcado nunca lo
+   habría visto.
+
+Usa `playwright-core` sobre el Chrome ya instalado —**14 MB**, sin descargar navegador—, la única
+dependencia de todo el plugin.
+
+### Lo que el editor enseñó sobre el emisor
+
+`emit.mjs` llevaba desde agosto un comentario pidiendo esto: *«looper/loop-item se tratan como
+text/shape por analogía, pero NO están calibrados contra un export real»*. Ya está calibrado, y
+salieron **distintos entre sí**: `looper` va sin clase base, `loop-item` con ella.
+
+Y una lección de método por el camino: **inferí dos veces y las dos me equivoqué.** Deduje de un
+`loop-item` sin estilos del corpus que no llevaba clase base, y el editor lo desmintió. Antes,
+construí tres pruebas con texto suelto dentro de un `element` y un `loop-item` —que es inválido
+siempre— y saqué conclusiones de un experimento roto. Lo que decidió fue medir cada variante por
+separado contra el editor real.
+
+Cambios en `emit.mjs`: salvaguarda de etiquetas prohibidas (`blockquote`, medida), lista de
+etiquetas válidas para `text` (287 bloques del corpus), etiqueta envolvente en el cuerpo del
+`query`, `queryType` fuera —el editor lo descarta— y `looper` sin clase base.
+
+**Resultado**: las tres páginas del proyecto de referencia pasan la cadena entera. 131 bloques,
+0 inválidos, 0 drift. Y `qa-run.mjs` la ejecuta completa por primera vez, porque además resultó
+que **nunca había funcionado en Windows**: construía las rutas con `URL.pathname` y salía
+`C:\C:\TRABAJOS\…`.
+
+Plugin en **0.9.0**.
+
+---
+
 ## Reescrito el 2/09/2026: `wp-push-tokens.mjs`
 
 Tenía tres cosas mal, y una de las tres resultó no ser lo que parecía.

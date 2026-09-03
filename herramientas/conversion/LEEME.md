@@ -42,7 +42,7 @@ Node ≥ 18, **sin dependencias** salvo donde se indica.
 | `qa-contrato-publicado.mjs` | 7 | **Descarga la página servida y comprueba que cada `var(--token)` y cada familia tipográfica resuelve de verdad.** Sin dependencias |
 | `wp-roundtrip.mjs` | 7 | Guarda en WP, relee y compara bloque a bloque: le pregunta a WordPress en vez de suponer |
 | `qa-fidelity-check.mjs` | 7 | Reconvierte un frame extraído y aplica las reglas de `fidelity-check.mjs`. Requiere `extract/` |
-| `qa-editor-check.mjs` | 7 | Abre el bloque en el editor y comprueba que no se rompe |
+| `qa-editor-check.mjs` | 7 | **Abre el wp-admin de verdad y le pregunta al editor si los bloques son válidos.** Sin contraseñas. Requiere `playwright-core` (`npm install` en la raíz) |
 | `qa-visual-diff.mjs` | 7 | Diff visual. **Requiere `playwright`, `pixelmatch` y `pngjs`** |
 | `qa-run.mjs` | 7 | Lanza la batería de QA |
 
@@ -142,6 +142,56 @@ lo relee con `context=edit` y compara. Medido el 2/09/2026 sobre marcado con `>`
 WordPress devolvió `>` — o sea, confirmó con sus propios bytes la regla 1.3 de
 `validate-blocks.mjs`. Cuando las dos reglas discrepen, la que gana es la que sobrevive al
 round-trip, no la que mejor suene.
+
+---
+
+## `qa-editor-check.mjs` — la única capa que ve el «Attempt Recovery»
+
+La validación de bloques **no vive en REST ni en el marcado: vive en el JavaScript del editor**.
+Un bloque puede pasar los dos linters, sobrevivir el round-trip byte a byte, y aun así abrirse
+en WordPress con *«este bloque contiene contenido inesperado o no válido»*. El cliente entra a
+editar su página y se encuentra eso.
+
+Esta capa existía desde agosto y **no se había ejecutado nunca**. Al ejecutarla, el 2/09/2026,
+encontró tres fallos reales en el marcado del proyecto de referencia. Ninguno lo veía ninguna
+otra capa:
+
+| | validate-blocks | audit-gb | round-trip REST | **editor real** |
+|---|---|---|---|---|
+| `text` con `tagName="blockquote"` | ✔ | ✔ | ✔ | **✖ inválido** |
+| `query` sin etiqueta envolvente en el cuerpo | ✔ | ✔ | ✔ | **✖ inválido** |
+| `looper` con clase base de más | ✔ | ✔ | ✔ | ✖ drift al guardar |
+
+```bash
+node herramientas/conversion/scripts/qa-editor-check.mjs   --sitio "<ruta app/public>" --puerto <N> --file pagina.html
+```
+
+### Sin contraseñas
+
+La versión anterior pedía la **contraseña real de login** —la de aplicación no vale para el
+formulario de wp-admin— y la escribía en un campo del navegador. Ahora no hace falta ninguna: se
+le pide a WordPress que emita su propia cookie de sesión con `wp_generate_auth_cookie()` desde
+wp-cli, y se le inyecta al navegador.
+
+Son **tres** cookies, no una: wp-admin valida con la de `auth`, no con la de `logged_in`
+(`auth_redirect()` mira `AUTH_COOKIE`), y va en dos rutas distintas. Es exactamente lo que hace
+`wp_set_auth_cookie()`.
+
+### Le pregunta al editor, no al DOM
+
+La versión anterior buscaba `.block-editor-warning`, una clase CSS que cambia con cada Gutenberg.
+Ahora se lee el estado del propio editor: `isValid === false` y `core/missing` **son** la
+condición que dispara el aviso de recuperación.
+
+Eso importa por un motivo concreto: cuando un bloque es inválido, **Gutenberg conserva su marcado
+intacto**, así que al guardar no hay drift. Comprobado. La comparación de marcado sola nunca lo
+habría visto.
+
+### Usa el navegador que ya tienes
+
+`playwright-core` sobre el Chrome instalado, con Edge de reserva: **14 MB**, y no descarga ningún
+navegador. Se instala con `npm install` en la raíz del plugin; es la única dependencia de todo
+esto.
 
 ---
 

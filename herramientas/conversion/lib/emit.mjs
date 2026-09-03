@@ -67,6 +67,12 @@ export function setClassMode(mode) { CLASS_MODE = mode; }
 
 function classList(blockName, uniqueId, attrs) {
   const base = BASE_CLASS[blockName];
+  /* `query` no tiene clase base: su cuerpo es un `<div>` pelado (medido en
+     corpus-gb/latest-articles.html). Sin esta salida, base.replace reventaba. */
+  if (!base) {
+    const partes = [...(attrs.globalClasses ?? []), ...(attrs.className ? [attrs.className] : [])];
+    return partes.join(" ");
+  }
   const type = base.replace("gb-", "");
   const hasStyles = attrs.styles && Object.keys(attrs.styles).length > 0;
   const idCls = `gb-${type}-${uniqueId}`;
@@ -78,12 +84,21 @@ function classList(blockName, uniqueId, attrs) {
     parts.push(base, ...globals, ...extra);
   } else {
     // site-2026
-    // OJO: looper/loop-item se tratan como text/shape (base class siempre presente)
-    // por analogía, pero NO están calibrados contra un export real de este WP —
-    // no hay ninguno de los 18 patrones con query/looper. Verificar con round-trip
-    // en cuanto el usuario pegue un bloque de este tipo en el editor.
+    // CALIBRADO el 2/09/2026 abriendo el editor de verdad (qa-editor-check.mjs),
+    // que es justo lo que este comentario pedía desde agosto. Y salieron distintos:
+    //
+    //   looper    → SIN clase base. Medido en corpus-gb/latest-articles.html: un
+    //               looper con estilos lleva class="gb-looper-ID" y nada más. Con
+    //               la base de más, el editor la tomaba por un className propio y
+    //               lo añadía a los atributos al guardar: drift en el primer
+    //               guardado del cliente.
+    //   loop-item → CON clase base. El editor lo acepta así y lo rechaza sin ella.
+    //
+    // El único ejemplo del corpus es un loop-item SIN estilos, cuya clase base sale
+    // del respaldo de abajo; deducir de ahí que no la lleva fue inferir, no medir,
+    // y el editor lo desmintió. Se queda como estaba.
     const withBase = [
-      "generateblocks/text", "generateblocks/shape", "generateblocks/looper", "generateblocks/loop-item",
+      "generateblocks/text", "generateblocks/shape", "generateblocks/loop-item",
       // Accordion y Tabs (GB Pro) — calibrado contra exports reales pegados por
       // el usuario (2026-08-19): todos llevan la base class siempre presente,
       // igual que text/shape (nunca como element/media, que no la llevan).
@@ -115,6 +130,7 @@ function htmlAttrString(htmlAttributes = {}) {
  * Bloque contenedor. children = array de strings (bloques ya emitidos).
  */
 export function element({ uniqueId, tagName = "div", styles = {}, globalClasses, htmlAttributes, align, metadata, className, children = [] }) {
+  compruebaEtiqueta("element", tagName);
   const id = uniqueId ?? uid(tagName);
   const attrs = { uniqueId: id, tagName };
   if (Object.keys(styles).length) {
@@ -138,7 +154,38 @@ export function element({ uniqueId, tagName = "div", styles = {}, globalClasses,
  * Bloque de texto. content puede contener HTML inline (con estilos inline
  * literales — el cuerpo HTML no es JSON).
  */
+/* Las etiquetas que GenerateBlocks admite de verdad en un `text`. Medidas el
+   2/09/2026 sobre 287 bloques text de 25 exports reales (herramientas/corpus-gb).
+   NO es una lista de buenas intenciones: con `blockquote`, el editor marca el
+   bloque invalido y el cliente ve «Attempt Recovery». Pasaba en la landing del
+   proyecto de referencia, y no lo veia ningun linter ni el round-trip de REST —
+   solo qa-editor-check.mjs, abriendo el editor de verdad. */
+export const ETIQUETAS_TEXT = ["p", "div", "a", "h1", "h2", "h3", "h4", "h5", "h6", "li", "span"];
+
+/* Etiquetas que GenerateBlocks NO admite en NINGUN bloque. Medido abriendo el
+   editor de verdad con qa-editor-check.mjs el 2/09/2026: sobre element, salieron
+   validas figure, section, article, aside, div y ul; blockquote no, ni en
+   element ni en text. Es una lista de lo COMPROBADO, no de lo imaginado: si
+   aparece otra, se mide antes de anadirla. */
+export const ETIQUETAS_PROHIBIDAS = ["blockquote"];
+
+function compruebaEtiqueta(bloque, tagName) {
+  if (ETIQUETAS_PROHIBIDAS.includes(tagName)) {
+    throw new Error(
+      `${bloque}: GenerateBlocks no admite <${tagName}>; el editor marcaria el bloque invalido ` +
+      `y el cliente veria «Attempt Recovery». Para una cita, usa element <figure>.`
+    );
+  }
+}
+
 export function text({ uniqueId, tagName = "p", content = "", styles = {}, globalClasses, htmlAttributes, icon, iconLocation, metadata, className }) {
+  compruebaEtiqueta("text", tagName);
+  if (!ETIQUETAS_TEXT.includes(tagName)) {
+    throw new Error(
+      `text: tagName "${tagName}" no lo admite GenerateBlocks; el editor marcaria el bloque invalido. ` +
+      `Usa una de: ${ETIQUETAS_TEXT.join(", ")}.`
+    );
+  }
   const id = uniqueId ?? uid(tagName + content.slice(0, 12));
   const attrs = { uniqueId: id, tagName };
   // "content" NUNCA se serializa en el JSON del comentario — GB lo deriva del
@@ -218,14 +265,19 @@ export function shape({ uniqueId, html, styles = {}, globalClasses, metadata, cl
 export function query({ uniqueId, queryType, query: queryParams = {}, paginationType, inheritQuery, showTemplateSelector, styles = {}, tagName, globalClasses, htmlAttributes, metadata, className, children = [] }) {
   const id = uniqueId ?? uid("query");
   const attrs = { uniqueId: id };
-  if (tagName) attrs.tagName = tagName;
+  /* GB SIEMPRE escribe tagName en un query (medido: div en el unico query del
+     corpus). Sin el, al guardar desde el editor lo anade y el marcado cambia. */
+  attrs.tagName = tagName ?? "div";
   if (Object.keys(styles).length) {
     attrs.styles = styles;
     attrs.css = buildCanonicalCss(`.gb-query-${id}`, styles);
   }
   if (globalClasses?.length) attrs.globalClasses = globalClasses;
   if (htmlAttributes) attrs.htmlAttributes = htmlAttributes;
-  if (queryType) attrs.queryType = queryType;
+  /* `queryType` NO esta en el esquema del bloque: el editor lo descarta al
+     guardar. Emitirlo garantiza drift en el primer guardado del cliente.
+     Comprobado el 2/09/2026 con qa-editor-check sobre la landing de referencia. */
+  void queryType;
   if (paginationType) attrs.paginationType = paginationType;
   attrs.query = queryParams;
   if (inheritQuery !== undefined) attrs.inheritQuery = inheritQuery;
@@ -233,8 +285,15 @@ export function query({ uniqueId, queryType, query: queryParams = {}, pagination
   if (metadata) attrs.metadata = metadata;
   if (className) attrs.className = className;
 
+  /* El cuerpo LLEVA etiqueta envolvente, y sin clase: `<div>` a secas (medido en
+     corpus-gb/latest-articles.html). Faltaba, y el editor marcaba el bloque
+     inválido — lo encontró qa-editor-check.mjs el 2/09/2026. Ni los dos
+     validadores ni el round-trip de REST lo veían. */
   const inner = children.filter(Boolean).join("\n\n");
-  return `${delimiter("generateblocks/query", attrs)}\n${inner}\n<!-- /wp:generateblocks/query -->`;
+  const cls = classList("generateblocks/query", id, attrs);
+  const abre = cls ? `<${attrs.tagName} class="${cls}">` : `<${attrs.tagName}>`;
+  const body = `${abre}${inner}</${attrs.tagName}>`;
+  return `${delimiter("generateblocks/query", attrs)}\n${body}\n<!-- /wp:generateblocks/query -->`;
 }
 
 /** Contenedor del bucle (grid/lista). Igual que `element` pero con base class gb-looper. */

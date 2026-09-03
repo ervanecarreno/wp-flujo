@@ -6,7 +6,7 @@
  *   0. Publicado  (qa-contrato-publicado, si --url; tokens y fuentes que resuelven)
  *   1. Estática   (validate-blocks, siempre; offline)
  *   2. Round-trip (wp-roundtrip, si hay credenciales WP)
- *   3. Editor     (qa-editor-check, si --editor y Playwright)
+ *   3. Editor     (qa-editor-check, si --sitio; abre el wp-admin real)
  *   4. Visual     (qa-visual-diff, si --figma o --ref)
  *
  * Uso:
@@ -20,13 +20,19 @@
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const args = process.argv.slice(2);
 const file = args[0];
-if (!file || file.startsWith("--")) { console.error("Uso: node scripts/qa-run.mjs pagina.html [--tokens map.json] [--editor] [--url ... --figma key node] [--threshold N]"); process.exit(2); }
+if (!file || file.startsWith("--")) { console.error("Uso: node scripts/qa-run.mjs pagina.html [--url <permalink> --tokens-css x.tokens.css] [--sitio \"<app/public>\" --puerto N] [--tokens map.json] [--figma key node]"); process.exit(2); }
 const has = (f) => args.includes(f);
 const val = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
-const dir = new URL(".", import.meta.url).pathname;
+/* `new URL(".", import.meta.url).pathname` devuelve "/C:/TRABAJOS/..." en
+   Windows, y al concatenar sale "C:\\C:\\TRABAJOS...": el orquestador NUNCA
+   habia funcionado en esta maquina, y por eso nadie lo usaba. Se descubrio el
+   2/09/2026 al cablearle el paso 0. fileURLToPath es lo correcto. */
+const dir = path.dirname(fileURLToPath(import.meta.url)) + path.sep;
 
 /* Hay tres desenlaces, no dos, y confundirlos hace daño:
      0 = la puerta pasa
@@ -69,11 +75,17 @@ if (process.env.WP_URL && process.env.WP_USER && process.env.WP_APP_PASSWORD) {
   console.error("\n──────── 2/5 Round-trip REST ────────\n  ⏭ Omitido (sin WP_URL/WP_USER/WP_APP_PASSWORD).");
 }
 
-// 3. Editor (opcional, requiere Playwright + login)
-if (has("--editor")) {
-  step("3/5 Validación en editor (Playwright)", "qa-editor-check.mjs", ["--file", file]);
+// 3. La ÚNICA capa que ve el «Attempt Recovery». La validación de bloques vive
+// en el JavaScript del editor, no en REST ni en el marcado. Medido el 2/09/2026:
+// un bloque con un atributo de más en el cuerpo pasa los dos linters Y el
+// round-trip, y el editor lo marca inválido. Abre el wp-admin de verdad, y no
+// pide ninguna contraseña: WordPress emite su propia cookie de sesión.
+if (val("--sitio")) {
+  const eArgs = ["--sitio", val("--sitio"), "--file", file];
+  if (val("--puerto")) eArgs.push("--puerto", val("--puerto"));
+  step("3/5 Validación en el editor real", "qa-editor-check.mjs", eArgs);
 } else {
-  console.error("\n──────── 3/5 Validación en editor ────────\n  ⏭ Omitido (añade --editor para la validación fiel del editor).");
+  console.error("\n──────── 3/5 Validación en el editor real ────────\n  ⏭ Omitido (añade --sitio \"<ruta app/public>\" y --puerto N).");
 }
 
 // 4. Visual (opcional)

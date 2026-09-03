@@ -335,6 +335,9 @@ import path from "node:path";
 
 const PLUGIN = ${JSON.stringify(rutaPluginJs)};
 const SISTEMA = ${JSON.stringify(sistema)};
+/* Ruta del sitio en Local WP. Ajustala si tu carpeta de Local esta en otro sitio. */
+const SITIO = process.env.USERPROFILE + "/Local Sites/${sitio}/app/public";
+const PUERTO = "${puerto}";
 
 /* Las URLs publicadas de este proyecto. Añádelas según vayan existiendo. */
 const URLS = [];
@@ -389,6 +392,20 @@ if (process.env.WP_URL && process.env.WP_USER && process.env.WP_APP_PASSWORD && 
   }
 } else {
   console.log("\\n──────── 3 · Round-trip ────────\\n  ⏭ Omitido (sin credenciales en .env.local, o sin marcado).");
+}
+
+/* 3.5. El editor de verdad: la UNICA capa que ve el «Attempt Recovery». La
+   validacion de bloques vive en el JavaScript del editor, no en REST ni en el
+   marcado. Un bloque puede pasar los dos linters Y el round-trip y abrirse roto
+   en WordPress. No pide ninguna contrasena. */
+if (fs.existsSync(SITIO) && marcados.length) {
+  for (const m of marcados) {
+    paso("3.5 · editor real · " + m,
+      PLUGIN + "/herramientas/conversion/scripts/qa-editor-check.mjs",
+      ["--sitio", SITIO, "--puerto", PUERTO, "--file", m]);
+  }
+} else {
+  console.log("\\n──────── 3.5 · Editor real ────────\\n  ⏭ Omitido (no encuentro " + SITIO + ", o no hay marcado).");
 }
 
 /* 4. ¿Llegó el contrato al navegador? El paso que caza «declarar no es publicar». */
