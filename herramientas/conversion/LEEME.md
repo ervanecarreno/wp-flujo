@@ -347,3 +347,48 @@ De `figma-gb-pipeline` queda fuera todo lo que es proyecto y no herramienta:
 - `config.json` — su configuración
 
 Cada proyecto de cliente crea los suyos en su propia carpeta.
+
+---
+
+## La trampa de las unidades relativas
+
+Descubierta el 3/09/2026 cotejando la implementación con una captura de la web **real** pegada en
+Figma. Es probablemente el hallazgo de fidelidad más rentable de todos, porque explica de golpe
+desviaciones en cinco secciones.
+
+**Un contrato escrito en `em`/`rem` no es portable si la raíz no forma parte del contrato.**
+
+El diseño estaba escrito sobre una raíz de 16px. GeneratePress sirve **18px**. Resultado: cada
+valor salía un **12,5% mayor** —padding de 72 donde el diseño dice 64, imágenes de 633 donde dice
+563— y las secciones se desviaban entre 86 y 216 píxeles. Nada avisaba: la página se veía bien,
+solo que no era el diseño.
+
+**El contrato va en píxeles.** El mismo número significa lo mismo en el diseño, en Figma —que ni
+siquiera tiene `em`— y en WordPress.
+
+### Pero no todo `em` se convierte igual
+
+Convertir en bloque multiplicando por 16 rompió otras tres secciones, y por un motivo que conviene
+tener claro:
+
+| Propiedad | Contra qué se mide `em` | Qué hacer |
+|---|---|---|
+| `padding`, `gap`, `width`, `height` | el font-size del elemento (normalmente 16) | a px |
+| `max-width` de un **titular** | el font-size **de ese titular** (48, 60, 68…) | a px, pero multiplicando por SU tamaño |
+| `letter-spacing` | el font-size del propio texto | **dejarlo en `em`** |
+
+`max-width: 13.8125em` en un `h2` de 48px son **663px**, no 221. Multiplicarlo por 16 dejó tres
+titulares a un cuarto de su ancho y el texto se partió en el triple de líneas.
+
+Y `letter-spacing: -0.06em` en `em` es exactamente lo que se quiere: el ajuste óptico crece con la
+letra. Pasarlo a px lo congela en el valor de un cuerpo de 16 y en un titular de 68 desaparece.
+
+### El resultado, medido
+
+| | Antes | Después |
+|---|---|---|
+| Secciones exactas al píxel | 0 | **5** |
+| Secciones fuera de tolerancia | 4 | 2 |
+
+**Cómo se detecta:** la puerta 4/5 (`qa-visual-diff.mjs --diseno`). Sin ella esto no se ve, porque
+la página carga, valida y se sirve perfectamente — solo que con otras medidas.
