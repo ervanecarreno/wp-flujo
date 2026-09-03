@@ -88,16 +88,17 @@ if (val("--sitio")) {
   console.error("\n──────── 3/5 Validación en el editor real ────────\n  ⏭ Omitido (añade --sitio \"<ruta app/public>\" y --puerto N).");
 }
 
-// 4. Visual (opcional)
-const url = val("--url");
-if (url && (has("--figma") || has("--ref"))) {
-  const vArgs = [url];
-  if (has("--figma")) { const i = args.indexOf("--figma"); vArgs.push("--figma", args[i + 1], args[i + 2]); }
-  if (has("--ref")) vArgs.push("--ref", val("--ref"));
-  if (val("--threshold")) vArgs.push("--threshold", val("--threshold"));
-  step("4/5 Diff visual (pixelmatch)", "qa-visual-diff.mjs", vArgs);
+// 4. La página contra su diseño, SECCIÓN A SECCIÓN. No por porcentaje de
+// píxeles: se midió el 2/09/2026 y daba 51% con la página bien, porque en cuanto
+// una sección se desplaza, todo lo que va debajo cuenta como distinto.
+if (urlPublicada && val("--diseno")) {
+  const vArgs = [urlPublicada, "--diseno", val("--diseno")];
+  if (val("--tolerancia")) vArgs.push("--tolerancia", val("--tolerancia"));
+  if (val("--sel")) vArgs.push("--sel", val("--sel"));
+  if (val("--salida-visual")) vArgs.push("--salida", val("--salida-visual"));
+  step("4/5 La página contra su diseño", "qa-visual-diff.mjs", vArgs);
 } else {
-  console.error("\n──────── 4/5 Diff visual ────────\n  ⏭ Omitido (añade --url <permalink> y --figma <key> <node> o --ref ref.png).");
+  console.error("\n──────── 4/5 La página contra su diseño ────────\n  ⏭ Omitido (añade --url y --diseno <fichero.dc.html>).");
 }
 
 if (noComprobado.length) {

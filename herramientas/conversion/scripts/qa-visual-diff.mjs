@@ -1,104 +1,297 @@
 #!/usr/bin/env node
 /**
- * qa-visual-diff.mjs — QA nivel 3: diff visual píxel a píxel.
+ * qa-visual-diff.mjs — puerta 4/5: la página contra su diseño.
  *
- * Exporta el frame de Figma como PNG a escala fija, renderiza el permalink en
- * staging con Playwright al mismo ancho, y compara con pixelmatch. Produce un
- * PNG de diferencias y un porcentaje. Si supera el umbral, falla: la corrección
- * debe aplicarse SOLO a CSS/tokens, nunca a la estructura del patrón.
+ * Reescrito el 2/09/2026 después de MEDIR que la versión anterior no podía
+ * funcionar. Comparaba un PNG exportado de Figma contra la página y fallaba si
+ * el porcentaje de píxeles distintos pasaba de un umbral. Sobre el proyecto de
+ * referencia dio **51,18%**, y no porque la página estuviera mal:
  *
- * Requiere: npm i (playwright, pixelmatch, pngjs) + npx playwright install chromium
+ *   · Un PNG de Figma y un navegador no dibujan el texto igual. Ese diff mide
+ *     hinting y suavizado, no diseño.
+ *   · Y sobre todo: **en cuanto una sección mide diez píxeles de más, todo lo
+ *     que va debajo cuenta como distinto.** El porcentaje no dice si el diseño
+ *     se respetó; dice cuánto se ha desplazado el contenido en vertical. Medido:
+ *     la primera fila distinta estaba en y=24, y a partir de ahí, 92%.
  *
- * Uso:
- *   node scripts/qa-visual-diff.mjs <url-staging> --figma <fileKey> <nodeId> [--width 1440] [--threshold 1]
- *   node scripts/qa-visual-diff.mjs <url-staging> --ref referencia.png [--width 1440] [--threshold 1]
+ * Así que la comparación útil no es de píxeles: es **de secciones**. Se
+ * renderizan el diseño y la página en el MISMO navegador, se miden las secciones
+ * en orden y se informa de cuáles se desviaron y en cuánto. Eso es determinista,
+ * inmune al suavizado, y señala dónde mirar. La primera vez que se ejecutó
+ * encontró que la barra de navegación y el pie del diseño no se habían
+ * implementado, y que el testimonio medía 112px contra los 359 del diseño.
  *
- * Env (si usas --figma): FIGMA_TOKEN
+ * El diff de píxeles se sigue produciendo, pero como material para MIRAR
+ * (diff.png), nunca como criterio de aprobado.
+ *
+ * Modos:
+ *   --diseno <fichero.dc.html>    compara secciones contra el diseño. Es la puerta.
+ *   --guardar-linea-base <png>    guarda una captura de la página
+ *   --linea-base <png>            compara la página contra esa captura. Aquí sí
+ *                                 manda el porcentaje: mismo motor, misma página,
+ *                                 así que cualquier diferencia es un cambio real.
+ *   --figma <fileKey> <nodeId>    exporta el frame para mirarlo. Requiere FIGMA_TOKEN.
+ *
+ * Opciones:
+ *   --ancho N        anchura de renderizado (1440)
+ *   --tolerancia N   % de desviación de altura admitido por sección (10)
+ *   --umbral N       % de píxeles distintos admitido en --linea-base (0.1)
+ *   --sel "<css>"    selector de las secciones de la página (".entry-content > section")
+ *   --salida DIR     dónde dejar los PNG ("qa-visual")
+ *
+ * Salida: 0 = conforme · 1 = hay desvíos · 2 = no se pudo comparar.
  */
 import fs from "node:fs";
+import path from "node:path";
+
+const args = process.argv.slice(2);
+const url = args[0];
+if (!url || url.startsWith("--")) {
+  console.error(`Uso:
+  node qa-visual-diff.mjs <url> --diseno <fichero.dc.html> [--tolerancia 10] [--sel "<css>"]
+  node qa-visual-diff.mjs <url> --guardar-linea-base qa/pagina.png
+  node qa-visual-diff.mjs <url> --linea-base qa/pagina.png [--umbral 0.1]
+  node qa-visual-diff.mjs <url> --figma <fileKey> <nodeId>     (requiere FIGMA_TOKEN)`);
+  process.exit(2);
+}
+const opt = (n, def = null) => { const i = args.indexOf(n); return i !== -1 ? args[i + 1] : def; };
+
+const diseno = opt("--diseno");
+const lineaBase = opt("--linea-base");
+const guardarLineaBase = opt("--guardar-linea-base");
+const iFigma = args.indexOf("--figma");
+const ancho = Number(opt("--ancho", "1440"));
+const tolerancia = Number(opt("--tolerancia", "10"));
+const umbral = Number(opt("--umbral", "0.1"));
+const selPagina = opt("--sel", ".entry-content > section");
+const salidaDir = opt("--salida", "qa-visual");
 
 let chromium, pixelmatch, PNG;
 try {
-  ({ chromium } = await import("playwright"));
+  ({ chromium } = await import("playwright-core"));
   pixelmatch = (await import("pixelmatch")).default;
   ({ PNG } = await import("pngjs"));
-} catch {
-  console.error("Faltan dependencias. Ejecuta: npm i && npx playwright install chromium");
+} catch (e) {
+  console.error("✖ Faltan dependencias. Desde la raíz del plugin:  npm install");
+  console.error("  " + e.message.split("\n")[0]);
   process.exit(2);
 }
-import { fetchFramePng } from "../lib/figma-client.mjs";
 
-const args = process.argv.slice(2);
-const stagingUrl = args[0];
-if (!stagingUrl || stagingUrl.startsWith("--")) { console.error("Uso: node scripts/qa-visual-diff.mjs <url-staging> --figma <fileKey> <nodeId> | --ref ref.png [--width N] [--threshold %]"); process.exit(2); }
+let navegador = null;
+for (const canal of ["chrome", "msedge"]) {
+  try { navegador = await chromium.launch({ channel: canal, headless: true }); break; } catch { /* siguiente */ }
+}
+if (!navegador) { console.error("✖ No se pudo abrir ni Chrome ni Edge."); process.exit(2); }
 
-const opt = (name, def) => { const i = args.indexOf(name); return i !== -1 ? args[i + 1] : def; };
-const width = parseInt(opt("--width", "1440"), 10);
-const threshold = parseFloat(opt("--threshold", "1")); // % de píxeles distintos tolerado
-const scale = parseInt(opt("--scale", "2"), 10);
+fs.mkdirSync(salidaDir, { recursive: true });
 
-async function getReferencePng() {
-  const refIdx = args.indexOf("--ref");
-  if (refIdx !== -1) return fs.readFileSync(args[refIdx + 1]);
-  const figIdx = args.indexOf("--figma");
-  if (figIdx !== -1) {
-    const fileKey = args[figIdx + 1], nodeId = args[figIdx + 2];
+/** Abre algo a anchura fija con las fuentes ya cargadas. */
+async function abrir(destino, esFichero) {
+  const pagina = await navegador.newPage({ viewport: { width: ancho, height: 1000 }, deviceScaleFactor: 1 });
+  await pagina.goto(destino, { waitUntil: "networkidle", timeout: 60000 });
+  if (esFichero) {
+    /* Los .dc.html de Claude Design envuelven el contenido en elementos propios
+       (`x-dc`, `helmet`) que el navegador no conoce: por defecto son en línea, y
+       `helmet` lleva dentro el <link> de fuentes y un <style> que SÍ aplican,
+       pero cuyo texto no debe pintarse. */
+    await pagina.addStyleTag({ content: "x-dc{display:block}helmet{display:none}" });
+  }
+  /* Sin esperar a las fuentes se compara contra el respaldo tipográfico, y todo
+     el informe sale desplazado por un motivo que no tiene que ver con el diseño. */
+  await pagina.evaluate(() => document.fonts.ready);
+  await pagina.waitForTimeout(600);
+  return pagina;
+}
+
+const secciones = (pagina, selector) => pagina.evaluate((sel) => {
+  const nodos = sel
+    ? [...document.querySelectorAll(sel)]
+    : [...(document.querySelector("x-dc > div") ?? document.body).children];
+  return nodos.map((e) => ({
+    alto: Math.round(e.getBoundingClientRect().height),
+    texto: (e.textContent || "").trim().replace(/\s+/g, " ").slice(0, 38),
+  }));
+}, selector);
+
+const captura = (pagina) => pagina.screenshot({ fullPage: true });
+
+/* ── Emparejar secciones por CONTENIDO, no por posición ────────────────────
+   Emparejar por índice es tentador y está mal: basta con que el diseño lleve
+   una barra de navegación que la página no tiene para que todo se desplace un
+   puesto y el informe compare secciones que no tienen nada que ver. Pasó a la
+   primera. Se emparejan por el texto que encabeza cada sección, respetando el
+   orden (subsecuencia común), que es lo que permite decir «esta falta» en vez
+   de «todas están mal». */
+
+const normaliza = (t) => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+  .replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+
+/** Coeficiente de Dice sobre bigramas: 1 = idénticos, 0 = nada en común. */
+function parecido(a, b) {
+  const bigramas = (s) => { const g = new Set(); for (let i = 0; i < s.length - 1; i++) g.add(s.slice(i, i + 2)); return g; };
+  const A = bigramas(normaliza(a)), B = bigramas(normaliza(b));
+  if (!A.size || !B.size) return 0;
+  let comunes = 0;
+  for (const g of A) if (B.has(g)) comunes++;
+  return (2 * comunes) / (A.size + B.size);
+}
+
+function emparejar(disenio, pagina, minimo = 0.45) {
+  /* Programación dinámica clásica de subsecuencia común, con el parecido como
+     puntuación en vez de la igualdad exacta. */
+  const n = disenio.length, m = pagina.length;
+  const punt = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      const s = parecido(disenio[i].texto, pagina[j].texto);
+      punt[i][j] = Math.max(
+        s >= minimo ? s + punt[i + 1][j + 1] : 0,
+        punt[i + 1][j],
+        punt[i][j + 1]
+      );
+    }
+  }
+  const salida = [];
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    const s = parecido(disenio[i].texto, pagina[j].texto);
+    if (s >= minimo && punt[i][j] === s + punt[i + 1][j + 1]) { salida.push({ d: disenio[i++], p: pagina[j++] }); }
+    else if (punt[i + 1][j] >= punt[i][j + 1]) { salida.push({ d: disenio[i++], p: null }); }
+    else { salida.push({ d: null, p: pagina[j++] }); }
+  }
+  while (i < n) salida.push({ d: disenio[i++], p: null });
+  while (j < m) salida.push({ d: null, p: pagina[j++] });
+  return salida;
+}
+
+try {
+  /* ── Línea base: guardar ────────────────────────────────────────────────── */
+  if (guardarLineaBase) {
+    const p = await abrir(url, false);
+    const buf = await captura(p);
+    fs.mkdirSync(path.dirname(path.resolve(guardarLineaBase)), { recursive: true });
+    fs.writeFileSync(guardarLineaBase, buf);
+    const img = PNG.sync.read(buf);
+    console.error(`\n✔ Línea base guardada: ${guardarLineaBase} (${img.width}×${img.height})`);
+    console.error("  Desde ahora, --linea-base contra este fichero detecta cambios no buscados.\n");
+    await navegador.close();
+    process.exit(0);
+  }
+
+  const pag = await abrir(url, false);
+  const pagBuf = await captura(pag);
+  fs.writeFileSync(path.join(salidaDir, "pagina.png"), pagBuf);
+
+  /* ── Línea base: comparar. Aquí el porcentaje SÍ manda ──────────────────── */
+  if (lineaBase) {
+    if (!fs.existsSync(lineaBase)) {
+      console.error(`✖ No existe ${lineaBase}. Créala con --guardar-linea-base.`);
+      await navegador.close(); process.exit(2);
+    }
+    const a = PNG.sync.read(fs.readFileSync(lineaBase));
+    const b = PNG.sync.read(pagBuf);
+    await navegador.close();
+    const w = Math.min(a.width, b.width), h = Math.min(a.height, b.height);
+    const rec = (s) => { const o = new PNG({ width: w, height: h }); PNG.bitblt(s, o, 0, 0, w, h, 0, 0); return o; };
+    const dif = new PNG({ width: w, height: h });
+    const n = pixelmatch(rec(a).data, rec(b).data, dif.data, w, h, { threshold: 0.1 });
+    fs.writeFileSync(path.join(salidaDir, "diff.png"), PNG.sync.write(dif));
+    const pct = (n / (w * h)) * 100;
+    console.error(`\n  Línea base ${a.width}×${a.height} · ahora ${b.width}×${b.height}`);
+    console.error(`  ${n.toLocaleString("es-ES")} píxeles distintos — ${pct.toFixed(3)}%`);
+    console.error(`  PNG en ${salidaDir}/`);
+    if (a.height !== b.height) console.error(`  ⚠ La altura cambió en ${Math.abs(a.height - b.height)}px.`);
+    if (pct > umbral) { console.error(`\n✖ Supera el umbral del ${umbral}%. Algo cambió: mira diff.png.\n`); process.exit(1); }
+    console.error(`\n✔ Dentro del umbral del ${umbral}%.\n`);
+    process.exit(0);
+  }
+
+  /* ── Referencia de Figma: solo para mirar ───────────────────────────────── */
+  if (iFigma !== -1) {
     const token = process.env.FIGMA_TOKEN;
-    if (!token) { console.error("Falta FIGMA_TOKEN para --figma."); process.exit(2); }
-    console.error("→ Exportando PNG del frame de Figma…");
-    const url = await fetchFramePng(token, fileKey, nodeId, scale);
-    const buf = Buffer.from(await (await fetch(url)).arrayBuffer());
-    fs.writeFileSync("qa-figma-ref.png", buf);
-    return buf;
+    if (!token) { console.error("✖ Falta FIGMA_TOKEN."); await navegador.close(); process.exit(2); }
+    const { fetchFramePng } = await import("../lib/figma-client.mjs");
+    const enlace = await fetchFramePng(token, args[iFigma + 1], args[iFigma + 2], 1);
+    const buf = Buffer.from(await (await fetch(enlace)).arrayBuffer());
+    fs.writeFileSync(path.join(salidaDir, "figma.png"), buf);
+    await navegador.close();
+    console.error(`\n✔ ${salidaDir}/figma.png y ${salidaDir}/pagina.png, para mirarlos al lado.`);
+    console.error("  No se calcula porcentaje a propósito: entre Figma y un navegador mide");
+    console.error("  el motor de renderizado, no el diseño. Para una puerta, usa --diseno.\n");
+    process.exit(0);
   }
-  console.error("Da --figma <fileKey> <nodeId> o --ref ref.png"); process.exit(2);
-}
 
-/** Ajusta ambas imágenes al mismo tamaño (recorta al mínimo común). */
-function align(a, b) {
-  const w = Math.min(a.width, b.width);
-  const h = Math.min(a.height, b.height);
-  const crop = (src) => {
-    if (src.width === w && src.height === h) return src;
-    const out = new PNG({ width: w, height: h });
-    PNG.bitblt(src, out, 0, 0, w, h, 0, 0);
-    return out;
-  };
-  return [crop(a), crop(b), w, h];
-}
-
-const run = async () => {
-  const refBuf = await getReferencePng();
-  const refPng = PNG.sync.read(refBuf);
-  const renderWidth = Math.round(refPng.width / scale); // el PNG de Figma va a escala `scale`
-
-  console.error(`→ Renderizando ${stagingUrl} a ${renderWidth || width}px…`);
-  const browser = await chromium.launch();
-  const page = await browser.newPage({
-    viewport: { width: renderWidth || width, height: 1080 },
-    deviceScaleFactor: scale,
-  });
-  await page.goto(stagingUrl, { waitUntil: "networkidle" });
-  await page.waitForTimeout(1500); // fuentes/imágenes
-  const shotBuf = await page.screenshot({ fullPage: true });
-  await browser.close();
-  fs.writeFileSync("qa-staging.png", shotBuf);
-  const shotPng = PNG.sync.read(shotBuf);
-
-  const [imgA, imgB, w, h] = align(refPng, shotPng);
-  const diff = new PNG({ width: w, height: h });
-  const mismatch = pixelmatch(imgA.data, imgB.data, diff.data, w, h, { threshold: 0.1 });
-  fs.writeFileSync("qa-diff.png", PNG.sync.write(diff));
-
-  const pct = (mismatch / (w * h)) * 100;
-  console.error(`\n  Píxeles distintos: ${mismatch} de ${w * h} (${pct.toFixed(3)}%)`);
-  console.error("  Artefactos: qa-figma-ref.png (o tu --ref), qa-staging.png, qa-diff.png");
-
-  if (pct > threshold) {
-    console.error(`\n  ✖ Supera el umbral de ${threshold}%. Corrige SOLO CSS/tokens (nunca la estructura del patrón) y repite.`);
-    process.exit(1);
+  /* ── La puerta: secciones contra el diseño ──────────────────────────────── */
+  if (!diseno) {
+    console.error("✖ Da --diseno, --linea-base, --guardar-linea-base o --figma.");
+    await navegador.close(); process.exit(2);
   }
-  console.error(`\n  ✔ Dentro del umbral de ${threshold}%. Fidelidad aceptada.`);
-};
+  if (!fs.existsSync(diseno)) { console.error(`✖ No existe ${diseno}`); await navegador.close(); process.exit(2); }
 
-run().catch((e) => { console.error("✖", e.message); process.exit(1); });
+  const dis = await abrir("file:///" + path.resolve(diseno).replace(/\\/g, "/"), true);
+  const disBuf = await captura(dis);
+  fs.writeFileSync(path.join(salidaDir, "diseno.png"), disBuf);
+
+  const sD = await secciones(dis, null);
+  const sP = await secciones(pag, selPagina);
+  await navegador.close();
+
+  /* Diff de píxeles, para mirar. Nunca para aprobar. */
+  const a = PNG.sync.read(disBuf), b = PNG.sync.read(pagBuf);
+  const w = Math.min(a.width, b.width), h = Math.min(a.height, b.height);
+  const rec = (s) => { const o = new PNG({ width: w, height: h }); PNG.bitblt(s, o, 0, 0, w, h, 0, 0); return o; };
+  const dif = new PNG({ width: w, height: h });
+  pixelmatch(rec(a).data, rec(b).data, dif.data, w, h, { threshold: 0.1 });
+  fs.writeFileSync(path.join(salidaDir, "diff.png"), PNG.sync.write(dif));
+
+  console.error(`\n== ${path.basename(diseno)}  vs  ${url} ==`);
+  console.error(`   diseño ${a.width}×${a.height} · página ${b.width}×${b.height}`);
+  if (!sP.length) {
+    console.error(`\n✖ El selector «${selPagina}» no encontró ninguna sección en la página.`);
+    console.error("  Ajusta --sel: sin secciones no hay nada que comparar.\n");
+    process.exit(2);
+  }
+
+  console.error(`\n   ${"diseño".padStart(7)} ${"página".padStart(7)} ${"Δ".padStart(7)}   sección`);
+  console.error("   " + "─".repeat(72));
+
+  const desvios = [];
+  for (const { d, p } of emparejar(sD, sP)) {
+    if (!p) {
+      console.error(`   ${String(d.alto).padStart(7)} ${"—".padStart(7)} ${"falta".padStart(7)}   ${d.texto}`);
+      desvios.push({ tipo: "falta", texto: d.texto, alto: d.alto });
+      continue;
+    }
+    if (!d) {
+      console.error(`   ${"—".padStart(7)} ${String(p.alto).padStart(7)} ${"sobra".padStart(7)}   ${p.texto}`);
+      desvios.push({ tipo: "sobra", texto: p.texto, alto: p.alto });
+      continue;
+    }
+    const delta = p.alto - d.alto;
+    const pct = d.alto ? (Math.abs(delta) / d.alto) * 100 : 0;
+    const fuera = pct > tolerancia;
+    const marca = fuera ? "✖" : "·";
+    console.error(`   ${String(d.alto).padStart(7)} ${String(p.alto).padStart(7)} ${((delta >= 0 ? "+" : "") + delta).padStart(7)} ${marca} ${d.texto}`);
+    if (fuera) desvios.push({ tipo: "altura", texto: d.texto, disenio: d.alto, pagina: p.alto, delta, pct });
+  }
+
+  console.error(`\n   ${salidaDir}/diseno.png · pagina.png · diff.png`);
+  console.error("   El diff de píxeles está para mirarlo, no para aprobar: en cuanto una");
+  console.error("   sección se desplaza, todo lo de debajo sale distinto.");
+
+  if (!desvios.length) {
+    console.error(`\n✔ Las ${sD.length} secciones dentro de la tolerancia del ${tolerancia}%.\n`);
+    process.exit(0);
+  }
+  const faltan = desvios.filter((d) => d.tipo === "falta").length;
+  const sobran = desvios.filter((d) => d.tipo === "sobra").length;
+  const alturas = desvios.filter((d) => d.tipo === "altura").length;
+  console.error(`\n✖ ${desvios.length} desvío(s): ${alturas} de altura, ${faltan} sección(es) del diseño sin implementar, ${sobran} de más.`);
+  console.error("  Corrige CSS y tokens. Si hay que mover bloques, revisa antes si el que");
+  console.error("  está mal es el diseño: puede que la traducción sea correcta.\n");
+  process.exit(1);
+} catch (e) {
+  console.error("✖ " + e.message.split("\n")[0]);
+  try { await navegador.close(); } catch { /* ya cerrado */ }
+  process.exit(2);
+}

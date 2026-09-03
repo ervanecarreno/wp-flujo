@@ -7,6 +7,68 @@
 
 ---
 
+## Cerrada el 2/09/2026 la puerta 4/5, y una trampa mayor por el camino
+
+### La puerta visual no podía funcionar como estaba
+
+Comparaba un PNG de Figma contra la página y fallaba por porcentaje de píxeles. **Medido: 51,18%
+con la página correcta.** Dos motivos, y el segundo mata la idea:
+
+1. Un PNG de Figma y un navegador no dibujan el texto igual: eso mide hinting y suavizado.
+2. **En cuanto una sección mide diez píxeles de más, todo lo que va debajo cuenta como distinto.**
+   La primera fila discrepante estaba en `y=24`, y a partir de ahí, 92%. El número no dice si el
+   diseño se respetó: dice cuánto se ha desplazado el contenido.
+
+Reescrita para comparar **secciones**, no píxeles: se renderizan el `.dc.html` de Claude Design y
+la página en el **mismo navegador** y se miden las alturas en orden. Determinista, inmune al
+suavizado, y señala dónde mirar. En su primera ejecución encontró que la barra de navegación y el
+pie del diseño **no se habían implementado**.
+
+Las secciones se emparejan **por contenido, no por posición** (subsecuencia común con parecido de
+bigramas). Emparejar por índice está mal y se vio a la primera: una sección de más al principio
+desplazaba todo el informe.
+
+El diff de píxeles se sigue produciendo, pero como material para mirar. Y hay un tercer modo,
+`--linea-base`, que sí es una puerta por porcentaje: misma página, mismo motor, umbral 0,1%.
+
+### La trampa: importar por wp-cli deja el CSS caducado
+
+Buscando por qué el testimonio medía 112px contra los 359 del diseño apareció algo bastante peor,
+y afecta a **todo el flujo**:
+
+**GenerateBlocks no escribe los estilos en el marcado.** Los guarda en
+`uploads/generateblocks/style-<postID>.css` y lo rehace **al guardar desde el editor**.
+`wp post create` y `wp post update` no lo disparan.
+
+Y falla de la peor manera: **la página carga**, con su estructura y su contenido, pero los bloques
+nuevos salen sin estilo, con la tipografía del tema. Medido en la landing: **95 bloques declaraban
+`css` y 25 no tenían regla servida**; la cita salía en Manrope de 18px en vez de Fraunces de 36.
+
+No lo ve ninguna otra capa, y no por descuido: el marcado es correcto, el round-trip devuelve lo
+mismo que se envió, el editor genera su CSS al vuelo, y los tokens resuelven — lo que falta es la
+**regla que los usa**.
+
+Herramienta nueva: **`herramientas/gb-regenerar-css.mjs`**. Y una octava trampa en la skill.
+
+**El detalle que cuesta encontrar:** `generateblocks_dynamic_css_time` parece un rompe-cachés
+—es el `?ver=` del enlace— pero en el código de GB es un **limitador de frecuencia**
+(`if ( 5 <= ( $current_time - $last_time ) )`). Ponerlo a «ahora» hace lo contrario de lo que uno
+espera: GB se niega a escribir cinco segundos y la página sale **sin nada** de CSS. Me pasó al
+primer intento. Hay que **atrasarlo**.
+
+Tras regenerar, el testimonio pasó de 112 a 413px.
+
+### Estado de la cadena
+
+Las cinco puertas se ejecutan. La 4/5 informa de **6 desvíos de altura y 2 secciones del diseño
+sin implementar** en la landing: diferencias reales entre el diseño de Claude Design y lo
+construido, acumuladas en el paso Figma → código. Es el primer informe de fidelidad de verdad que
+da este flujo.
+
+Plugin en **0.10.0**.
+
+---
+
 ## Ejecutado por primera vez el 2/09/2026: `qa-editor-check.mjs`
 
 La capa que ve el **«Attempt Recovery»** existía desde agosto y **no se había ejecutado nunca**.

@@ -4,6 +4,8 @@
   "type": "commonjs",
   "description": "Dependencias opcionales de las herramientas del plugin. Todo lo demas es Node sin dependencias.",
   "dependencies": {
-    "playwright-core": "^1.49.0"
+    "pixelmatch": "^7.2.0",
+    "playwright-core": "^1.49.0",
+    "pngjs": "^7.0.0"
   }
 }

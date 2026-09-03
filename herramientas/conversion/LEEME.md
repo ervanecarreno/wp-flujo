@@ -43,7 +43,7 @@ Node ≥ 18, **sin dependencias** salvo donde se indica.
 | `wp-roundtrip.mjs` | 7 | Guarda en WP, relee y compara bloque a bloque: le pregunta a WordPress en vez de suponer |
 | `qa-fidelity-check.mjs` | 7 | Reconvierte un frame extraído y aplica las reglas de `fidelity-check.mjs`. Requiere `extract/` |
 | `qa-editor-check.mjs` | 7 | **Abre el wp-admin de verdad y le pregunta al editor si los bloques son válidos.** Sin contraseñas. Requiere `playwright-core` (`npm install` en la raíz) |
-| `qa-visual-diff.mjs` | 7 | Diff visual. **Requiere `playwright`, `pixelmatch` y `pngjs`** |
+| `qa-visual-diff.mjs` | 7 | **Compara la página con su diseño, sección a sección.** También línea base para regresión. Requiere `npm install` |
 | `qa-run.mjs` | 7 | Lanza la batería de QA |
 
 Uso, desde la raíz del plugin:
@@ -142,6 +142,49 @@ lo relee con `context=edit` y compara. Medido el 2/09/2026 sobre marcado con `>`
 WordPress devolvió `>` — o sea, confirmó con sus propios bytes la regla 1.3 de
 `validate-blocks.mjs`. Cuando las dos reglas discrepen, la que gana es la que sobrevive al
 round-trip, no la que mejor suene.
+
+---
+
+## `qa-visual-diff.mjs` — la página contra su diseño, sección a sección
+
+La versión anterior comparaba un PNG de Figma contra la página y fallaba si el porcentaje de
+píxeles distintos pasaba de un umbral. **Se midió, y no podía funcionar:** sobre el proyecto de
+referencia dio **51,18%** con la página correcta.
+
+Por dos motivos, y el segundo es el que mata la idea:
+
+1. Un PNG de Figma y un navegador no dibujan el texto igual. Ese porcentaje mide hinting y
+   suavizado, no diseño.
+2. **En cuanto una sección mide diez píxeles de más, todo lo que va debajo cuenta como distinto.**
+   Medido: la primera fila discrepante estaba en `y=24` y a partir de ahí, 92%. El número no dice
+   si el diseño se respetó; dice cuánto se ha desplazado el contenido en vertical.
+
+Así que la comparación útil no es de píxeles: es **de secciones**. Se renderizan el diseño
+(`.dc.html` de Claude Design) y la página en el **mismo navegador**, y se miden las secciones:
+
+```
+    diseño  página       Δ   sección
+        85       —   falta   Zafra Museo del Plátano El museo…
+       625     557     -68 ✖ Tazacorte · Isla de La Palma…
+       359     413     +54 ✖ «Mi abuelo cortaba en esta misma…
+       195       —   falta   Zafra · Museo del Plátano [DIRECCIÓN]…
+```
+
+Eso es determinista, inmune al suavizado, y **señala dónde mirar**. En su primera ejecución
+encontró que la barra de navegación y el pie del diseño no se habían implementado.
+
+**Las secciones se emparejan por contenido, no por posición.** Emparejar por índice es tentador y
+está mal: basta con que el diseño lleve una barra de navegación que la página no tiene para que
+todo se desplace un puesto y el informe compare secciones que no tienen nada que ver. Pasó a la
+primera. Se usa una subsecuencia común con parecido de bigramas sobre el texto de cada sección.
+
+### Los tres modos, que no son equivalentes
+
+| | Qué compara | ¿Sirve de puerta? |
+|---|---|---|
+| `--diseno <fichero.dc.html>` | diseño y página, mismo navegador | **Sí.** Es la puerta 4/5 |
+| `--linea-base <png>` | la página contra una captura anterior de sí misma | **Sí**, para regresión. Umbral 0,1% |
+| `--figma <key> <node>` | exporta el frame para mirarlo al lado | No. No calcula porcentaje a propósito |
 
 ---
 

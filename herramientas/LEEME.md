@@ -240,3 +240,48 @@ Los dos validadores tienen ahora `error`, `aviso` y **`nota`**. La nota es lo qu
 porque a veces describe algo cierto, pero que no distingue marcado bueno de malo. No sale en el
 informe por defecto; se ve con **`--todo`**. Quién baja a nota no es una opinión: lo decide la
 calibración.
+
+## `gb-regenerar-css.mjs` — importar por wp-cli deja el CSS caducado
+
+**Trampa nueva, del 2/09/2026, y afecta a todo el flujo.**
+
+GenerateBlocks no escribe los estilos en el marcado: los guarda en
+`wp-content/uploads/generateblocks/style-<postID>.css` y lo rehace **al guardar desde el editor**.
+`wp post create` y `wp post update` no lo disparan. La página queda servida con el CSS de la
+versión anterior.
+
+Y falla de la peor manera posible: **la página carga**, con su estructura y su contenido. Solo
+que los bloques nuevos salen sin estilo, con la tipografía y los tamaños del tema. Medido en la
+landing del proyecto de referencia: **95 bloques declaraban `css` y 25 no tenían regla servida**;
+la cita del testimonio salía en Manrope de 18px en vez de Fraunces de 36.
+
+No lo ve **ninguna** de las otras capas, y no por descuido:
+
+| Capa | Por qué no lo ve |
+|---|---|
+| los dos validadores | el marcado es correcto |
+| round-trip REST | WordPress devuelve lo mismo que se envió |
+| editor real | el editor genera su CSS al vuelo, así que allí se ve bien |
+| contrato publicado | los tokens resuelven; es la **regla que los usa** la que falta |
+
+```
+node herramientas/gb-regenerar-css.mjs --sitio "<app/public>" --puerto <N> \
+  --post 49550 --url http://sitio.local/pagina/ --marcado build/pagina.html
+```
+
+Borra la hoja, obliga a GB a reescribirla, pide la página y **comprueba que cada bloque con `css`
+tiene su regla servida**. Repite `--post/--url/--marcado` para varias páginas.
+
+**El detalle que cuesta encontrar:** `generateblocks_dynamic_css_time` parece un rompe-cachés
+—es el `?ver=` del enlace— pero en el código de GB es un **limitador de frecuencia**:
+
+```php
+if ( 5 <= ( $current_time - $last_time ) ) { ...escribe el fichero... }
+```
+
+Ponerlo a «ahora» hace lo contrario de lo que uno espera: GB se niega a escribir durante cinco
+segundos y la página sale **sin nada** de CSS. Hay que **atrasarlo**. GB lo pone al día él mismo
+al escribir, y eso es lo que rompe la caché.
+
+**Dónde va en el método:** al final de la fase 4, cada vez que se importe o actualice marcado por
+wp-cli, y antes de la puerta de calidad.

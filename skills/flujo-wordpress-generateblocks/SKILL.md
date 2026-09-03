@@ -55,14 +55,14 @@ importación, con sus dos trampas silenciosas, en [[importar-handoff-diseno]].
 | 4 | **Generación de marcado, importación del handoff, o conversión desde Figma** | Imágenes **primero** con `wp media import --porcelain` para usar IDs reales. Color por clase CSS, jamás por el panel del bloque. Pasar el validador. Si el marcado ya viene hecho: `wp post create <fichero>`, **nunca** `wp_insert_post()` — ver [[importar-handoff-diseno]]. Si se convierte desde Figma, el toolkit está en `herramientas/conversion/` (ver su LEEME): `convert-frame` → `assemble.mjs` → **los dos** validadores |
 | 5 | **Plantillas, noticias, CPT** | Los CPT ya están por código desde la fase 2; las secciones van a `/patterns` como PHP, no pegadas en la base de datos |
 | 6 | **Animación con GSAP** | Va **después** de la fase 5, query loops ya montados. Animar antes y convertir luego a query loop rompe la animación. GB Pro no tiene animación por scroll: su panel Effects es solo hover/focus |
-| 7 | **Puerta de calidad** | Contra staging con la **URL real**, subdirectorio incluido. Nunca contra un HTML local |
+| 7 | **Puerta de calidad** | Contra staging con la **URL real**, subdirectorio incluido. Nunca contra un HTML local. Cadena de cinco puertas: `qa-run.mjs` (contrato publicado → validadores → round-trip → editor real → la página contra su diseño) más la skill `puerta-calidad-wordpress` |
 | 8 | **Producción** | `wp search-replace --dry-run --skip-columns=guid` primero. Nunca editar URLs a mano. Reimportar la configuración del tema: el search-replace no la trae |
 
 Detalle completo de cada fase, con las fuentes: `traspaso-2026-08-26/SETUP-RECOMENDADO.md` de este
 plugin. El respaldo con nivel de confianza por afirmación está en
 `traspaso-2026-08-26/investigacion/resultados-completos.md`.
 
-## Las siete trampas ya pagadas
+## Las ocho trampas ya pagadas
 
 Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
 
@@ -101,6 +101,18 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
    Exporta solo esas tres opciones; si encuentra otras `generate_*` las lista para que el usuario
    decida (`--incluir=`). **No las añadas por tu cuenta.** Al importar, sin `--confirmar` no
    escribe nada, y con `--confirmar` deja copia previa en `config-tema/copias-previas/`.
+
+8. **Importar marcado por wp-cli deja el CSS de GenerateBlocks caducado.** GB no escribe los
+   estilos en el marcado: los guarda en `uploads/generateblocks/style-<postID>.css` y lo rehace
+   **al guardar desde el editor**. `wp post create` y `wp post update` no lo disparan. La página
+   carga —con su estructura y su contenido— pero los bloques nuevos salen **sin estilo**, con la
+   tipografía y los tamaños del tema. Medido: 95 bloques con `css` y **25 sin regla servida**.
+   No lo ve ningún validador, ni el round-trip, ni el editor. Al final de la fase 4:
+
+   ```
+   node herramientas/gb-regenerar-css.mjs --sitio "<app/public>" --puerto <N> \n     --post <ID> --url <url> --marcado build/pagina.html
+   ```
+
 
 ## Descartado con fundamento — no volver a proponerlo
 
