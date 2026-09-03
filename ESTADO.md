@@ -7,6 +7,49 @@
 
 ---
 
+## Añadido el 2/09/2026: el flujo ya se reproduce en un proyecto nuevo
+
+La pregunta era «¿cómo repito esto en un proyecto real: hago un plugin, una extensión, una app?».
+La respuesta resultó ser que **no hay que construir nada nuevo**: `wp-generateblocks` ya es un
+plugin de Claude Code, habilitado en los settings globales (`enabledPlugins`), y sus skills se
+cargan solas en cualquier carpeta de la máquina. El método se reproduce solo.
+
+**Lo que no se reproducía era el esqueleto del proyecto**, montado a mano tres veces. Y no es un
+detalle de comodidad: los dos fallos de esta semana —los tokens que no llegaban al navegador y las
+fuentes declaradas y no cargadas— eran los dos por una pieza del esqueleto que faltaba. Un arreglo
+que vive en un checklist se olvida; uno que viene de fábrica, no.
+
+**Tres piezas nuevas:**
+
+1. **`herramientas/nuevo-proyecto.js`** — genera los 12 ficheros del punto de partida. El plugin
+   de WordPress que emite **encola el CSS del contrato y las fuentes**, en frontend y en el editor,
+   desde el primer minuto. Las dos lecciones vienen hechas.
+2. **`herramientas/tokens-a-css.js`** — el CSS del contrato pasa a ser una **derivada** del JSON,
+   no una segunda fuente. La cabecera del CSS del primer proyecto decía *«espejo exacto del JSON:
+   si cambias uno, cambia el otro»*, y **ya habían divergido**: el JSON decía `Fraunces` y el CSS
+   `"Fraunces", Georgia, serif`. La pila de respaldo es parte del contrato y estaba en un solo
+   lado. `--verificar` dice en qué línea difieren.
+3. **`verificar.mjs`** en cada proyecto — la cadena entera en un comando: contrato sincronizado →
+   los dos validadores → round-trip → contrato publicado.
+
+**Dos comandos** para no tener que recordar rutas: `/wp-nuevo-proyecto` y `/wp-verificar`.
+
+**Y una distinción que faltaba en todo el flujo: hay tres desenlaces, no dos.**
+`0` pasa · `1` **falla** · `2` **no se pudo comprobar** (el sitio parado, una credencial que falta).
+Confundir el 2 con el 0 es entregar creyendo que la cadena pasó entera; confundirlo con el 1 es
+parar la cadena por algo que no es un fallo de fidelidad. Ahora `qa-run.mjs` y `verificar.mjs`
+siguen adelante, lo apuntan, y **cierran con «cadena INCOMPLETA»**. Antes de esto,
+`qa-contrato-publicado.mjs` se estrellaba con un volcado de pila cuando el sitio de Local estaba
+parado.
+
+`qa-contrato-publicado.mjs` entra además como **paso 0/5 de `qa-run.mjs`**, y va primero a
+propósito: si los tokens o las fuentes no resuelven, el resto de las puertas da verde sobre una
+página que se ve mal.
+
+Plugin en **0.6.0**.
+
+---
+
 ## Añadido el 2/09/2026: la puerta que faltaba — «declarar no es publicar»
 
 Segunda revisión de `C:\TRABAJOS\figma-gb-pipeline`, buscando qué más mejora la **fidelidad de

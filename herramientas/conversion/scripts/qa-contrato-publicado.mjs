@@ -67,7 +67,27 @@ async function bajar(u) {
 
 /* ── 1. Reunir la página y TODAS sus hojas de estilo ─────────────────────── */
 
-const html = await bajar(url);
+/* Si la página no se puede pedir, esto NO es un contrato roto: es que no hay
+   nada que comprobar. Se distingue con el código de salida (2, no 1) para que
+   nadie lo confunda con un fallo de fidelidad, y se dice en una línea en vez de
+   volcar una pila de excepciones. */
+let html;
+try {
+  html = await bajar(url);
+} catch (e) {
+  const causa = e?.cause?.code ?? e?.code ?? "";
+  console.error("\n✖ No se pudo pedir " + url);
+  if (causa === "ECONNREFUSED") {
+    console.error("  Conexión rechazada. ¿Está arrancado el sitio en Local WP?");
+  } else if (causa === "ENOTFOUND" || causa === "EAI_AGAIN") {
+    console.error("  No resuelve el nombre. Revisa el dominio, incluido el subdirectorio si lo hay.");
+  } else {
+    console.error("  " + e.message);
+  }
+  console.error("  Esta puerta necesita la URL REAL y servida: contra un HTML local no comprueba nada.\n");
+  process.exit(2);
+}
+
 const hojas = [];   // { origen, css }
 
 for (const m of html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) {

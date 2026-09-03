@@ -153,3 +153,52 @@ Detalle en `docs/metodo-generateblocks-v2.md` §7 bis.
 
 **Ojo:** importar afecta a **todas** las páginas que usen esas clases. Exporta los actuales antes
 para tener con qué volver atrás.
+
+---
+
+## `nuevo-proyecto.js` — el punto de partida de un proyecto de cliente
+
+El método y las herramientas ya se reproducen solos: este plugin está instalado en Claude Code y
+sus skills se cargan en cualquier carpeta. **Lo que no se reproducía era el esqueleto** —
+`design/`, el contrato, el plugin del proyecto, la puerta de calidad—, que se montaba a mano cada
+vez, y cada vez se olvidaba una pieza. Los dos fallos que costaron la semana del 2/09/2026 —los
+tokens que no llegaban al navegador y las fuentes declaradas y no cargadas— eran los dos por eso.
+
+Así que el arreglo no es una nota en un checklist: **viene de fábrica**. El plugin de WordPress
+que genera encola el CSS del contrato **y** las fuentes, en frontend y en el editor, desde el
+primer minuto.
+
+```
+node herramientas/nuevo-proyecto.js "WEB Ayuntamiento de Tazacorte" \
+  --sistema pergamino --slug ayto-tazacorte --sitio ayto-tazacorte --puerto 10011
+```
+
+Genera 12 ficheros: `CLAUDE.md` con las reglas, `ESTADO.md` con la tabla de las 8 fases, el
+contrato en JSON con los nombres congelados, su CSS generado, los dos documentos de diseño,
+`tokens/map.json`, `wp/<slug>.php`, `.env.local.ejemplo`, `.gitignore` y **`verificar.mjs`**.
+
+Se niega a escribir sobre una carpeta con contenido salvo con `--forzar`.
+
+Atajo: **`/wp-nuevo-proyecto`**.
+
+## `tokens-a-css.js` — el CSS del contrato es una derivada
+
+```
+node herramientas/tokens-a-css.js design/x.tokens.json -o design/x.tokens.css
+node herramientas/tokens-a-css.js design/x.tokens.json --verificar design/x.tokens.css
+```
+
+El contrato vive en **un** fichero, el JSON en formato W3C / Tokens Studio. El CSS se genera.
+
+Existe porque la cabecera del CSS del primer proyecto decía, literalmente, *«espejo exacto del
+JSON: si cambias uno, cambia el otro»*. Eso es sincronizar a mano dos declaraciones de la misma
+verdad, y nada avisa cuando divergen. **Ya habían divergido**: el JSON decía `Fraunces` y el CSS
+`"Fraunces", Georgia, serif`. La pila de respaldo es parte del contrato y estaba solo en un lado.
+
+`--verificar` no escribe: compara, dice **en qué línea** difieren y con qué valores, y sale con 1.
+Es la puerta anti-deriva del contrato, y es el paso 1 de `verificar.mjs`.
+
+Nombres: la ruta del token unida por guiones (`space.md` → `--space-md`). Dos escapes para lo que
+no encaje: `$metadata.renombres` para renombrar el primer tramo (`font-family` → `font`), y
+`"$css"` dentro de un token, que manda sobre todo lo demás. Avisa de colisiones de nombre y de
+alias `{ruta}` que no resuelven.
