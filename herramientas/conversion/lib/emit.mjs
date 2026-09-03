@@ -162,18 +162,25 @@ export function element({ uniqueId, tagName = "div", styles = {}, globalClasses,
    solo qa-editor-check.mjs, abriendo el editor de verdad. */
 export const ETIQUETAS_TEXT = ["p", "div", "a", "h1", "h2", "h3", "h4", "h5", "h6", "li", "span"];
 
-/* Etiquetas que GenerateBlocks NO admite en NINGUN bloque. Medido abriendo el
-   editor de verdad con qa-editor-check.mjs el 2/09/2026: sobre element, salieron
-   validas figure, section, article, aside, div y ul; blockquote no, ni en
-   element ni en text. Es una lista de lo COMPROBADO, no de lo imaginado: si
-   aparece otra, se mide antes de anadirla. */
-export const ETIQUETAS_PROHIBIDAS = ["blockquote"];
+/* Etiquetas que GenerateBlocks NO admite en un `element`. TODAS medidas abriendo
+   el editor de verdad con qa-editor-check.mjs, no deducidas:
+     validas   → div, a, ul, figure, section, article, aside, header
+     invalidas → blockquote (2/09/2026), span, p, em (3/09/2026)
+   El patron es que `element` admite etiquetas de bloque y no las de linea ni las
+   de texto. Es una lista de lo COMPROBADO: si aparece otra, se mide antes de
+   anadirla, y se mide de la unica forma que vale, abriendo el editor. */
+export const ETIQUETAS_PROHIBIDAS = ["blockquote", "span", "p", "em", "strong", "i", "b"];
 
 function compruebaEtiqueta(bloque, tagName) {
+  /* Solo para `element`. Un bloque `text` SÍ usa <p> y <span> con toda
+     normalidad: son sus etiquetas naturales. Aplicar aquí la lista de element
+     rompería cada párrafo del sitio, y estuvo a punto de hacerlo. */
+  if (bloque !== "element") return;
   if (ETIQUETAS_PROHIBIDAS.includes(tagName)) {
     throw new Error(
-      `${bloque}: GenerateBlocks no admite <${tagName}>; el editor marcaria el bloque invalido ` +
-      `y el cliente veria «Attempt Recovery». Para una cita, usa element <figure>.`
+      `${bloque}: GenerateBlocks no admite <${tagName}> en un element; el editor marcaria el ` +
+      `bloque invalido y el cliente veria «Attempt Recovery». Usa <div> —o <figure> para una cita—, ` +
+      `y si lo que quieres es texto en linea, usa un bloque \`text\` con tagName "${tagName}".`
     );
   }
 }

@@ -64,6 +64,7 @@ const ancho = Number(opt("--ancho", "1440"));
 const tolerancia = Number(opt("--tolerancia", "10"));
 const umbral = Number(opt("--umbral", "0.1"));
 const selPagina = opt("--sel", ".entry-content > section");
+const selDiseno = opt("--sel-diseno", null);
 const salidaDir = opt("--salida", "qa-visual");
 
 let chromium, pixelmatch, PNG;
@@ -95,6 +96,15 @@ async function abrir(destino, esFichero) {
        `helmet` lleva dentro el <link> de fuentes y un <style> que SÍ aplican,
        pero cuyo texto no debe pintarse. */
     await pagina.addStyleTag({ content: "x-dc{display:block}helmet{display:none}" });
+    /* `support.js` construye el DOM del .dc.html de forma ASÍNCRONA. Medir sin
+       esperar da un único hijo del body y el informe compara nueve secciones
+       contra una. Se espera a que el árbol deje de crecer dos veces seguidas. */
+    await pagina.waitForFunction(() => {
+      const n = document.querySelectorAll("section, footer, article").length;
+      const previo = window.__ultimoConteo ?? -1;
+      window.__ultimoConteo = n;
+      return n > 1 && n === previo;
+    }, null, { timeout: 20000, polling: 400 }).catch(() => {});
   }
   /* Sin esperar a las fuentes se compara contra el respaldo tipográfico, y todo
      el informe sale desplazado por un motivo que no tiene que ver con el diseño. */
@@ -104,9 +114,36 @@ async function abrir(destino, esFichero) {
 }
 
 const secciones = (pagina, selector) => pagina.evaluate((sel) => {
+  /* En el lado del DISEÑO no hay un selector fijo: unos .dc.html envuelven el
+     contenido en un div y otros cuelgan las secciones directamente de <x-dc>.
+     Se prueba lo más específico primero y se descartan los nodos que no pintan
+     nada —`helmet` lleva dentro el <link> de fuentes y un <style>—, que si no
+     aparecen en el informe como secciones de 0px. */
+  const IGNORAR = new Set(["HELMET", "SCRIPT", "STYLE", "LINK", "TEMPLATE"]);
+  const utiles = (n) => [...n.children].filter((e) => !IGNORAR.has(e.tagName.toUpperCase()));
+  /* Y hay un cuarto caso: `support.js` de Claude Design SUSTITUYE el <x-dc> por
+     un <div> al ejecutarse, así que buscarlo no encuentra nada y todo el diseño
+     queda como un único hijo del body. Se baja mientras haya un solo envoltorio.
+     Sin esto el informe compara nueve secciones contra una. */
+  let raiz = document.querySelector("x-dc") ?? document.body;
+  for (let i = 0; i < 4; i++) {
+    const hijos = utiles(raiz);
+    if (hijos.length === 1 && hijos[0].children.length > 1) raiz = hijos[0];
+    else break;
+  }
+  /* Si aun asi sale una sola seccion, el envoltorio no era el del contenido:
+     `support.js` cambia el arbol y adivinarlo no es fiable. Se cae a lo
+     explicito, que es lo que ya funciona en el lado de la pagina. */
+  if (utiles(raiz).length < 2) {
+    const porEtiqueta = [...document.querySelectorAll("section, footer")];
+    if (porEtiqueta.length > 1) return porEtiqueta.map((e) => ({
+      alto: Math.round(e.getBoundingClientRect().height),
+      texto: (e.textContent || "").trim().replace(/\s+/g, " ").slice(0, 38),
+    }));
+  }
   const nodos = sel
     ? [...document.querySelectorAll(sel)]
-    : [...(document.querySelector("x-dc > div") ?? document.body).children];
+    : [...raiz.children].filter((e) => !IGNORAR.has(e.tagName.toUpperCase()));
   return nodos.map((e) => ({
     alto: Math.round(e.getBoundingClientRect().height),
     texto: (e.textContent || "").trim().replace(/\s+/g, " ").slice(0, 38),
@@ -232,7 +269,7 @@ try {
   const disBuf = await captura(dis);
   fs.writeFileSync(path.join(salidaDir, "diseno.png"), disBuf);
 
-  const sD = await secciones(dis, null);
+  const sD = await secciones(dis, selDiseno);
   const sP = await secciones(pag, selPagina);
   await navegador.close();
 
