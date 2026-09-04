@@ -254,6 +254,39 @@ function shouldStackOnMobile(node) {
   return widths.reduce((a, b) => a + b, 0) + gaps > ANCHO_CONTENIDO_MOVIL;
 }
 
+/**
+ * El padding lateral de Figma se copiaba tal cual, y en un móvil se come la
+ * pantalla: medido sobre las extracciones reales, **93 nodos traen
+ * `paddingLeft: 64`** (128px de los 375 de un móvil, un tercio de la pantalla)
+ * y 9 traen ~109px. Es la misma trampa que el usuario capturó en la home de
+ * ACELIA, donde el padding de 52px dejaba el texto en una columna estrechísima.
+ *
+ * Los valores a los que se baja NO son inventados: son los que ya usa
+ * `gbp-section` en `gbp-global-styles.mjs`, la propia librería de patrones de
+ * GB Pro — `40px` en escritorio, `30px` en tablet (≤1024) y `20px` en móvil
+ * (≤767). Solo se toca si el padding original es MAYOR que el de ese tramo:
+ * un padding pequeño se respeta tal cual.
+ *
+ * El padding VERTICAL no se toca a propósito: `gbp-section` también lo reduce,
+ * pero un padding vertical grande en móvil deja hueco de más, no rompe el
+ * layout — y aquí se prefiere no tocar lo que no está roto.
+ */
+const PADDING_LATERAL_MAX = { tablet: 30, movil: 20 };
+
+function aplicaPaddingLateralResponsive(s, node) {
+  const izq = node.paddingLeft, der = node.paddingRight;
+  if (typeof izq !== "number" && typeof der !== "number") return;
+  for (const [tramo, bp] of [["tablet", "@media (max-width:1024px)"], ["movil", "@media (max-width:767px)"]]) {
+    const tope = PADDING_LATERAL_MAX[tramo];
+    const reglas = {};
+    if (typeof izq === "number" && izq > tope) reglas.paddingLeft = rem(tope);
+    if (typeof der === "number" && der > tope) reglas.paddingRight = rem(tope);
+    // Se FUSIONA con lo que ya hubiera en ese breakpoint (apilado, grid…),
+    // nunca se pisa: el orden de llamadas no debe importar.
+    if (Object.keys(reglas).length) s[bp] = { ...(s[bp] ?? {}), ...reglas };
+  }
+}
+
 function layoutStyles(node, parent, depth) {
   const s = {};
   const mode = node.layoutMode;
@@ -288,6 +321,7 @@ function layoutStyles(node, parent, depth) {
   for (const [k, cssk] of [["paddingTop", "paddingTop"], ["paddingBottom", "paddingBottom"], ["paddingLeft", "paddingLeft"], ["paddingRight", "paddingRight"]]) {
     if (typeof node[k] === "number" && node[k] > 0) s[cssk] = rem(node[k]);
   }
+  aplicaPaddingLateralResponsive(s, node);
 
   // Padre sin Auto Layout (canvas libre en Figma): en vez de perder la posición,
   // se replican las coordenadas absolutas exactas del canvas. Fiel al pixel, pero
@@ -328,8 +362,17 @@ function layoutStyles(node, parent, depth) {
     if (inHFlex) { s.flexGrow = "1"; s.flexBasis = "0"; s.minWidth = "0"; }
     else s.width = "100%";
   } else if (sizingH === "FIXED" && w && !isRootLike(node, parent, depth)) {
-    s.width = px(Math.round(w));
-    s.maxWidth = "100%"; // salvaguarda responsive mínima, no inventa breakpoints
+    /* `width:Npx` + `maxWidth:100%` NO basta, y costó verlo: `max-width:100%`
+       se mide contra el PADRE, así que si toda la cadena de contenedores viene
+       FIXED del mismo diseño de 1440, el 100% de cada uno es el ancho fijo del
+       de arriba y no limita nada. Medido el 4/09/2026 en la conversión real de
+       `home-4.node.json` a 390px: cuatro contenedores anidados a 768px, el
+       titular del hero cortado y 422px saliéndose de la pantalla.
+       `min(Npx, 100%)` sí lo resuelve: mismo ancho exacto en escritorio y
+       encogible por debajo. Es además el idiom que ya usaba a mano el proyecto
+       de referencia (`width: "min(976px, 100%)"` en WEB ACELIA/build/home.mjs),
+       y ya está probado en el editor real de WordPress sin drift. */
+    s.width = `min(${px(Math.round(w))}, 100%)`;
   }
   if (sizingV === "FIXED" && h && node.type !== "TEXT" && !hasChildren(node)) {
     s.height = px(Math.round(h));

@@ -519,6 +519,39 @@ No se tocan `alignItems` ni `justifyContent` al apilar: cambiarlos sería invent
 diseño que el frame Desktop no expresa. Medido sobre `home-4.node.json` (página real completa):
 23 filas reciben el apilado, y las que no llegan al umbral se quedan como estaban.
 
+### Las dos trampas de desbordamiento, medidas a 390px reales
+
+Apilar filas no basta. Convirtiendo `home-4.node.json` y mirándolo a 390px de ancho **de verdad**
+salieron dos causas de desbordamiento horizontal que ninguna otra capa veía:
+
+1. **`width:Npx` + `max-width:100%` NO limita nada** si toda la cadena de contenedores viene FIXED
+   del mismo diseño de 1440: `max-width:100%` se mide contra el PADRE, y el padre también mide
+   768px, así que el 100% de cada uno es el ancho fijo del de arriba. Medido: cuatro contenedores
+   anidados a 768px y **422px saliéndose** de una pantalla de 390, con el titular del hero cortado
+   a media palabra. Ahora se emite **`width: min(Npx, 100%)`**: mismo ancho exacto en escritorio,
+   encogible por debajo. No es un idiom inventado — es el que ya usaba a mano el proyecto de
+   referencia (`width: "min(976px, 100%)"` en `WEB ACELIA/build/home.mjs`).
+2. **El padding lateral de Figma se copiaba tal cual.** Medido en las extracciones reales: **93
+   nodos traen `paddingLeft: 64`** (128px de los 375 de un móvil, un tercio de la pantalla) y 9
+   traen ~109px. Ahora se reduce por tramos a los valores que ya usa `gbp-section` en
+   `gbp-global-styles.mjs`: **30px en tablet, 20px en móvil**, y solo si el original es mayor.
+   El padding vertical no se toca: sobra hueco, pero no rompe el layout.
+
+Resultado sobre la conversión real, a 390px: **0 desbordamiento de página** (`scrollWidth` 375).
+Lo único más ancho que la ventana es la pista del carrusel, que es así por diseño y va recortada.
+
+**Una trampa que NO se implementó, y por qué**: el `minWidth` fijo también desborda (lo sufrió
+ACELIA con un `min-width:256px` a mano). Pero medido sobre las 23 extracciones reales,
+**`minWidth` no aparece ni una sola vez** — el conversor nunca lo produce. Escribir el arreglo
+habría sido código muerto, el mismo error que ya se cometió una vez con `layoutWrap`.
+
+**Cómo se miró el móvil de verdad** (`resize_window` no funciona en este entorno): se carga la
+propia página dentro de un `<iframe>` de 390px en la misma pestaña. Dentro del iframe las media
+queries evalúan a ese ancho real, así que se puede medir `scrollWidth`, localizar al elemento
+culpable con `getBoundingClientRect()` y hacer capturas del layout móvil. **Ojo al medir**: hay que
+recorrer `body *`, no `.entry-content *` — esa clase no existe en todas las plantillas y la
+comprobación devuelve "0 desbordamientos" sin haber mirado nada (pasó, y dio un falso verde).
+
 ---
 
 **Verificado contra Figma real, de principio a fin, el 4/09/2026**: se tomó la fila real
