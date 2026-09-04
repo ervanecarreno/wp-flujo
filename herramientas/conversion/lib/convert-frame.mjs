@@ -15,7 +15,7 @@
  * Se añaden salvaguardas (max-width:100% en imágenes, wrap opcional) pero las
  * reglas Mobile/Tablet reales deben definirse aparte (regla: no adivinar).
  */
-import { element, text, media, shape, carousel, carouselItems, carouselItem, carouselControl, carouselPagination, linkButton, accordion, accordionItem, accordionToggle, accordionToggleIcon, accordionContent, resetUid } from "./emit.mjs";
+import { element, text, media, shape, carousel, carouselItems, carouselItem, carouselControl, carouselPagination, linkButton, accordion, accordionItem, accordionToggle, accordionToggleIcon, accordionContent, siteHeader, navigation, menuToggle, menuContainer, resetUid } from "./emit.mjs";
 import { rgba, pxToRem as rem } from "./canonical.mjs";
 import { labelFor, structuralName, matchLiteralGbp } from "./gbp-global-styles.mjs";
 
@@ -223,6 +223,37 @@ function gridResponsiveSteps(cols) {
   return { tablet: Math.max(1, Math.round(cols / 2)), mobile: 1 };
 }
 
+/* Ancho de contenido de un móvil real (~375px de pantalla menos el padding
+   habitual). Es la cota contra la que se decide si una fila CABE en móvil o
+   hay que apilarla. No es un breakpoint: el breakpoint sigue siendo 767px. */
+const ANCHO_CONTENIDO_MOVIL = 360;
+
+/**
+ * REGLA DEL USUARIO (4/09/2026, explícita): "normalmente son flex alineados en
+ * vertical en versión móvil". Como sus diseños de Figma NO traen frames de
+ * móvil aparte —comprobado: las 23 extracciones reales del histórico son todas
+ * de 1440px—, la versión móvil hay que INTERPRETARLA desde el auto-layout del
+ * Desktop, y su regla es: las filas se apilan en vertical.
+ *
+ * Guardarraíl para no apilar lo que no toca: solo se apila si la fila de verdad
+ * NO CABE en un móvil (suma de anchos de los hijos + huecos >
+ * ANCHO_CONTENIDO_MOVIL). Así, una fila de 3 iconos de 40px (≈140px) se queda
+ * en horizontal —apilarla sería absurdo— y una fila de 3 tarjetas de 416px
+ * (≈1300px) se apila. La medida sale del propio Figma, no de una suposición.
+ *
+ * No se toca `alignItems`/`justifyContent`: cambiarlos sería inventar
+ * intención de diseño que el frame Desktop no expresa.
+ */
+function shouldStackOnMobile(node) {
+  if (node.layoutMode !== "HORIZONTAL") return false;
+  const kids = (node.children ?? []).filter((c) => c.visible !== false);
+  if (kids.length < 2) return false;
+  const widths = kids.map((c) => c.absoluteBoundingBox?.width);
+  if (widths.some((w) => typeof w !== "number")) return false;
+  const gaps = (node.itemSpacing || 0) * (kids.length - 1);
+  return widths.reduce((a, b) => a + b, 0) + gaps > ANCHO_CONTENIDO_MOVIL;
+}
+
 function layoutStyles(node, parent, depth) {
   const s = {};
   const mode = node.layoutMode;
@@ -249,6 +280,8 @@ function layoutStyles(node, parent, depth) {
     if (node.primaryAxisAlignItems && ALIGN[node.primaryAxisAlignItems]) s.justifyContent = ALIGN[node.primaryAxisAlignItems];
     if (node.counterAxisAlignItems && ALIGN[node.counterAxisAlignItems]) s.alignItems = ALIGN[node.counterAxisAlignItems];
     if (node.layoutWrap === "WRAP") s.flexWrap = "wrap";
+    // Ver shouldStackOnMobile: la fila se apila en vertical en móvil si no cabe.
+    if (shouldStackOnMobile(node)) s["@media (max-width:767px)"] = { flexDirection: "column" };
   }
 
   // Paddings
@@ -538,6 +571,33 @@ const escapeText = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;")
 // "Slider Dots" en su Figma real) — es un indicio, no una certeza, por eso
 // siempre se avisa en vez de convertir en silencio.
 // ---------------------------------------------------------------------------
+/**
+ * Header/navegación — REGLA DEL USUARIO (4/09/2026, explícita): "cuando
+ * encuentre un Frame con nombre NAV, footer, Menu, navegación... tendrás que
+ * interpretar el layout de Figma o el Claude Design".
+ *
+ * Solo dispara en capas de PRIMER NIVEL de la página (depth <= 1): ahí es donde
+ * vive el header real. Un frame llamado "menu" enterrado dentro del contenido
+ * (un desplegable, un menú de filtros) sigue el flujo normal, sin tocar.
+ *
+ * "HEADER" NO ESTÁ EN LA LISTA, y es deliberado — medido el 4/09/2026 contra
+ * las extracciones reales: en el vocabulario de las librerías que usan estos
+ * diseños (Relume/Webflow), "Header / N" es una SECCIÓN HERO, no el header del
+ * sitio. Comprobado: `Header / 5 /` (home-4) y `Header / 30 /` (hero-01) son
+ * titular + párrafo + botones, mientras que `Navbar / 9 /` (home-4) sí es el
+ * menú real ("Link One/Two/Three/Four" + Mega Menu). Incluir "header" convertía
+ * heros en cabeceras con hamburguesa. La lista es la que dio el usuario:
+ * nav / navbar / navegación / menú.
+ *
+ * El FOOTER NO entra aquí a propósito: ya tiene su ruta propia (tagName
+ * `footer` + clase global `gbp-footer`) y no necesita hamburguesa ni panel.
+ */
+const NAV_NAME_RE = /^\s*(nav(bar|igation)?|navegaci[oó]n|men[uú])\b/i;
+/* Anclas de la estructura del header (ver buildSiteHeader): la fila de enlaces
+   suele llamarse así, y el logo/marca igual. Sirven para saber QUÉ duplicar en
+   el panel móvil, no para decidir si algo es un header. */
+const NAV_LINKS_NAME_RE = /men[uú]|links?|enlaces|nav\b|navegaci[oó]n/i;
+
 const CAROUSEL_NAME_RE = /carou?sel|slider/i;
 const CAROUSEL_DOT_RE = /\bdots?\b|paginaci[oó]n|pagination/i;
 // "chevron"/"arrow" a solas son demasiado genéricos (aparecen en dropdowns,
@@ -1009,6 +1069,15 @@ export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, co
         // reconocibles), sigue el flujo normal de conversión de contenedor.
       }
 
+      // Header/navegación por nombre de capa (ver NAV_NAME_RE): bloques nativos
+      // Site Header + Navigation + Menu Toggle + Menu Container de GB Pro, con
+      // el menú móvil de fábrica, en vez de <div>s genéricos.
+      if (depth <= 1 && NAV_NAME_RE.test(node.name ?? "") && hasChildren(node)) {
+        const builtHeader = buildSiteHeader(node, parent, depth);
+        if (builtHeader) return builtHeader;
+        // Si no se pudo interpretar, sigue el flujo normal (sin cambios).
+      }
+
       // Acordeón (FAQ): nombre de capa "Accordion Item" en 2+ hijos → bloque
       // Accordion nativo de GB Pro (ver isAccordionItemsContainer arriba).
       if (isAccordionItemsContainer(node)) {
@@ -1193,6 +1262,104 @@ export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, co
     }
 
     return null;
+  };
+
+  /**
+   * Convierte un frame de header/navegación (detectado por NAV_NAME_RE en
+   * primer nivel) a los bloques nativos de GB Pro: Site Header > Navigation >
+   * [grupo de escritorio, Menu Toggle, Menu Container > panel móvil].
+   *
+   * La estructura es la MISMA que se validó a mano y en vivo contra WordPress
+   * el 4/09/2026 en `WEB ACELIA/build/header.mjs` (ver ese fichero y
+   * `LEEME.md`), incluido el detalle que costó encontrar: el grupo de
+   * escritorio NO puede depender de la clase `gb-menu-hide-on-toggled` (esa
+   * clase solo actúa sobre DESCENDIENTES de `.gb-menu-container`, y aquí es un
+   * hermano), así que se oculta con su propio `@media (max-width:767px)`.
+   *
+   * El contenido del panel móvil es una SEGUNDA conversión del mismo subárbol
+   * de enlaces: es lo que hace el propio patrón oficial de GB (duplica logo y
+   * botones para el overlay), y así el menú móvil lleva los mismos enlaces sin
+   * inventar ninguno.
+   *
+   * Devuelve null si no encuentra nada que meter en el panel móvil — en ese
+   * caso el llamador sigue con la conversión normal, sin tocar nada.
+   */
+  const buildSiteHeader = (node, parent, depth) => {
+    const kids = (node.children ?? []).filter((c) => c.visible !== false);
+    if (!kids.length) return null;
+
+    // El subárbol que se duplica en el panel móvil: la fila de enlaces si se
+    // reconoce por nombre; si no, todos los hijos salvo el logo/marca (que ya
+    // se repite arriba del panel en el patrón oficial, pero aquí se prefiere
+    // no duplicar imágenes sin necesidad).
+    const linksNode = kids.find((c) => NAV_LINKS_NAME_RE.test(c.name ?? "") && hasChildren(c));
+    const overlaySources = linksNode ? [linksNode] : kids.filter((c) => !isVectorLikeSubtree(c));
+    if (!overlaySources.length) return null;
+
+    const desktopChildren = kids.map((c) => convertNode(c, node, depth + 1)).filter(Boolean);
+    if (!desktopChildren.length) return null;
+
+    const overlayChildren = overlaySources.map((c) => convertNode(c, node, depth + 1)).filter(Boolean);
+    if (!overlayChildren.length) return null;
+
+    warnings.push(
+      `«${node.name}» se convirtió a los bloques nativos Site Header + Navigation de GenerateBlocks Pro ` +
+      `(menú móvil con hamburguesa incluido, breakpoint 767px). Los enlaces del panel móvil son una copia ` +
+      `de los del escritorio: si el diseño móvil real lleva otros, ajústalos en el editor.`
+    );
+
+    /* El GRUPO DE ESCRITORIO conserva el layout EXACTO del frame de Figma
+       (fila o columna, huecos, alineaciones): no se le impone una fila propia.
+       Medido el 4/09/2026: `Navbar / 9 /` de home-4 es VERTICAL (una fila de
+       contenido + un mega menú debajo); imponerle `display:flex` horizontal
+       ponía el mega menú AL LADO del contenido en vez de debajo.
+       Solo se le añade el ocultado en móvil, y se le quita el apilado
+       automático (el menú móvil no se apila: se esconde tras la hamburguesa). */
+    const rowStyles = layoutStyles(node, parent, depth);
+    delete rowStyles["@media (max-width:767px)"];
+    const decor = decorationStyles(node, tokenize, warn);
+
+    const desktopGroup = element({
+      tagName: "div",
+      metadata: { name: structuralName(node.name, "Escritorio").slice(0, 60) },
+      styles: { ...rowStyles, width: "100%", "@media (max-width:767px)": { display: "none" } },
+      children: desktopChildren,
+    });
+
+    const overlayPanel = element({
+      tagName: "div",
+      className: "gb-menu-show-on-toggled",
+      metadata: { name: structuralName(node.name, "Panel móvil").slice(0, 60) },
+      styles: { display: "flex", flexDirection: "column", rowGap: rem(24), width: "100%" },
+      children: overlayChildren,
+    });
+
+    /* El `navigation` es solo la envolvente semántica: una fila que alinea el
+       grupo de escritorio con la hamburguesa. La decoración (fondo, borde) del
+       frame de Figma va aquí, que es lo que se ve a ancho completo. */
+    const nav = navigation({
+      tagName: "nav",
+      htmlAttributes: { "data-gb-mobile-breakpoint": "767px", "data-gb-mobile-menu-type": "full-overlay" },
+      styles: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", ...decor },
+      children: [
+        desktopGroup,
+        menuToggle({ styles: {
+          display: "none", alignItems: "center", justifyContent: "center",
+          width: "44px", height: "44px",
+          "@media (max-width:767px)": { display: "flex" },
+          svg: { width: "24px", height: "24px", fill: "currentColor" },
+        } }),
+        menuContainer({ children: [overlayPanel] }),
+      ],
+    });
+
+    return siteHeader({
+      tagName: "header",
+      htmlAttributes: { role: "banner" },
+      metadata: { name: structuralName(node.name, "Header").slice(0, 60) },
+      styles: { width: "100%" },
+      children: [nav],
+    });
   };
 
   /**

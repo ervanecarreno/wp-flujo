@@ -431,9 +431,28 @@ solo pattern pegado no pesa lo mismo que 742 bloques calibrados con el editor �
 estaba. Si algún día hace falta zanjarlo de verdad: abrir este mismo post en el editor real y ver
 si lo conserva o lo limpia al guardar.
 
-**Lo que falta** (no es parte de esto): `convert-frame.mjs` todavía NO detecta automáticamente
-"esto es un header de Figma, usa `siteHeader`/`navigation`" — hay que llamarlos a mano desde el
-script de build del proyecto, igual que ya se hace con `carousel()`/`accordion()`.
+**Detección automática desde Figma (4/09/2026)**: `convert-frame.mjs` ya reconoce el frame de
+navegación **por nombre de capa** —`nav`, `navbar`, `navigation`, `navegación`, `menú`— en primer
+nivel de página, y lo convierte solo a esta estructura (misma que se validó a mano en ACELIA).
+
+**"header" NO está en la lista, y es deliberado.** Medido contra las extracciones reales: en el
+vocabulario de las librerías que usan estos diseños (Relume/Webflow), `Header / N` es una **sección
+hero**, no la cabecera del sitio. Comprobado: `Header / 5 /` (home-4) y `Header / 30 /` (hero-01)
+son titular + párrafo + botones; `Navbar / 9 /` (home-4) sí es el menú real (`Link One`…`Link Four`
++ Mega Menu). Con "header" en la lista, los heros se convertían en cabeceras con hamburguesa.
+
+Dos detalles que costaron una pasada cada uno, ya resueltos:
+
+- El grupo de escritorio **conserva el layout exacto del frame de Figma**, no una fila impuesta:
+  `Navbar / 9 /` es VERTICAL (fila de contenido + mega menú debajo), y forzarle una fila horizontal
+  ponía el mega menú *al lado* del contenido.
+- El grupo de escritorio se oculta con su propio `@media (max-width:767px)`, no con
+  `gb-menu-hide-on-toggled` (esa clase solo actúa sobre descendientes de `.gb-menu-container`).
+
+Verificado end-to-end contra `home-4.node.json` (página real completa, 282 bloques, 0 errores y 0
+avisos en los dos linters): publicada en WordPress real, el `navigation` sale con
+`data-gb-mobile-breakpoint="767px"`, GB genera solo sus reglas de breakpoint, la hamburguesa queda
+oculta en escritorio y el panel móvil aparece al activar el estado abierto.
 
 ---
 
@@ -482,6 +501,25 @@ contenedor sin flex.
 del corpus se queda en 2 columnas en móvil en vez de bajar a 1 (`logos.html`) — items muy
 pequeños, ya cubiertos en la práctica por el umbral de 150px de arriba, que los excluye del todo
 del criterio de grid (se quedan en flex).
+
+## Apilado en móvil — la versión móvil se INTERPRETA desde el Desktop
+
+**Regla del usuario (4/09/2026, explícita)**: "normalmente son flex alineados en vertical en
+versión móvil". Sus diseños no traen frames de móvil aparte —comprobado: las 23 extracciones reales
+del histórico son todas de 1440px—, así que la versión móvil hay que interpretarla desde el
+auto-layout del Desktop.
+
+Ahora toda fila HORIZONTAL recibe `@media (max-width:767px) { flex-direction: column }`, **con un
+guardarraíl medido**: solo si la fila de verdad no cabe en un móvil, es decir si la suma de anchos
+de sus hijos + huecos supera 360px (ancho de contenido de un móvil real). Así una fila de 3 iconos
+de 40px se queda en horizontal —apilarla sería absurdo— y una fila de 3 tarjetas de 416px se
+apila. La medida sale del propio Figma.
+
+No se tocan `alignItems` ni `justifyContent` al apilar: cambiarlos sería inventar intención de
+diseño que el frame Desktop no expresa. Medido sobre `home-4.node.json` (página real completa):
+23 filas reciben el apilado, y las que no llegan al umbral se quedan como estaban.
+
+---
 
 **Verificado contra Figma real, de principio a fin, el 4/09/2026**: se tomó la fila real
 `"Row"` (3 Cards) de `home-1.node.json`, se convirtió con `convertFrame()`, pasó los dos linters
