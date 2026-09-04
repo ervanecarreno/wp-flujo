@@ -30,11 +30,24 @@
  *      visita de otra persona.
  *   4. Comprueba que cada bloque con `css` tiene su regla servida.
  *
+ * **Los Elementos de GeneratePress no tienen hoja propia.** GB funde el CSS del
+ * header + el del footer + el de la página en el `style-<ID>.css **de la
+ * PÁGINA**. Pasarle el ID de un Elemento borra un fichero que no existe y no
+ * arregla nada. Por eso hay `--elemento <ID>`: lee sus condiciones de
+ * visualización (`_generate_element_display_conditions`), resuelve en qué
+ * páginas se muestra y regenera esas. Si le pasas un Elemento por `--post`, lo
+ * detecta y lo trata como `--elemento`, avisando.
+ *
  * Uso:
  *   node herramientas/gb-regenerar-css.mjs --sitio "<app/public>" [--puerto N] \
  *     --post 49550 --url http://sitio.local/pagina/ [--marcado build/pagina.html]
  *
- *   Se pueden repetir --post/--url/--marcado en el mismo orden para varias páginas.
+ *   node herramientas/gb-regenerar-css.mjs --sitio "<app/public>" --puerto 10011 \
+ *     --elemento 49650 --marcado build/header.html
+ *
+ *   `--post`/`--elemento` se pueden repetir; `--url` y `--marcado` se enganchan
+ *   al último que se haya escrito antes, así que el orden en la línea de
+ *   comandos es el que manda. Con `--elemento` el `--url` sobra: se deduce.
  *
  * Salida: 0 = todo servido · 1 = quedan bloques sin regla · 2 = no se pudo.
  */
@@ -46,16 +59,30 @@ import { fileURLToPath } from "node:url";
 const RAIZ = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const args = process.argv.slice(2);
 const opt = (n, def = null) => { const i = args.indexOf(n); return i !== -1 ? args[i + 1] : def; };
-const todos = (n) => args.reduce((a, v, i) => (v === n ? [...a, args[i + 1]] : a), []);
 
 const sitio = opt("--sitio");
 const puerto = opt("--puerto");
-const posts = todos("--post");
-const urls = todos("--url");
-const marcados = todos("--marcado");
 
-if (!sitio || !posts.length) {
-  console.error(`Uso: node herramientas/gb-regenerar-css.mjs --sitio "<app/public>" [--puerto N] --post <ID> [--url <url>] [--marcado <fichero.html>]`);
+/* `--url` y `--marcado` se enganchan al último `--post`/`--elemento` escrito.
+   Es lo que la gente teclea de forma natural, y evita el emparejamiento por
+   posición de la versión anterior (tres listas paralelas que había que
+   mantener en el mismo orden, fácil de descuadrar). */
+const entradas = [];
+for (let i = 0; i < args.length; i++) {
+  const a = args[i];
+  if (a === "--post" || a === "--elemento") { entradas.push({ tipo: a.slice(2), id: args[++i], url: null, marcado: null }); continue; }
+  if (a !== "--url" && a !== "--marcado") continue;
+  if (!entradas.length) { console.error(`✖ ${a} va DESPUÉS de un --post o --elemento.`); process.exit(2); }
+  entradas.at(-1)[a.slice(2)] = args[++i];
+}
+
+if (!sitio || !entradas.length) {
+  console.error(`Uso: node herramientas/gb-regenerar-css.mjs --sitio "<app/public>" [--puerto N] --post <ID> [--url <url>] [--marcado <fichero.html>]
+     o:  node herramientas/gb-regenerar-css.mjs --sitio "<app/public>" [--puerto N] --elemento <ID> [--marcado <fichero.html>]
+
+  --post      ID de una PÁGINA (la que se ve en el navegador).
+  --elemento  ID de un Elemento de GeneratePress (header/footer). Resuelve solo
+              en qué páginas se muestra: los Elementos no tienen hoja propia.`);
   process.exit(2);
 }
 if (!fs.existsSync(sitio)) { console.error(`✖ No existe ${sitio}`); process.exit(2); }
@@ -73,6 +100,87 @@ function wp(trozos) {
   }
   return (r.stdout ?? "").trim();
 }
+
+const wpJson = (trozos, def = null) => { try { return JSON.parse(wp(trozos)); } catch { return def; } };
+
+/* ── 0. Resolver los Elementos a las páginas donde se muestran ─────────────
+   Las condiciones de GeneratePress viven en `_generate_element_display_conditions`
+   y su vocabulario es amplio (`general:site`, `post:<tipo>` con o sin objeto,
+   archivos, taxonomías, roles…). Reimplementar `GeneratePress_Conditions::show_data()`
+   aquí sería frágil, así que se resuelven las reglas que de verdad se usan en
+   header/footer y, ante cualquier otra, se cae a «todas las páginas»: regenerar
+   de más no rompe nada, solo tarda. Lo que NO se hace es callarse — se dice
+   cuál no se supo interpretar. */
+const TOPE_PAGINAS = 60;
+
+const paginasPublicadas = (tipos = "page,post") =>
+  (wpJson(`post list --post_type=${tipos} --post_status=publish --fields=ID,url --format=json`, []) ?? [])
+    .map((p) => ({ id: String(p.ID), url: p.url }));
+
+function tipoDePost(id) {
+  return wp(`post get ${id} --field=post_type`).trim();
+}
+
+function resolverElemento(id) {
+  const titulo = wp(`post get ${id} --field=post_title`).trim();
+  const condiciones = wpJson(`post meta get ${id} _generate_element_display_conditions --format=json`, []) ?? [];
+  const reglas = (Array.isArray(condiciones) ? condiciones : [condiciones]).filter(Boolean);
+
+  const destinos = new Map();
+  const sinResolver = [];
+  const meter = (lista) => lista.forEach((p) => destinos.set(p.id, p));
+
+  for (const c of reglas) {
+    const regla = c?.rule ?? "";
+    const objeto = c?.object ? String(c.object) : "";
+    if (regla === "general:site" || regla === "general:singular") { meter(paginasPublicadas()); continue; }
+    if (regla === "general:front_page") {
+      const portada = wp("option get page_on_front").trim();
+      if (portada && portada !== "0") meter(paginasPublicadas().filter((p) => p.id === portada));
+      continue;
+    }
+    if (regla.startsWith("post:") && !regla.includes(":taxonomy:")) {
+      const tipo = regla.slice(5);
+      const todas = paginasPublicadas(tipo);
+      meter(objeto ? todas.filter((p) => p.id === objeto) : todas);
+      continue;
+    }
+    sinResolver.push(regla || "(sin regla)");
+  }
+
+  if (sinResolver.length) {
+    console.error(`  ⚠ «${titulo}» (${id}): no sé interpretar ${sinResolver.join(", ")} — se regeneran TODAS las páginas por si acaso.`);
+    meter(paginasPublicadas());
+  }
+
+  const lista = [...destinos.values()];
+  console.error(`  · «${titulo}» (${id}) se muestra en ${lista.length} página(s)`);
+  return lista.slice(0, TOPE_PAGINAS);
+}
+
+/* Un `--post` que en realidad es un Elemento es el error que motivó todo esto:
+   se corrige solo, en vez de borrar un fichero inexistente y decir que todo va
+   bien. */
+const objetivos = new Map(); // id → { id, url, marcados:Set }
+const anotar = (id, url, marcado) => {
+  const o = objetivos.get(id) ?? { id, url, marcados: new Set() };
+  if (url) o.url = url;
+  if (marcado) o.marcados.add(marcado);
+  objetivos.set(id, o);
+};
+
+console.error("");
+for (const e of entradas) {
+  let { tipo, id, url, marcado } = e;
+  if (tipo === "post" && tipoDePost(id) === "gp_elements") {
+    console.error(`  ⚠ ${id} es un Elemento de GeneratePress, no una página: los Elementos no tienen hoja propia. Se resuelve como --elemento.`);
+    tipo = "elemento";
+  }
+  if (tipo === "elemento") { for (const p of resolverElemento(id)) anotar(p.id, p.url, marcado); continue; }
+  anotar(id, url, marcado);
+}
+
+const posts = [...objetivos.keys()];
 
 /* ── 1. Borrar las hojas caducadas ────────────────────────────────────────── */
 
@@ -107,11 +215,16 @@ const bajar = async (u) => {
 };
 
 /* Extrae los bloques del marcado contando llaves: el JSON lleva objetos
-   anidados y una expresión regular no basta. */
+   anidados y una expresión regular no basta.
+   Ojo al prefijo: `wp:generateblocks` a secas, SIN la barra, para que entren
+   también los `generateblocks-pro/…`. Hasta el 4/09/2026 exigía la barra y los
+   bloques Pro (site-header, navigation, menu-container, classic-menu…) no se
+   comprobaban: un header entero podía quedarse sin CSS y la línea final seguía
+   diciendo «todos los bloques tienen su regla servida». */
 function bloquesDe(marcado) {
   const salida = [];
   let i = 0;
-  while ((i = marcado.indexOf("<!-- wp:generateblocks/", i)) !== -1) {
+  while ((i = marcado.indexOf("<!-- wp:generateblocks", i)) !== -1) {
     const j = marcado.indexOf("{", i);
     if (j === -1) break;
     let d = 0, k = j, enCadena = false, escapado = false;
@@ -132,8 +245,7 @@ function bloquesDe(marcado) {
 
 let fallos = 0;
 
-for (let n = 0; n < posts.length; n++) {
-  const id = posts[n], url = urls[n], marcado = marcados[n];
+for (const { id, url, marcados } of objetivos.values()) {
   if (!url) { console.error(`\n  ⏭ post ${id}: sin --url, no se puede forzar ni comprobar.`); continue; }
 
   console.error(`\n→ ${url}`);
@@ -145,23 +257,43 @@ for (let n = 0; n < posts.length; n++) {
   console.error(fs.existsSync(f) ? `  ✔ style-${id}.css reescrita (${fs.statSync(f).size} bytes)` : `  ⚠ style-${id}.css sigue sin existir`);
 
   /* ── 4. Comprobar que cada bloque con css tiene su regla ───────────────── */
-  if (!marcado) continue;
-  if (!fs.existsSync(marcado)) { console.error(`  ⚠ no existe ${marcado}, no se comprueba`); continue; }
+  if (!marcados.size) continue;
 
-  const conCss = [...new Set(bloquesDe(fs.readFileSync(marcado, "utf8")).filter((b) => b.css).map((b) => b.uniqueId))];
+  /* El CSS servido se baja UNA vez por página, aunque se comprueben varios
+     marcados (típico: la página + su header + su footer). */
   let css = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]).join("\n");
   for (const m of html.matchAll(/<link\b[^>]*href=["']([^"']*generateblocks[^"']*\.css[^"']*)["']/gi)) {
     /* WordPress escribe los & como &#038;; sin decodificar se pide otra URL. */
     const enlace = m[1].replace(/&#0*38;|&amp;/g, "&");
     try { css += "\n" + await bajar(new URL(enlace, url).href); } catch { /* hoja inaccesible */ }
   }
-  const sinRegla = conCss.filter((u) => !css.includes(u));
-  if (sinRegla.length) {
-    console.error(`  ✖ ${sinRegla.length} de ${conCss.length} bloques con css NO tienen regla servida`);
-    console.error("      " + sinRegla.slice(0, 10).join(" "));
-    fallos++;
-  } else {
-    console.error(`  ✔ los ${conCss.length} bloques con css tienen su regla servida`);
+
+  for (const marcado of marcados) {
+    const etiqueta = marcados.size > 1 ? ` (${path.basename(marcado)})` : "";
+    if (!fs.existsSync(marcado)) { console.error(`  ⚠ no existe ${marcado}, no se comprueba`); continue; }
+
+    const bloques = bloquesDe(fs.readFileSync(marcado, "utf8"));
+    const conCss = [...new Set(bloques.filter((b) => b.css).map((b) => b.uniqueId))];
+
+    /* Un Elemento puede resolver a páginas donde al final NO se pinta (una
+       condición que este script interpretó de más, o una exclusión que no
+       entiende). Ahí, «faltan todas las reglas» sería una falsa alarma: si no
+       aparece NI UN uniqueId en el HTML servido, es que el Elemento no está en
+       esta página, y no hay nada que comprobar. */
+    const ids = [...new Set(bloques.map((b) => b.uniqueId).filter(Boolean))];
+    if (ids.length && !ids.some((u) => html.includes(u))) {
+      console.error(`  ⏭ el marcado${etiqueta} no se renderiza en esta página; no se comprueba`);
+      continue;
+    }
+
+    const sinRegla = conCss.filter((u) => !css.includes(u));
+    if (sinRegla.length) {
+      console.error(`  ✖ ${sinRegla.length} de ${conCss.length} bloques con css NO tienen regla servida${etiqueta}`);
+      console.error("      " + sinRegla.slice(0, 10).join(" "));
+      fallos++;
+    } else {
+      console.error(`  ✔ los ${conCss.length} bloques con css tienen su regla servida${etiqueta}`);
+    }
   }
 }
 

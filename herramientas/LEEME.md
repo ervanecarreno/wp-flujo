@@ -270,7 +270,42 @@ node herramientas/gb-regenerar-css.mjs --sitio "<app/public>" --puerto <N> \
 ```
 
 Borra la hoja, obliga a GB a reescribirla, pide la página y **comprueba que cada bloque con `css`
-tiene su regla servida**. Repite `--post/--url/--marcado` para varias páginas.
+tiene su regla servida**. `--post`/`--elemento` se pueden repetir; `--url` y `--marcado` se
+enganchan al último que se haya escrito antes, así que manda el orden de la línea de comandos.
+
+### Los Elementos de GeneratePress no tienen hoja propia
+
+Header y footer viven como Elementos (`gp_elements`), pero GB **no** escribe un
+`style-<IDdelElemento>.css`: funde el CSS del header + el del footer + el de la página en el
+`style-<ID>.css` **de la página que se está viendo**. Pasarle el ID de un Elemento borraba un
+fichero inexistente y decía que todo iba bien.
+
+Desde el 4/09/2026 hay `--elemento`, que lee sus condiciones de visualización
+(`_generate_element_display_conditions`) y resuelve solo en qué páginas se muestra:
+
+```
+node herramientas/gb-regenerar-css.mjs --sitio "<app/public>" --puerto <N> \
+  --elemento 49650 --marcado build/header.html \
+  --elemento 49651 --marcado build/footer.html \
+  --post 49631 --url http://sitio.local/ --marcado build/home.html
+```
+
+Un `--post` que resulta ser un Elemento se detecta y se trata como `--elemento`, avisando.
+
+Se resuelven las reglas que de verdad usan header y footer: `general:site`, `general:singular`,
+`general:front_page` y `post:<tipo>` con o sin objeto. El vocabulario de GeneratePress es más
+amplio (archivos, taxonomías, roles) y reimplementar `GeneratePress_Conditions::show_data()` aquí
+sería frágil, así que **ante una regla que no entiende regenera todas las páginas y lo dice**:
+regenerar de más no rompe nada, solo tarda. Tope de 60 páginas.
+
+Y como un Elemento puede resolver a páginas donde al final no se pinta, antes de comprobar sus
+reglas mira si **algún `uniqueId` del marcado aparece en el HTML servido**. Si no aparece ninguno,
+salta la comprobación en vez de dar una falsa alarma.
+
+**Segundo arreglo del mismo día:** el conteo de bloques exigía el prefijo `wp:generateblocks/`
+—con barra— así que **los bloques Pro no se comprobaban**. Un header nativo entero (site-header,
+navigation, menu-container, classic-menu…) podía quedarse sin CSS y la línea final seguía diciendo
+«todos los bloques tienen su regla servida». Medido en ACELIA: decía 8 bloques donde hay 14.
 
 **El detalle que cuesta encontrar:** `generateblocks_dynamic_css_time` parece un rompe-cachés
 —es el `?ver=` del enlace— pero en el código de GB es un **limitador de frecuencia**:

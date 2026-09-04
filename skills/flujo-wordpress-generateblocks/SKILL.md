@@ -167,6 +167,15 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
    node herramientas/gb-regenerar-css.mjs --sitio "<app/public>" --puerto <N> \n     --post <ID> --url <url> --marcado build/pagina.html
    ```
 
+   **Y para el header/footer, `--elemento`, no `--post`.** Los Elementos de GeneratePress no
+   tienen hoja propia: GB funde su CSS en el `style-<ID>.css` de la PÁGINA que los muestra. Con
+   `--elemento <ID>` el script lee sus condiciones de visualización y resuelve él solo qué páginas
+   regenerar (si le das el Elemento por `--post`, lo detecta y lo corrige avisando):
+
+   ```
+   node herramientas/gb-regenerar-css.mjs --sitio "<app/public>" --puerto <N> \n     --elemento <IDheader> --marcado build/header.html --post <IDpágina> --url <url> --marcado build/home.html
+   ```
+
 9. **Dos conversiones INDEPENDIENTES pueden generar el mismo `uniqueId`, y WordPress las fusiona
    en silencio.** `convert-frame` genera IDs deterministas a partir de un contador que arranca en
    0 cada vez. Si un Elemento GeneratePress reutilizable (header/footer) y la página que lo
