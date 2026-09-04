@@ -533,6 +533,41 @@ en vez del hex de 8 habitual.
 
 ---
 
+## Cambios pequeños de maquetación — cada sección tiene su propio namespace de `uniqueId`
+
+Hasta el 4/09/2026, `convertFrame()` compartía UN solo contador de `uniqueId` para toda la página
+(`resetUid(namespace)` se llamaba una vez al principio de la función). Consecuencia: el `uniqueId`
+de un bloque dependía de **cuántas cosas lo preceden**, no de qué es. Mover una sección en Figma,
+insertar una nueva en medio, o borrar una, desplazaba el contador y cambiaba el `uniqueId` de
+**todo lo que venía detrás** — aunque su contenido no se hubiera tocado. Un cambio de maquetación
+de una línea (reordenar dos secciones) producía un diff de la página entera, y reconvertir una
+sección sola nunca coincidía byte a byte con esa misma sección dentro de la página completa.
+
+**Ahora cada SECCIÓN de primer nivel arranca su propio namespace**, derivado de su propio id de
+nodo de Figma (`${namespace}/${child.id}`) — estable aunque la sección se mueva, solo cambia si el
+nodo se borra y se rehace. Verificado con una página sintética de 3 secciones: reordenarlas e
+insertar una cuarta en medio deja los `uniqueId` de las dos que no se tocaron **idénticos byte a
+byte** (script de prueba, no vive en el repo). El envoltorio de la propia página (el único
+elemento no repetible) tiene su propio namespace fijo, `${namespace}/__root__`.
+
+**Misma idea aplicada a los scripts escritos a mano** (`build/home.mjs` de ACELIA, patrón para
+cualquier página nueva escrita directamente en JS sin pasar por Figma): en vez de un `resetUid()`
+único al principio del fichero, cada sección lleva su propio `resetUid("home/<nombre>")` justo
+antes de construirse. Cambiar el orden de la página pasa a ser **una sola línea** — la del array
+final (`[hero, about, ...].join(...)`) — sin tocar el `uniqueId` de ninguna sección. Añadir una
+sección nueva: escribir su `resetUid` + `const` en cualquier punto del fichero y meterla en el
+array donde deba aparecer. Quitar una: sacarla del array (no hace falta borrar su `const`).
+Verificado en ACELIA: reordenar el array produce el mismo conjunto de 160 `uniqueId`, solo cambia
+el orden en que se imprimen las secciones.
+
+**Lo que esto NO resuelve, a propósito:** seguir necesitando reconstruir y republicar la página
+ENTERA cada vez (`wp post update` reemplaza todo `post_content`). Lo que se gana es que ese
+republicado sale con un diff pequeño y localizado — la sección que cambió — en vez de un diff que
+parece afectar a toda la página por un simple movimiento. Publicar solo un fragmento dentro de una
+página ya viva, sin regenerar el resto, sigue sin existir como herramienta.
+
+---
+
 ## flex-wrap vs. grid — `convert-frame.mjs` ya no colapsa todo a flex-wrap
 
 Hasta el 4/09/2026, cualquier fila de Figma salía siempre como `display:flex`, sin ninguna regla

@@ -1796,7 +1796,29 @@ export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, co
     if (rootHeader) return { markup: rootHeader, warnings, fidelityRecords };
   }
 
-  const pageChildren = (root.children ?? []).map((c) => convertNode(c, root, 1)).filter(Boolean);
+  /* Cada SECCIÓN de primer nivel arranca su propio namespace de uid, derivado
+     de su propio id de Figma — no del contador compartido de toda la página.
+     Sin esto, el `uniqueId` de una sección depende de CUÁNTAS cosas la
+     preceden: mover "About" antes de "Hero" en Figma, o insertar una sección
+     nueva en medio, desplaza el contador y cambia los `uniqueId` de TODO lo
+     que viene detrás, aunque su contenido no se tocara. El diff de una
+     reordenación de una línea salía enorme, y una sección reconvertida sola
+     nunca coincidía byte a byte con la misma sección dentro de la página
+     completa.
+     Con el namespace atado al id de Figma del nodo (estable aunque se mueva
+     o se reordene, solo cambia si se borra y se rehace el nodo), reordenar,
+     añadir o quitar una sección deja intactos los uniqueId de las demás. Es
+     la misma mezcla de namespace que evita colisiones entre scripts
+     independientes (ver resetUid() en emit.mjs); aquí se aplica una vez por
+     sección en vez de una vez por página. */
+  const nsRaiz = namespace ?? root?.id ?? "";
+  const pageChildren = (root.children ?? [])
+    .map((c) => { resetUid(`${nsRaiz}/${c.id ?? c.name ?? ""}`); return convertNode(c, root, 1); })
+    .filter(Boolean);
+  // El envoltorio de la propia raíz (más abajo) es un único nodo, no una
+  // lista reordenable: namespace propio y fijo, para no heredar el del
+  // último hijo procesado.
+  resetUid(`${nsRaiz}/__root__`);
   const builtRoot = buildFillLayers(root, images, tokenize, warn);
 
   // Si la raíz TIENE su propio Auto Layout (frecuente cuando se extrae un

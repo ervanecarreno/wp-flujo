@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.5.0
+version: 0.6.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -116,7 +116,7 @@ alguien lo va a usar.
 **Consecuencia asumida** (del contrato en el tema, no de los CPT, que ahora viven en ACF): cambiar
 de tema deja el sitio sin los tokens hasta que se instale el tema hijo nuevo. Aceptado.
 
-## Las diez trampas ya pagadas
+## Las once trampas ya pagadas
 
 Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
 
@@ -212,6 +212,22 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     Y para verificarlo: **pulsar el botón de verdad**. Simular la clase `--toggled` por JS tapó
     este fallo durante semanas. En este entorno `resize_window` no funciona; el ancho móvil se
     consigue con un `<iframe>` del mismo origen de 390px y clics de ratón reales.
+
+11. **El `uniqueId` es posicional: mover o insertar una sección desplazaba TODAS las de detrás.**
+    Hasta el 4/09/2026 `convertFrame()` compartía un solo contador para la página entera, así que
+    reordenar dos secciones en Figma —o insertar una nueva en medio— cambiaba el `uniqueId` de
+    todo lo que venía después, aunque no se hubiera tocado. Un cambio de maquetación de una línea
+    salía como un diff de la página entera.
+
+    **Ahora cada sección de primer nivel tiene su propio namespace** (`${namespace}/${id-de-figma}`
+    en `convert-frame.mjs`; `resetUid("home/<nombre>")` por sección en scripts a mano como
+    `build/home.mjs`). Reordenar, añadir o quitar una sección deja intactos los `uniqueId` de las
+    demás — verificado con una página sintética y con ACELIA real (mismo conjunto de 160 ids tras
+    reordenar). Detalle y la prueba en `herramientas/conversion/LEEME.md`.
+
+    Lo que esto NO da: publicar solo un fragmento dentro de una página ya viva sin regenerar el
+    resto. Sigue haciendo falta reconstruir y republicar la página entera — lo que cambia es que
+    ese republicado ahora tiene un diff pequeño y localizado, no uno que parece tocarlo todo.
 
 
 ## Descartado con fundamento — no volver a proponerlo
