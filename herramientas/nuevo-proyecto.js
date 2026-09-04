@@ -6,7 +6,7 @@
  * Por qué existe: el método y las herramientas YA se reproducen solos —este
  * plugin está instalado en Claude Code y sus skills se cargan en cualquier
  * carpeta. Lo que no se reproducía era el esqueleto: `design/`, el contrato,
- * el plugin del proyecto, la puerta de calidad. Se montaba a mano cada vez, y
+ * el tema hijo del proyecto, la puerta de calidad. Se montaba a mano cada vez, y
  * cada vez se olvidaba algo. Los dos fallos que costaron esta semana
  * —los tokens que no llegaban al navegador y las fuentes declaradas y no
  * cargadas— eran los dos por lo mismo: faltaba una pieza del esqueleto.
@@ -25,7 +25,7 @@
  *     [--forzar]
  *
  *   --sistema  nombre del sistema de diseño (contrato y CSS se llaman así)
- *   --slug     identificador del plugin del proyecto en WordPress
+ *   --slug     identificador del proyecto (tema hijo, prefijos) en WordPress
  *   --sitio    carpeta del sitio en Local WP
  *   --puerto   WP_MYSQL_PORT de ese sitio en Local
  *
@@ -228,16 +228,35 @@ _(fecha · decisión · motivo)_
 _(qué puede morder y qué lo vigila)_
 `;
 
-/* --- El plugin del proyecto. Aquí viven las dos lecciones. --------------- */
+/* --- El TEMA HIJO del proyecto. Aquí viven las lecciones. -----------------
+   Antes esto generaba un plugin de WordPress. Se cambió el 4/09/2026 por
+   decisión explícita del usuario: nada de plugins propios de WP; lo que sea
+   del sitio va en el tema hijo. La portabilidad de tema no es un objetivo. */
 
-ficheros[`wp/${slug}.php`] = `<?php
+ficheros["wp/tema-hijo/style.css"] = `/*
+Theme Name:   ${nombre} (hijo de GeneratePress)
+Description:  Tema hijo de GeneratePress para ${nombre}. Publica el contrato de diseño y registra los tipos de contenido del proyecto.
+Template:     generatepress
+Version:      0.1.0
+Requires PHP: 8.0
+Text Domain:  ${slug}
+*/
+
+/* Este fichero es para CSS escrito A MANO. El contrato de diseño NO va aquí:
+   vive en \`${sistema}.tokens.css\`, que se GENERA desde
+   \`design/${sistema}.tokens.json\` y no se edita a mano (ver functions.php). */
+`;
+
+ficheros["wp/tema-hijo/functions.php"] = `<?php
 /**
- * Plugin Name: ${nombre}
- * Description: Contrato de diseño y tipos de contenido de ${nombre}.
- * Version:     0.1.0
- * Requires PHP: 8.0
+ * Tema hijo de GeneratePress para ${nombre}.
  *
  * Generado por herramientas/nuevo-proyecto.js del plugin wp-generateblocks.
+ *
+ * Hace dos cosas: publica el contrato de diseño (frontend Y editor) y registra
+ * los tipos de contenido del proyecto.
+ *
+ * @package ${slug}
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -259,46 +278,81 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 const ${PREFIJO_PHP}_FUENTES = '';
 
-/** Encola el contrato en el frontend. */
+/** Nombre del contrato dentro del tema hijo. Se COPIA aquí desde \`design/\`,
+ *  que es donde se genera; no se edita en el tema. */
+const ${PREFIJO_PHP}_CONTRATO = '${sistema}.tokens.css';
+
+/**
+ * Frontend: fuentes + contrato.
+ *
+ * Prioridad 5 para ir ANTES que el CSS de GenerateBlocks, que es quien consume
+ * los \`var(--token)\`.
+ */
 add_action(
 	'wp_enqueue_scripts',
 	static function (): void {
-		${PREFIJO_PHP.toLowerCase()}_encolar_contrato( 'wp' );
-	},
-	5
-);
+		$deps = array();
 
-/** Y en el editor, para que el lienzo se parezca al resultado. */
-add_action(
-	'enqueue_block_assets',
-	static function (): void {
-		if ( is_admin() ) {
-			${PREFIJO_PHP.toLowerCase()}_encolar_contrato( 'editor' );
+		if ( '' !== ${PREFIJO_PHP}_FUENTES ) {
+			wp_enqueue_style( '${slug}-fuentes', ${PREFIJO_PHP}_FUENTES, array(), null );
+			$deps[] = '${slug}-fuentes';
+		}
+
+		$css = get_stylesheet_directory() . '/' . ${PREFIJO_PHP}_CONTRATO;
+		if ( file_exists( $css ) ) {
+			wp_enqueue_style(
+				'${slug}-tokens',
+				get_stylesheet_directory_uri() . '/' . ${PREFIJO_PHP}_CONTRATO,
+				$deps,
+				(string) filemtime( $css )
+			);
 		}
 	},
 	5
 );
 
-function ${PREFIJO_PHP.toLowerCase()}_encolar_contrato( string $donde ): void {
-	$css  = plugin_dir_path( __FILE__ ) . '${sistema}.tokens.css';
-	$deps = array();
+/**
+ * Editor: el contrato, por la vía del PROPIO TEMA.
+ *
+ * GeneratePress declara \`add_theme_support( 'editor-styles' )\` y pasa su lista
+ * de hojas por el filtro \`generate_editor_styles\`. Añadirse ahí es la forma
+ * idiomática de que un tema hijo meta CSS en el lienzo del editor: sin plugin,
+ * sin encolar a mano y sin depender de que GenerateBlocks haga nada.
+ *
+ * WordPress prefija esas hojas con \`.editor-styles-wrapper\`. Para el contrato
+ * es INOFENSIVO y de hecho es lo que se quiere: \`:root { --token: … }\` pasa a
+ * \`.editor-styles-wrapper { --token: … }\`, que es ancestro de todos los
+ * bloques, así que las variables se heredan dentro del lienzo. Por eso salen en
+ * el panel «CSS Properties» de GenerateBlocks Pro.
+ *
+ * Comprobable con: wp eval 'print_r($GLOBALS["editor_styles"]);'
+ */
+add_filter(
+	'generate_editor_styles',
+	static function ( array $estilos ): array {
+		if ( file_exists( get_stylesheet_directory() . '/' . ${PREFIJO_PHP}_CONTRATO ) ) {
+			$estilos[] = ${PREFIJO_PHP}_CONTRATO;
+		}
 
-	if ( '' !== ${PREFIJO_PHP}_FUENTES ) {
-		wp_enqueue_style( '${slug}-fuentes-' . $donde, ${PREFIJO_PHP}_FUENTES, array(), null );
-		$deps[] = '${slug}-fuentes-' . $donde;
+		return $estilos;
 	}
+);
 
-	if ( ! file_exists( $css ) ) {
-		return;
-	}
-
-	wp_enqueue_style(
-		'${slug}-tokens-' . $donde,
-		plugin_dir_url( __FILE__ ) . '${sistema}.tokens.css',
-		$deps,
-		(string) filemtime( $css )
-	);
-}
+/**
+ * Las fuentes en el editor.
+ *
+ * \`add_editor_style()\` solo admite hojas del propio tema, no una URL externa
+ * como la de un servicio de fuentes, así que esa va aparte.
+ */
+add_action(
+	'enqueue_block_assets',
+	static function (): void {
+		if ( is_admin() && '' !== ${PREFIJO_PHP}_FUENTES ) {
+			wp_enqueue_style( '${slug}-fuentes-editor', ${PREFIJO_PHP}_FUENTES, array(), null );
+		}
+	},
+	5
+);
 
 /**
  * Tipos de contenido.
@@ -306,6 +360,11 @@ function ${PREFIJO_PHP.toLowerCase()}_encolar_contrato( string $donde ): void {
  * Por CÓDIGO, no por interfaz: así viajan con el repositorio. Los campos van con
  * register_post_meta(), que es donde ACF acaba escribiendo igualmente, de modo
  * que el sitio funciona aunque ACF no esté instalado todavía.
+ *
+ * NOTA CONSCIENTE: registrar un CPT en el tema y no en un plugin significa que
+ * cambiar de tema deja sus entradas invisibles (no se borran, pero no se ven).
+ * Es una decisión tomada a propósito: estos proyectos no persiguen portabilidad
+ * de tema.
  */
 add_action(
 	'init',
@@ -470,15 +529,16 @@ nunca lleva texto encima; escríbelo aquí explícitamente para que nadie lo use
 | Papel | Token | Familia | Pesos que se usan |
 |---|---|---|---|
 
-**Los pesos declarados aquí son los que el plugin del proyecto carga**, ni uno más.
+**Los pesos declarados aquí son los que el tema hijo carga**, ni uno más.
 `;
 
 ficheros["design/wordpress-mapping.md"] = `# Puente ${sistema} → WordPress
 
 ## 1. Cómo se publica el contrato
 
-El CSS del contrato lo encola el plugin del proyecto (\`wp/${slug}.php\`) en el frontend y en el
-editor. **No** se depende de los Global Colors de GeneratePress para esto: WordPress los expone
+El CSS del contrato lo encola el **tema hijo** (\`wp/tema-hijo/functions.php\`) en el frontend, y en
+el editor por el filtro \`generate_editor_styles\` de GeneratePress — el mecanismo nativo del tema,
+sin plugins. **No** se depende de los Global Colors de GeneratePress para esto: WordPress los expone
 como \`--wp--preset--color--<slug>\`, **no** como el nombre corto que usa el marcado. Los Global
 Colors se conservan, pero para lo que sirven: dar la paleta a los selectores del editor.
 
@@ -497,7 +557,7 @@ Comprobación: \`node verificar.mjs --url <url-real>\`.
 ## 4. Tipografía — declarar no es cargar
 
 **Vía en uso:** _(A: Font Library de GeneratePress, auto-alojada · B: servicio de fuentes
-encolado desde el plugin del proyecto)_. Escribe cuál, porque las dos dejan rastro distinto.
+encolado desde el tema hijo)_. Escribe cuál, porque las dos dejan rastro distinto.
 
 Si es la vía A, los ficheros viven en \`wp-content/uploads/generatepress/fonts/<slug>/\` y
 **no viajan con el repositorio**: hay que contarlos en el paso a producción, igual que las
@@ -567,10 +627,15 @@ Lo siguiente, por orden:
   2. Copia .env.local.ejemplo a .env.local y rellena (con comillas).
   3. Congela el contrato: edita design/${sistema}.tokens.json y regenera el CSS con
        node "${rutaPluginJs}/herramientas/tokens-a-css.mjs" design/${sistema}.tokens.json -o design/${sistema}.tokens.css
-  4. Rellena ${PREFIJO_PHP}_FUENTES en wp/${slug}.php con SOLO los pesos que uses.
-  5. Copia wp/ y design/${sistema}.tokens.css al sitio:
-       <Local Sites>/${sitio}/app/public/wp-content/plugins/${slug}/
-     y actívalo. Recuerda WP_MYSQL_PORT=${puerto} para wp-cli.
+  4. Rellena ${PREFIJO_PHP}_FUENTES en wp/tema-hijo/functions.php con SOLO los pesos que uses.
+  5. Instala el TEMA HIJO (este flujo no usa plugins propios de WordPress):
+       copia wp/tema-hijo/* y design/${sistema}.tokens.css a
+       <Local Sites>/${sitio}/app/public/wp-content/themes/generatepress-${slug}/
+       wp theme activate generatepress-${slug}
+     Recuerda WP_MYSQL_PORT=${puerto} para wp-cli. Y ANTES de activar, mira qué
+     hay en theme_mods del tema actual (logo, menús, widgets, CSS adicional):
+     no viajan de un tema a otro.
+       wp option get theme_mods_generatepress --format=json
   6. Empuja el contrato a los ajustes del tema (paleta del editor y padding de contenido):
        node "${rutaPluginJs}/herramientas/conversion/scripts/wp-push-tokens.mjs" \
          design/${sistema}.tokens.json --sitio "<Local Sites>/${sitio}/app/public" --puerto ${puerto} --live

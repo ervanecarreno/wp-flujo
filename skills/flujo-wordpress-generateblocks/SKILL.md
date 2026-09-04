@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.3.1
+version: 0.4.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -50,7 +50,7 @@ importación, con sus dos trampas silenciosas, en [[importar-handoff-diseno]].
 |---|---|---|
 | 0 | **Bootstrap del WordPress vacío** (~10 min) | Va **antes** del diseño. Anota subdirectorio, breakpoint real de GP (768) vs GB (767), y carpeta de uploads. Sin estos datos el diseño se cierra a ciegas |
 | 1 | **Diseño en HTML, handoff ya convertido, o Figma con variables** | **Regla revisada el 2/09/2026.** Antes decía "no partir de Figma", y era correcto **mientras el fichero no expusiera la paleta como variables**: sin ellas, leer Figma solo produce HEX aplanados. Ahora: partir de Figma **solo si** el fichero expone variables con nombre **y** existen plantillas de Code Connect. Es una comprobación, no una opinión: si la API devuelve `colors: []`, vuelve la regla anterior. Fijar el color como variables desde ya. **Aquí se pregunta el tipo de conversión** (ver arriba) |
-| 2 | **Esqueleto de portabilidad** | `git init` en `wp-content/`, tema hijo, CPTs por código en plugin propio, `acf-json/` activo (es gratis), carpeta `/patterns/`. Y **exportar la configuración del tema**: no está en código (ver trampa 6) |
+| 2 | **Esqueleto** | `git init` en `wp-content/`, **tema hijo**, CPTs y contrato **por código EN EL TEMA HIJO** (ver abajo), `acf-json/` activo (es gratis), carpeta `/patterns/`. Y **exportar la configuración del tema**: no está en código (ver trampa 6) |
 | 3 | **Repo** | Solo lo de la fase 2. Nunca core, `uploads/` ni plugins de terceros |
 | 4 | **Generación de marcado, importación del handoff, o conversión desde Figma** | Imágenes **primero** con `wp media import --porcelain` para usar IDs reales. Color por clase CSS, jamás por el panel del bloque. Pasar el validador. Si el marcado ya viene hecho: `wp post create <fichero>`, **nunca** `wp_insert_post()` — ver [[importar-handoff-diseno]]. Si se convierte desde Figma, el toolkit está en `herramientas/conversion/` (ver su LEEME): `convert-frame` → `assemble.mjs` → **los dos** validadores |
 | 5 | **Plantillas, noticias, CPT** | Los CPT ya están por código desde la fase 2; las secciones van a `/patterns` como PHP, no pegadas en la base de datos |
@@ -61,6 +61,38 @@ importación, con sus dos trampas silenciosas, en [[importar-handoff-diseno]].
 Detalle completo de cada fase, con las fuentes: `traspaso-2026-08-26/SETUP-RECOMENDADO.md` de este
 plugin. El respaldo con nivel de confianza por afirmación está en
 `traspaso-2026-08-26/investigacion/resultados-completos.md`.
+
+## Nada de plugins de WordPress propios: todo al tema hijo
+
+**Regla del usuario, explícita (4/09/2026): no quiere plugins de WordPress en sus proyectos.** Lo
+que sea del sitio —contrato de diseño, CPTs, campos— va en el **tema hijo**, no en un plugin
+propio. Hasta esa fecha este flujo prescribía lo contrario (CPTs en un plugin, por portabilidad);
+la portabilidad de tema **no es un objetivo de estos proyectos**.
+
+Cómo publicar el contrato desde el tema hijo, que es la parte con truco:
+
+- **Frontend**: `wp_enqueue_style()` en `wp_enqueue_scripts` con prioridad 5, para ir antes que el
+  CSS de GenerateBlocks, que es quien consume los `var(--token)`.
+- **Editor**: por el **mecanismo nativo del tema**, no encolando a mano. GeneratePress declara
+  `add_theme_support( 'editor-styles' )` y pasa su lista de hojas por el filtro
+  **`generate_editor_styles`**; el tema hijo se añade ahí y WordPress lo carga en el lienzo con
+  `add_editor_style()`. Verificable con
+  `wp eval 'print_r($GLOBALS["editor_styles"]);'`.
+  WordPress prefija esas hojas con `.editor-styles-wrapper`: para `:root { --token: … }` es
+  inofensivo y de hecho es lo que se busca — el wrapper es ancestro de todos los bloques, las
+  variables se heredan dentro del lienzo, y por eso aparecen en el panel «CSS Properties» de
+  GenerateBlocks Pro.
+- El CSS del contrato se **copia** al tema hijo desde `design/`; se sigue generando desde el JSON y
+  no se edita a mano en ninguno de los dos sitios.
+
+**Al cambiar el tema activo, comprueba lo que vive en `theme_mods`** (se guarda por tema, así que
+no viaja del padre al hijo): `nav_menu_locations`, el logo, los widgets y el CSS adicional del
+Personalizador (`custom_css_post_id`). `wp option get theme_mods_<tema> --format=json` antes y
+después. Y si el WordPress está compartido con otro proyecto, recuerda que **el tema activo es
+global**: el cambio afecta a todo el sitio.
+
+**Consecuencia asumida**: con el CPT en el tema, cambiar de tema deja sus entradas invisibles (no
+se borran, pero no se ven). Es el precio de esta decisión y está aceptado.
 
 ## Las nueve trampas ya pagadas
 
