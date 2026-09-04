@@ -156,11 +156,91 @@ export function makeTokenizer(tokenMap) {
 // ---------------------------------------------------------------------------
 const ALIGN = { MIN: "flex-start", CENTER: "center", MAX: "flex-end", SPACE_BETWEEN: "space-between", BASELINE: "baseline" };
 
+/**
+ * flex-wrap vs. grid — CRITERIO MEDIDO el 4/09/2026, dos rondas.
+ *
+ * Primera ronda (contra `herramientas/corpus-gb/`, 742 bloques YA CONVERTIDOS
+ * a GenerateBlocks, y `WEB ACELIA/build/home.mjs`, código a mano): la señal de
+ * partida fue `layoutMode:"HORIZONTAL" + layoutWrap:"WRAP"`, calcada del CSS
+ * de salida (`flexWrap:"wrap"`).
+ *
+ * Segunda ronda — **la que manda, probada contra Figma de verdad**: 15
+ * extracciones REALES de `C:\TRABAJOS\figma-gb-pipeline\extract\*.node.json`
+ * (proyectos de cliente ya extraídos con `figma-client.mjs`, no inventados).
+ * Resultado, medido con `grep`: **`layoutWrap:"WRAP"` no aparece NI UNA VEZ**
+ * en esas 15 extracciones — todas usan `"NO_WRAP"`. Los diseñadores no usan
+ * el wrap nativo de Figma para "grids"; construyen filas fijas a mano:
+ *   - `home-1.node.json`/`home-2.node.json`: `"Row"` (HORIZONTAL, NO_WRAP) con
+ *     3 `"Card"` hijos DIRECTOS de igual ancho (416px) — caso plano, grid-able
+ *     sin tocar la estructura.
+ *   - `home-4/5/6/8/home3.node.json`: `"Blogs"` (HORIZONTAL) con solo 2
+ *     `"Column"` hijos (632px), cada Column apilando 2 Cards VERTICAL —
+ *     rejilla 2×2 vía anidamiento, no vía hijos planos. Aplanar esto a un grid
+ *     de verdad reescribiría el árbol DOM, no solo el CSS — fuera de alcance
+ *     aquí (se queda en flex, sin cambios, exactamente como antes).
+ *
+ * Por eso el criterio real YA NO exige `layoutWrap:"WRAP"` (no ocurre en la
+ * práctica) — exige la ESTRUCTURA PLANA que sí ocurre: fila HORIZONTAL con 3+
+ * hijos DIRECTOS de ancho uniforme. Umbral añadido tras la segunda ronda:
+ * ancho ≥150px, para no atrapar filas de iconos/chips/logos pequeños
+ * (`WEB ACELIA/home.mjs` ya distinguía esto por ancho VARIABLE; los iconos
+ * reales pueden ser uniformes Y pequeños a la vez — ver la excepción de
+ * `logos.html` de más abajo). 150px es una cota práctica, no medida contra un
+ * corpus de iconos — si aparece un caso real que la contradiga, corregir aquí.
+ *
+ * Responsive (columnas → mitad en tablet @1024px → 1 en móvil @767px):
+ * MISMOS breakpoints que ya usan `gbp-section`/`gbp-footer` en
+ * `gbp-global-styles.mjs`, medidos contra el corpus de 742 bloques (primera
+ * ronda) — eso no cambia con el hallazgo de la segunda ronda, sigue siendo
+ * el patrón real de GB Pro para cuando SÍ hay un grid. Única excepción
+ * medida ahí: una fila de 6 logos pequeños se queda en 2 columnas en móvil en
+ * vez de bajar a 1 — no implementada (sin señal fiable en Figma para
+ * distinguir "icono" de "tarjeta" más allá del umbral de 150px de arriba).
+ */
+function shouldUseGrid(node) {
+  if (node.layoutMode !== "HORIZONTAL") return false;
+  const kids = (node.children ?? []).filter((c) => c.visible !== false);
+  if (kids.length < 3) return false; // 1-2 elementos: flex ya se ve igual, no hace falta grid
+  const widths = kids.map((c) => c.absoluteBoundingBox?.width);
+  if (widths.some((w) => typeof w !== "number")) return false;
+  const w0 = widths[0];
+  if (w0 < 150) return false; // ítems pequeños (iconos/chips/logos) -> flex, no grid (ver comentario)
+  return widths.every((w) => Math.abs(w - w0) <= 2); // ancho uniforme (tolerancia 2px) = candidato a grid
+}
+
+function estimateGridColumns(node) {
+  const kids = (node.children ?? []).filter((c) => c.visible !== false);
+  const childW = kids[0]?.absoluteBoundingBox?.width;
+  const containerW = node.absoluteBoundingBox?.width;
+  const gap = node.itemSpacing || 0;
+  if (!childW || !containerW) return Math.min(kids.length, 3);
+  return Math.max(1, Math.min(kids.length, Math.round((containerW + gap) / (childW + gap))));
+}
+
+/** Ver el comentario largo de shouldUseGrid: N → mitad en tablet → 1 en móvil. */
+function gridResponsiveSteps(cols) {
+  if (cols <= 1) return { tablet: 1, mobile: 1 };
+  return { tablet: Math.max(1, Math.round(cols / 2)), mobile: 1 };
+}
+
 function layoutStyles(node, parent, depth) {
   const s = {};
   const mode = node.layoutMode;
 
-  if (mode === "HORIZONTAL" || mode === "VERTICAL") {
+  if (mode === "HORIZONTAL" && shouldUseGrid(node)) {
+    const cols = estimateGridColumns(node);
+    s.display = "grid";
+    s.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+    /* Figma expone counterAxisSpacing para el hueco de fila en layouts WRAP,
+       pero no está verificado todavía contra la API real en este proyecto —
+       se usa itemSpacing para las dos direcciones hasta medirlo (ver LEEME.md). */
+    if (node.itemSpacing > 0) { s.columnGap = rem(node.itemSpacing); s.rowGap = rem(node.itemSpacing); }
+    if (node.primaryAxisAlignItems && ALIGN[node.primaryAxisAlignItems]) s.justifyContent = ALIGN[node.primaryAxisAlignItems];
+    if (node.counterAxisAlignItems && ALIGN[node.counterAxisAlignItems]) s.alignItems = ALIGN[node.counterAxisAlignItems];
+    const { tablet, mobile } = gridResponsiveSteps(cols);
+    if (tablet < cols) s["@media (max-width:1024px)"] = { gridTemplateColumns: `repeat(${tablet}, minmax(0, 1fr))` };
+    if (mobile < tablet) s["@media (max-width:767px)"] = { gridTemplateColumns: "1fr" };
+  } else if (mode === "HORIZONTAL" || mode === "VERTICAL") {
     s.display = "flex";
     if (mode === "VERTICAL") s.flexDirection = "column";
     if (node.itemSpacing > 0) {
@@ -193,8 +273,13 @@ function layoutStyles(node, parent, depth) {
     return s;
   }
 
-  // Dimensionado dentro del padre
-  const parentFlexDirection = parent?.layoutMode === "HORIZONTAL" ? "HORIZONTAL"
+  // Dimensionado dentro del padre. Si el padre se emite como grid (ver
+  // shouldUseGrid arriba), sus hijos NO están en un eje flex — flexGrow/
+  // flexBasis no pintan nada ahí; caen por la rama `else` de abajo
+  // (`width:100%`, rellena la celda de la grid) en vez de recibir estilos flex.
+  const parentIsGrid = parent?.layoutMode === "HORIZONTAL" && shouldUseGrid(parent);
+  const parentFlexDirection = parentIsGrid ? null
+    : parent?.layoutMode === "HORIZONTAL" ? "HORIZONTAL"
     : parent?.layoutMode === "VERTICAL" ? "VERTICAL"
     : parentInferred?.direction === "row" ? "HORIZONTAL"
     : parentInferred?.direction === "column" ? "VERTICAL"

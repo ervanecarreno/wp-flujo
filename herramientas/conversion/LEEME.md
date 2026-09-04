@@ -433,6 +433,60 @@ si lo conserva o lo limpia al guardar.
 
 **Lo que falta** (no es parte de esto): `convert-frame.mjs` todavía NO detecta automáticamente
 "esto es un header de Figma, usa `siteHeader`/`navigation`" — hay que llamarlos a mano desde el
-script de build del proyecto, igual que ya se hace con `carousel()`/`accordion()`. Y sigue
-pendiente auditar el resto de `convert-frame.mjs` para el responsive tablet/móvil general
-(flex vs. grid según convenga), que es un problema más amplio que solo el header.
+script de build del proyecto, igual que ya se hace con `carousel()`/`accordion()`.
+
+---
+
+## flex-wrap vs. grid — `convert-frame.mjs` ya no colapsa todo a flex-wrap
+
+Hasta el 4/09/2026, cualquier fila de Figma salía siempre como `display:flex`, sin ninguna regla
+responsive (el propio fichero lo avisaba: "un solo frame Desktop no define responsive... las
+reglas Mobile/Tablet reales deben definirse aparte"). Vale para una fila de chips que envuelve de
+forma natural, pero una cuadrícula real de tarjetas de igual ancho con flex no alinea columnas ni
+colapsa en tablet/móvil.
+
+**Dos rondas de medición, no un criterio elegido a priori:**
+
+1. **Primera ronda** (contra `herramientas/corpus-gb/`, 742 bloques YA CONVERTIDOS, y
+   `WEB ACELIA/home.mjs`, código a mano): la señal de partida fue
+   `layoutMode:"HORIZONTAL" + layoutWrap:"WRAP"`, calcada del CSS de salida (`flexWrap:"wrap"`).
+2. **Segunda ronda — la que manda, contra Figma de verdad**: 15 extracciones REALES de
+   `C:\TRABAJOS\figma-gb-pipeline\extract\*.node.json` (proyectos de cliente ya extraídos con
+   `figma-client.mjs`). **`layoutWrap:"WRAP"` no aparece NI UNA VEZ** en esas 15 extracciones —
+   todas usan `"NO_WRAP"`. Los diseñadores no usan el wrap nativo de Figma para construir
+   cuadrículas; arman filas fijas a mano (`home-1.node.json`: `"Row"` HORIZONTAL con 3 `"Card"`
+   hijos DIRECTOS de 416px). Por eso el criterio real ya NO exige `layoutWrap:"WRAP"` — exige la
+   estructura plana que sí ocurre en la práctica: **fila HORIZONTAL con 3+ hijos DIRECTOS de ancho
+   uniforme (±2px) y ≥150px** (el umbral de 150px evita atrapar filas de iconos/chips/logos
+   pequeños — cota práctica, no medida contra un corpus de iconos).
+
+Sobre el ancho variable → flex: eso sigue viniendo de `WEB ACELIA/home.mjs` (chips de etiquetas).
+Sobre las columnas y el colapso responsive (N → mitad en tablet `@media max-width:1024px` → 1 en
+móvil `@media max-width:767px`, MISMOS breakpoints que `gbp-section`/`gbp-footer` en
+`gbp-global-styles.mjs`): eso sigue viniendo del corpus de 742 bloques, primera ronda — la segunda
+ronda solo corrigió CUÁNDO disparar el criterio, no CÓMO se ve el resultado.
+
+**Caso real detectado y explícitamente NO resuelto**: varios extractos (`home-4/5/6/8/home3`)
+arman una cuadrícula 2×2 vía anidamiento — una fila `"Blogs"` HORIZONTAL con solo 2 `"Column"`
+hijos (632px), cada Column apilando 2 Cards VERTICAL. Con solo 2 hijos directos, el criterio (3+)
+NO dispara ahí a propósito: aplanar esto a un grid de verdad significaría reescribir el árbol DOM
+(sacar las 4 tarjetas de dentro de las 2 columnas y ponerlas como hijas directas de la fila), no
+solo cambiar CSS — es un cambio de mayor riesgo, fuera de alcance sin confirmarlo antes. Se queda
+en flex, exactamente como antes de este cambio.
+
+Los hijos de un contenedor grid dejan de recibir `flexGrow`/`flexBasis` (no pintan nada en grid) y
+en su lugar reciben `width:100%` para rellenar su celda, igual que ya hacían los hijos de un
+contenedor sin flex.
+
+**Excepción medida (primera ronda) y NO implementada a propósito**: una fila de 6 logos pequeños
+del corpus se queda en 2 columnas en móvil en vez de bajar a 1 (`logos.html`) — items muy
+pequeños, ya cubiertos en la práctica por el umbral de 150px de arriba, que los excluye del todo
+del criterio de grid (se quedan en flex).
+
+**Verificado contra Figma real, de principio a fin, el 4/09/2026**: se tomó la fila real
+`"Row"` (3 Cards) de `home-1.node.json`, se convirtió con `convertFrame()`, pasó los dos linters
+(`validate-blocks.mjs`, `audit-gb.js`, 0 errores/avisos), se publicó como post real en
+`figma-staging` y se vio en el navegador — 3 columnas iguales, alineadas, con las 3 reglas
+(base + 1024px + 767px) presentes en el CSS realmente servido. El post de prueba se borró tras
+verificar. **Sigue sin calibrarse contra `qa-editor-check.mjs`** (el editor real de WordPress) ni
+contra un caso con el umbral de 150px al límite.
