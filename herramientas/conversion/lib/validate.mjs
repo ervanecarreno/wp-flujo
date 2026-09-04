@@ -144,9 +144,19 @@ export function validate(markup, allowedValues = null) {
       }
     }
 
+    // Las plantillas de estilo del menú clásico son la excepción al hex de 8:
+    // GB Pro pinta el <li> con 'mi' + los 6 últimos del uniqueId DEL MENÚ y el
+    // submenú con 'sm' (class-classic-menu.php, substr_replace(...,0,2)), así
+    // que su uniqueId TIENE que empezar por esas dos letras o el CSS apunta a
+    // un selector que no existe. Ver classicMenu() en lib/emit.mjs.
+    const idMenuClasico = /classic-menu-item$/.test(t.name) ? /^mi[0-9a-f]{6}$/
+      : /classic-sub-menu$/.test(t.name) ? /^sm[0-9a-f]{6}$/ : null;
+    const formatoId = idMenuClasico ?? /^[0-9a-f]{8}$/;
     if (!attrs.uniqueId) push("warn", "id", `${where}: falta uniqueId`);
-    else if (!/^[0-9a-f]{8}$/.test(attrs.uniqueId))
-      push("warn", "id", `${where}: uniqueId '${attrs.uniqueId}' no tiene el formato hex de 8 típico de GB`);
+    else if (!formatoId.test(attrs.uniqueId))
+      push("warn", "id", idMenuClasico
+        ? `${where}: uniqueId '${attrs.uniqueId}' debe derivarse del menú ('${/item$/.test(t.name) ? "mi" : "sm"}' + los 6 últimos de su uniqueId); si no, el CSS no se aplica`
+        : `${where}: uniqueId '${attrs.uniqueId}' no tiene el formato hex de 8 típico de GB`);
   }
 
   // 3.6 líneas en blanco dentro de bloques vacíos

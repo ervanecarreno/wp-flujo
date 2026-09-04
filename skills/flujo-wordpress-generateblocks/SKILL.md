@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.4.0
+version: 0.5.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -116,7 +116,7 @@ alguien lo va a usar.
 **Consecuencia asumida** (del contrato en el tema, no de los CPT, que ahora viven en ACF): cambiar
 de tema deja el sitio sin los tokens hasta que se instale el tema hijo nuevo. Aceptado.
 
-## Las nueve trampas ya pagadas
+## Las diez trampas ya pagadas
 
 Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
 
@@ -183,6 +183,26 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
    namespace y no pueden colisionar — sin que el proyecto de cliente tenga que acordarse de nada.
    El desplazamiento manual de contador (quemar N llamadas a `uid()` tras `resetUid()`) que se
    aplicaba antes en el proyecto cliente queda obsoleto.
+
+10. **Un header de GB Pro sin bloque `classic-menu` no tiene menú móvil, y todo da verde.** GB Pro
+    encola `classic-menu-style.css` **y `classic-menu.js`** solo cuando se renderiza un bloque
+    `classic-menu` (`class-classic-menu.php`, `render_block()`). Sin él, el panel del overlay se ve
+    en escritorio (segunda copia del menú, apilada) y la **hamburguesa no abre nada**, porque el JS
+    que pone la clase `--toggled` no llega. Ningún validador lo ve: el marcado es correcto.
+
+    **Regla:** un header con menú móvil lleva SIEMPRE un `classic-menu` apuntando a un menú real de
+    WordPress (Apariencia → Menús; el id, con `wp menu list`). Los enlaces **no se escriben a mano**
+    en el marcado. `buildSiteHeader()` de `convert-frame.mjs` exige la opción `menuId` y, si falta,
+    avisa y cae a la conversión de contenedor normal.
+
+    Corolario del mismo día: el `uniqueId` de `classic-menu-item`/`classic-sub-menu` **lo deriva GB
+    del menú** (`mi`/`sm` + los 6 últimos del uniqueId del menú). Dejarles uno propio genera CSS
+    con un selector que no existe y los estilos del menú no se aplican, en silencio. Se pasan como
+    `itemStyles`/`subMenuStyles` a `classicMenu()`, que deriva los ids.
+
+    Y para verificarlo: **pulsar el botón de verdad**. Simular la clase `--toggled` por JS tapó
+    este fallo durante semanas. En este entorno `resize_window` no funciona; el ancho móvil se
+    consigue con un `<iframe>` del mismo origen de 390px y clics de ratón reales.
 
 
 ## Descartado con fundamento — no volver a proponerlo

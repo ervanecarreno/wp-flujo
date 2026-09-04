@@ -15,7 +15,7 @@
  * Se añaden salvaguardas (max-width:100% en imágenes, wrap opcional) pero las
  * reglas Mobile/Tablet reales deben definirse aparte (regla: no adivinar).
  */
-import { element, text, media, shape, carousel, carouselItems, carouselItem, carouselControl, carouselPagination, linkButton, accordion, accordionItem, accordionToggle, accordionToggleIcon, accordionContent, siteHeader, navigation, menuToggle, menuContainer, resetUid } from "./emit.mjs";
+import { element, text, media, shape, carousel, carouselItems, carouselItem, carouselControl, carouselPagination, linkButton, accordion, accordionItem, accordionToggle, accordionToggleIcon, accordionContent, siteHeader, navigation, menuToggle, menuContainer, classicMenu, resetUid } from "./emit.mjs";
 import { rgba, pxToRem as rem } from "./canonical.mjs";
 import { labelFor, structuralName, matchLiteralGbp } from "./gbp-global-styles.mjs";
 
@@ -950,7 +950,7 @@ function classifyCardText(node, tag, cardCtx, isMeta) {
 // ---------------------------------------------------------------------------
 // Conversión
 // ---------------------------------------------------------------------------
-export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, containerWidth = null, namespace = null } = {}) {
+export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, containerWidth = null, namespace = null, menuId = null } = {}) {
   // Namespace por defecto = id del nodo Figma raíz: distingue esta conversión
   // de cualquier OTRA conversión independiente (otro proceso Node, p.ej. el
   // header o el footer de la misma página) para que sus uniqueId nunca
@@ -1319,37 +1319,84 @@ export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, co
    * clase solo actúa sobre DESCENDIENTES de `.gb-menu-container`, y aquí es un
    * hermano), así que se oculta con su propio `@media (max-width:767px)`.
    *
-   * El contenido del panel móvil es una SEGUNDA conversión del mismo subárbol
-   * de enlaces: es lo que hace el propio patrón oficial de GB (duplica logo y
-   * botones para el overlay), y así el menú móvil lleva los mismos enlaces sin
-   * inventar ninguno.
+   * Los enlaces salen del MENÚ REAL de WordPress (`menuId`), no de una lista a
+   * mano copiada de Figma. No es una preferencia: GB Pro solo encola
+   * `classic-menu-style.css` **y `classic-menu.js`** cuando se RENDERIZA un
+   * bloque `classic-menu` (`includes/blocks/classic-menu/class-classic-menu.php`,
+   * `render_block()`). Sin ese bloque no existe la regla que esconde el panel
+   * cuando el menú está cerrado y, peor, no se carga el JS que pone la clase
+   * `--toggled`: el overlay se ve en escritorio y la hamburguesa no abre nada.
+   * Comprobado en vivo el 4/09/2026, y comprobado también al revés (con el
+   * bloque puesto: abre, cierra y se oculta en escritorio).
    *
-   * Devuelve null si no encuentra nada que meter en el panel móvil — en ese
-   * caso el llamador sigue con la conversión normal, sin tocar nada.
+   * Por eso, SIN `menuId` esto devuelve null y el header cae a la conversión de
+   * contenedor normal: más vale un header estático correcto que uno «nativo»
+   * roto. El resto del frame (logo, CTA…) sí se convierte desde Figma y queda
+   * como hermano del menú, igual que en el patrón oficial.
+   *
+   * Devuelve null si no encuentra la fila de enlaces — en ese caso el llamador
+   * sigue con la conversión normal, sin tocar nada.
    */
   const buildSiteHeader = (node, parent, depth) => {
     const kids = (node.children ?? []).filter((c) => c.visible !== false);
     if (!kids.length) return null;
 
-    // El subárbol que se duplica en el panel móvil: la fila de enlaces si se
-    // reconoce por nombre; si no, todos los hijos salvo el logo/marca (que ya
-    // se repite arriba del panel en el patrón oficial, pero aquí se prefiere
-    // no duplicar imágenes sin necesidad).
-    const linksNode = kids.find((c) => NAV_LINKS_NAME_RE.test(c.name ?? "") && hasChildren(c));
-    const overlaySources = linksNode ? [linksNode] : kids.filter((c) => !isVectorLikeSubtree(c));
-    if (!overlaySources.length) return null;
+    // La fila de enlaces del diseño: es lo ÚNICO que se sustituye por el menú
+    // real de WordPress. Todo lo demás del frame (logo, CTA…) se convierte
+    // desde Figma tal cual.
+    // La fila de enlaces tiene que llevar VARIOS enlaces, y el header varias
+    // cosas. Sin ese mínimo, «Menu» casaba con un solo "Nav Link" suelto y un
+    // trozo interno del header se promovía a Site Header él solo.
+    const linksNode = kids.find((c) => NAV_LINKS_NAME_RE.test(c.name ?? "") &&
+      (c.children ?? []).filter((g) => g.visible !== false).length >= 2);
+    if (!linksNode || kids.length < 2) return null;
 
-    const desktopChildren = kids.map((c) => convertNode(c, node, depth + 1)).filter(Boolean);
-    if (!desktopChildren.length) return null;
+    if (!menuId) {
+      warnings.push(
+        `«${node.name}» parece un header/navegación, pero NO se convirtió a los bloques nativos de ` +
+        `GenerateBlocks Pro porque falta el menú de WordPress: pásalo con la opción \`menuId\` ` +
+        `(Apariencia → Menús; el id sale de \`wp menu list\`). Sin un bloque classic-menu, GB Pro no ` +
+        `carga classic-menu.js y la hamburguesa no abre nada. Se ha convertido como contenedor normal.`
+      );
+      return null;
+    }
 
-    const overlayChildren = overlaySources.map((c) => convertNode(c, node, depth + 1)).filter(Boolean);
-    if (!overlayChildren.length) return null;
+    const otherKids = kids.filter((c) => c !== linksNode);
+    const desktopChildren = otherKids.map((c) => convertNode(c, node, depth + 1)).filter(Boolean);
 
     warnings.push(
       `«${node.name}» se convirtió a los bloques nativos Site Header + Navigation de GenerateBlocks Pro ` +
-      `(menú móvil con hamburguesa incluido, breakpoint 767px). Los enlaces del panel móvil son una copia ` +
-      `de los del escritorio: si el diseño móvil real lleva otros, ajústalos en el editor.`
+      `(menú móvil con hamburguesa incluido, breakpoint 767px). Los enlaces vienen del menú ${menuId} de ` +
+      `WordPress, no de Figma: para cambiarlos, Apariencia → Menús.`
     );
+
+    /* Tipografía de los enlaces, tomada del primer TEXT de la fila de enlaces
+       de Figma. Va en `.gb-menu-link`, que es el <a> que pinta WordPress
+       dentro de cada <li>; el <li> en sí solo pierde la viñeta. */
+    const primerTexto = (() => {
+      const pila = [linksNode];
+      while (pila.length) {
+        const n = pila.shift();
+        if (n.type === "TEXT" && n.visible !== false) return n;
+        pila.push(...(n.children ?? []).filter((c) => c.visible !== false));
+      }
+      return null;
+    })();
+    const { margin: _m, ...tipografia } = primerTexto ? textStyles(primerTexto, tokenize) : {};
+
+    const menuBlock = classicMenu({
+      menu: menuId,
+      styles: {
+        display: "flex", alignItems: "center", flexWrap: "wrap", listStyleType: "none",
+        columnGap: rem(linksNode.itemSpacing ?? 16), rowGap: rem(8),
+        marginTop: "0px", marginRight: "0px", marginBottom: "0px", marginLeft: "0px",
+        paddingTop: "0px", paddingRight: "0px", paddingBottom: "0px", paddingLeft: "0px",
+      },
+      itemStyles: {
+        listStyleType: "none",
+        ".gb-menu-link": { display: "flex", alignItems: "center", textDecoration: "none", ...tipografia },
+      },
+    });
 
     /* El GRUPO DE ESCRITORIO conserva el layout EXACTO del frame de Figma
        (fila o columna, huecos, alineaciones): no se le impone una fila propia.
@@ -1362,20 +1409,45 @@ export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, co
     delete rowStyles["@media (max-width:767px)"];
     const decor = decorationStyles(node, tokenize, warn);
 
-    const desktopGroup = element({
+    /* El padding del frame es el MARGEN DE LA BARRA entera, no del grupo de
+       escritorio: si se queda en el grupo, el menú y la hamburguesa salen
+       pegados al borde. Se traslada al `navigation`, que es el elemento a
+       ancho completo. */
+    const navPadding = {};
+    for (const k of ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"]) {
+      if (rowStyles[k] != null) { navPadding[k] = rowStyles[k]; delete rowStyles[k]; }
+    }
+    for (const [k, v] of Object.entries(rowStyles)) {
+      if (!k.startsWith("@media") || typeof v !== "object") continue;
+      for (const p of ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"]) {
+        if (v[p] == null) continue;
+        (navPadding[k] ??= {})[p] = v[p];
+        delete v[p];
+      }
+      if (!Object.keys(v).length) delete rowStyles[k];
+    }
+
+    /* Lo que NO es el menú (logo, CTA…) se oculta bajo el breakpoint con su
+       propio @media, NO con `gb-menu-hide-on-toggled`: esa clase solo actúa
+       sobre DESCENDIENTES de `.gb-menu-container`, y esto es un hermano
+       (comprobado en vivo el 4/09/2026 — no tenía ningún efecto). */
+    const desktopGroup = desktopChildren.length ? element({
       tagName: "div",
       metadata: { name: structuralName(node.name, "Escritorio").slice(0, 60) },
-      styles: { ...rowStyles, width: "100%", "@media (max-width:767px)": { display: "none" } },
+      styles: { ...rowStyles, "@media (max-width:767px)": { display: "none" } },
       children: desktopChildren,
-    });
+    }) : null;
 
-    const overlayPanel = element({
+    /* El panel móvil repite el logo/CTA debajo del menú real, como el patrón
+       oficial de GB. Va DENTRO del menu-container, que es donde
+       `gb-menu-show-on-toggled` sí funciona. */
+    const overlayPanel = desktopChildren.length ? element({
       tagName: "div",
       className: "gb-menu-show-on-toggled",
       metadata: { name: structuralName(node.name, "Panel móvil").slice(0, 60) },
       styles: { display: "flex", flexDirection: "column", rowGap: rem(24), width: "100%" },
-      children: overlayChildren,
-    });
+      children: otherKids.map((c) => convertNode(c, node, depth + 1)).filter(Boolean),
+    }) : null;
 
     /* El `navigation` es solo la envolvente semántica: una fila que alinea el
        grupo de escritorio con la hamburguesa. La decoración (fondo, borde) del
@@ -1383,17 +1455,29 @@ export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, co
     const nav = navigation({
       tagName: "nav",
       htmlAttributes: { "data-gb-mobile-breakpoint": "767px", "data-gb-mobile-menu-type": "full-overlay" },
-      styles: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", ...decor },
+      styles: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", ...navPadding, ...decor },
       children: [
         desktopGroup,
+        menuContainer({
+          styles: {
+            display: "flex", alignItems: "center", justifyContent: "center", flexGrow: "1",
+            "&.gb-menu-container--mobile": {
+              position: "fixed", top: "0px", left: "0px", right: "0px", bottom: "0px", zIndex: "1000",
+              display: "flex", flexDirection: "column", justifyContent: "flex-start", alignItems: "flex-start",
+              rowGap: rem(24), paddingTop: rem(32), paddingRight: rem(32), paddingBottom: rem(32), paddingLeft: rem(32),
+              ...(decor.backgroundColor ? { backgroundColor: decor.backgroundColor } : {}),
+            },
+            "&.gb-menu-container--mobile .gb-menu": { flexDirection: "column", alignItems: "flex-start", width: "100%" },
+          },
+          children: [menuBlock, overlayPanel].filter(Boolean),
+        }),
         menuToggle({ styles: {
           display: "none", alignItems: "center", justifyContent: "center",
           width: "44px", height: "44px",
           "@media (max-width:767px)": { display: "flex" },
           svg: { width: "24px", height: "24px", fill: "currentColor" },
         } }),
-        menuContainer({ children: [overlayPanel] }),
-      ],
+      ].filter(Boolean),
     });
 
     return siteHeader({
@@ -1703,6 +1787,15 @@ export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, co
   // fill de imagen (p.ej. extrajiste directamente un "Header" con imagen+overlay,
   // no la página completa que lo contiene), ese fondo debe aplicarse igual — si no,
   // se pierde por completo, porque el nodo raíz nunca pasa por convertNode.
+  // Si el frame EXTRAÍDO es el propio header/navegación (no la página que lo
+  // contiene), la detección de convertNode no lo ve nunca: la raíz no pasa por
+  // ahí. Y es el caso más habitual —se extrae el header solo, para publicarlo
+  // como Elemento de GeneratePress—, así que se comprueba también aquí.
+  if (NAV_NAME_RE.test(root.name ?? "") && hasChildren(root)) {
+    const rootHeader = buildSiteHeader(root, null, 0);
+    if (rootHeader) return { markup: rootHeader, warnings, fidelityRecords };
+  }
+
   const pageChildren = (root.children ?? []).map((c) => convertNode(c, root, 1)).filter(Boolean);
   const builtRoot = buildFillLayers(root, images, tokenize, warn);
 

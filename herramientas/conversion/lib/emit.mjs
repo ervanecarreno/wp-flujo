@@ -820,31 +820,46 @@ function selfClosingDelimiter(blockName, attrs) {
  * WordPress renderiza el `<ul>`/`<li>` real en tiempo de render a partir del
  * menú referenciado, así que el post_content SOLO lleva los tres
  * delimitadores (sin cuerpo, sin cierre con contenido). `item`/`subMenu` son
- * plantillas de estilo — normalmente el resultado de `classicMenuItem()` y,
- * si hay submenús, `classicSubMenu()` — que van DENTRO del delimitador de
- * `classicMenu`, nunca como `children` de otro bloque.
+ * plantillas de estilo — `itemStyles` para cada `<li>` y `subMenuStyles` para
+ * el desplegable — que van DENTRO del delimitador de `classicMenu`, nunca como
+ * `children` de otro bloque.
+ *
+ * OJO con los uniqueId de esas dos plantillas: NO son libres. El `<li>` que
+ * pinta WordPress lleva la clase `gb-menu-item-` + el uniqueId DEL MENÚ con
+ * sus dos primeros caracteres sustituidos por `mi`, y el `<ul>` del submenú lo
+ * mismo con `sm` (`class-classic-menu.php` líneas 170 y 256:
+ * `substr_replace($unique_id, 'mi', 0, 2)`). Si a las plantillas se les deja
+ * un uniqueId propio —lo que hacía este emisor hasta el 4/09/2026— el CSS sale
+ * con un selector que no existe en el HTML y los estilos del menú
+ * sencillamente no se aplican, sin ningún error. Por eso los ids se derivan
+ * aquí y `classicMenuItem`/`classicSubMenu` exigen recibirlos.
  */
-export function classicMenu({ uniqueId, menu, styles = {}, item, subMenu }) {
+export function classicMenu({ uniqueId, menu, styles = {}, itemStyles, subMenuStyles }) {
   const id = uniqueId ?? uid("classic-menu");
   const attrs = { menu: String(menu), uniqueId: id };
   if (Object.keys(styles).length) { attrs.styles = styles; attrs.css = buildCanonicalCss(`.gb-menu-${id}`, styles); }
 
-  const inner = [item, subMenu].filter(Boolean).join("\n\n");
+  const derivar = (prefijo) => prefijo + id.slice(2);
+  const inner = [
+    itemStyles && classicMenuItem({ uniqueId: derivar("mi"), styles: itemStyles }),
+    subMenuStyles && classicSubMenu({ uniqueId: derivar("sm"), styles: subMenuStyles }),
+  ].filter(Boolean).join("\n\n");
+
   return `${delimiter("generateblocks-pro/classic-menu", attrs)}\n${inner}\n<!-- /wp:generateblocks-pro/classic-menu -->`;
 }
 
-/** Plantilla de estilo para cada item del menú clásico. Autocierra, sin HTML propio (ver classicMenu). */
+/** Plantilla de estilo de cada `<li>`. Autocierra, sin HTML propio. `uniqueId` obligatorio: lo deriva `classicMenu`. */
 export function classicMenuItem({ uniqueId, styles = {} }) {
-  const id = uniqueId ?? uid("classic-menu-item");
-  const attrs = { uniqueId: id };
-  if (Object.keys(styles).length) { attrs.styles = styles; attrs.css = buildCanonicalCss(`.gb-menu-item-${id}`, styles); }
+  if (!uniqueId) throw new Error("classicMenuItem: uniqueId obligatorio (se deriva del menú: 'mi' + id.slice(2)). Usa classicMenu({ itemStyles }).");
+  const attrs = { uniqueId };
+  if (Object.keys(styles).length) { attrs.styles = styles; attrs.css = buildCanonicalCss(`.gb-menu-item-${uniqueId}`, styles); }
   return selfClosingDelimiter("generateblocks-pro/classic-menu-item", attrs);
 }
 
-/** Plantilla de estilo para el submenú desplegable. Autocierra, sin HTML propio (ver classicMenu). */
+/** Plantilla de estilo del submenú desplegable. Autocierra. `uniqueId` obligatorio: lo deriva `classicMenu`. */
 export function classicSubMenu({ uniqueId, styles = {} }) {
-  const id = uniqueId ?? uid("classic-sub-menu");
-  const attrs = { uniqueId: id };
-  if (Object.keys(styles).length) { attrs.styles = styles; attrs.css = buildCanonicalCss(`.gb-sub-menu-${id}`, styles); }
+  if (!uniqueId) throw new Error("classicSubMenu: uniqueId obligatorio (se deriva del menú: 'sm' + id.slice(2)). Usa classicMenu({ subMenuStyles }).");
+  const attrs = { uniqueId };
+  if (Object.keys(styles).length) { attrs.styles = styles; attrs.css = buildCanonicalCss(`.gb-sub-menu-${uniqueId}`, styles); }
   return selfClosingDelimiter("generateblocks-pro/classic-sub-menu", attrs);
 }

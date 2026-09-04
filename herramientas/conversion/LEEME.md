@@ -442,7 +442,7 @@ resuelven la parte móvil de fábrica, y ahora `emit.mjs` sabe emitirlos:
 | `navigation()` | `generateblocks-pro/navigation` | El menú: `htmlAttributes` lleva `data-gb-mobile-breakpoint` y `data-gb-mobile-menu-type` (p.ej. `"full-overlay"`) — el comportamiento móvil lo resuelve GB en el front, sin JS propio |
 | `menuToggle()` | `generateblocks-pro/menu-toggle` | El botón hamburguesa (icono SVG incluido, igual al que genera GB) |
 | `menuContainer()` | `generateblocks-pro/menu-container` | El panel que agrupa lo que se muestra/oculta al abrir el menú — hijos con `className:"gb-menu-show-on-toggled"` / `"gb-menu-hide-on-toggled"` |
-| `classicMenu()` + `classicMenuItem()` + `classicSubMenu()` | `generateblocks-pro/classic-menu(-item\|-sub-menu)` | Referencia a un **menú real de WordPress por ID** (`menu:"5"`). **Bloque dinámico**: no lleva HTML propio en `post_content` — WordPress renderiza el `<ul>/<li>` real en tiempo de render |
+| `classicMenu({ menu, itemStyles, subMenuStyles })` | `generateblocks-pro/classic-menu(-item|-sub-menu)` | Referencia a un **menú real de WordPress por ID** (`menu:"5"`). **Bloque dinámico**: no lleva HTML propio en `post_content` — WordPress renderiza el `<ul>/<li>` real en tiempo de render. **Obligatorio si hay menú móvil** y sus plantillas llevan uniqueId derivado (`mi`/`sm`) — ver abajo |
 
 **Verificado byte a byte** contra un export real de WordPress (post 49656 "Site header ejemplo
 Claude", patrón oficial de patterns.generatepress.com, leído del `post_content` vía wp-cli, no del
@@ -486,6 +486,50 @@ Verificado end-to-end contra `home-4.node.json` (página real completa, 282 bloq
 avisos en los dos linters): publicada en WordPress real, el `navigation` sale con
 `data-gb-mobile-breakpoint="767px"`, GB genera solo sus reglas de breakpoint, la hamburguesa queda
 oculta en escritorio y el panel móvil aparece al activar el estado abierto.
+
+### Sin un bloque `classic-menu` NO hay menú móvil (4/09/2026)
+
+Es la trampa más cara de todas las de este apartado, porque **el marcado es correcto y todos los
+validadores dan verde**. GB Pro encola `classic-menu-style.css` **y `classic-menu.js`** solo
+cuando se RENDERIZA un bloque `classic-menu`
+(`generateblocks-pro/includes/blocks/classic-menu/class-classic-menu.php`, `render_block()`).
+Sin ese bloque:
+
+- no existe la regla que esconde el panel con el menú cerrado → **el overlay se ve en escritorio**,
+  como una segunda copia del menú apilada debajo;
+- no se carga el JS que pone la clase `--toggled` → **la hamburguesa no abre nada**.
+
+Estuvo tapado semanas: los dos ficheros se colaban por un Elemento del tema de demo que había en
+la misma página, y las "verificaciones" anteriores simulaban la clase `--toggled` por JS en vez de
+pulsar el botón. Salió al dejar el WordPress de pruebas solo con ACELIA.
+
+Por eso `buildSiteHeader()` **exige `menuId`** (opción de `convertFrame`, el id de un menú de
+Apariencia → Menús; `wp menu list` lo da). Sin él avisa y devuelve `null`: el header cae a la
+conversión de contenedor normal. Un header estático correcto es mejor que uno "nativo" roto. Los
+enlaces salen del menú real de WordPress; lo demás del frame (logo, CTA…) sí viene de Figma y
+queda como hermano del menú, igual que en el patrón oficial.
+
+**Comprobado de verdad el 4/09/2026** en `http://figma-staging.local/` a 390px (iframe del mismo
+origen; `resize_window` no funciona en este entorno), con clics de ratón reales: la hamburguesa
+abre el overlay a pantalla completa (4 enlaces apilados + logo + CTA), la X lo cierra, el clon del
+toggle desaparece y en escritorio el panel no se ve. El único desbordamiento a 390px es el
+`span.display-name` de la barra de administración de WordPress, no el sitio.
+
+### El `uniqueId` de `classic-menu-item` / `classic-sub-menu` NO es libre
+
+Segunda trampa silenciosa del mismo día. GB Pro **deriva** la clase del `<li>` del uniqueId **del
+menú**: `substr_replace($unique_id, 'mi', 0, 2)` — o sea, `mi` + los 6 últimos caracteres
+(`class-classic-menu.php:170`; el submenú igual con `sm`, línea 256). El uniqueId propio del
+bloque plantilla **se ignora en el HTML**, pero sí se usa para generar el CSS.
+
+Resultado si se le deja un id propio: el CSS sale con `.gb-menu-item-f3a2a30d` y el HTML lleva
+`.gb-menu-item-mi7642fc`. Ninguna regla aplica, **sin ningún error**: los enlaces del menú salen
+con el color del tema (en ACELIA, `#101014` casi negro sobre cabecera oscura).
+
+Por eso `classicMenu()` ahora recibe `itemStyles` / `subMenuStyles` (objetos de estilo, no bloques
+ya montados) y deriva los ids él mismo; `classicMenuItem()`/`classicSubMenu()` exigen `uniqueId` y
+lanzan si falta. `validate-blocks.mjs` comprueba el formato `mi`/`sm` + 6 hex en esos dos bloques
+en vez del hex de 8 habitual.
 
 ---
 
