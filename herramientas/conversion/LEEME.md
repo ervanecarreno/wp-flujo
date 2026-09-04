@@ -393,6 +393,39 @@ letra. Pasarlo a px lo congela en el valor de un cuerpo de 16 y en un titular de
 **Cómo se detecta:** la puerta 4/5 (`qa-visual-diff.mjs --diseno`). Sin ella esto no se ve, porque
 la página carga, valida y se sirve perfectamente — solo que con otras medidas.
 
+### Y entonces, ¿cómo se escala la tipografía en móvil? Con `clamp()`, no con `rem`
+
+Resuelto el 4/09/2026, y conviene tenerlo junto a la trampa de arriba porque parece contradecirla.
+
+Un titular de 68px del diseño no cabe en un móvil. La reacción natural es pasarlo a `rem`, y es
+**doblemente equivocada**:
+
+1. **`rem` reabre exactamente la trampa de arriba**: se mide contra la raíz, y GeneratePress sirve
+   18px en vez de 16 — `4.25rem` serían 76,5px, no 68.
+2. **`rem` no escala en móvil de todas formas.** 68px son 68px en un teléfono. Solo cambiaría si la
+   raíz cambiara por breakpoint, que es justo lo que no se controla.
+
+Lo que sí funciona: **`clamp(mínimo_px, Nvw, máximo_px)`**. El máximo es el valor EXACTO del diseño
+y se alcanza a partir de ~1200px de ancho, así que **en escritorio no cambia nada**; por debajo
+encoge con la ventana y nunca baja del mínimo. Y `vw` se mide contra la VENTANA, no contra la raíz,
+así que la trampa de la raíz de 18px no le afecta.
+
+Aplicado en el contrato del proyecto de referencia (`WEB ACELIA/design/acelia.tokens.json`), que es
+donde toca — un cambio de valor va al JSON y se repropaga:
+
+```
+display-xl  clamp(37px, 5.67vw, 68px)      heading      clamp(24px, 3vw, 36px)
+display-lg  clamp(33px, 5vw, 60px)         subheading   clamp(20px, 2vw, 24px)
+display-md  clamp(28px, 4vw, 48px)         body/small/micro  SIN TOCAR (16/14/12px)
+```
+
+`body`, `small` y `micro` se quedan fijos a propósito: encoger el texto de lectura empeora la
+accesibilidad, no la mejora.
+
+Medido en la home real: **68px a 1400px de ancho** (idéntico al diseño) y **37px a 390px**, con 0
+desbordamientos en ambos. La cadena completa (`verificar.mjs`, incluido el editor real) sigue en
+verde, y `qa-contrato-publicado.mjs` confirma que los `clamp()` llegan de verdad al navegador.
+
 ---
 
 ## Site Header / Navigation — el header/menú YA NO se construye a mano
