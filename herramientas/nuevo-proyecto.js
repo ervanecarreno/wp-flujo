@@ -354,25 +354,18 @@ add_action(
 	5
 );
 
-/**
- * Tipos de contenido.
+/*
+ * TIPOS DE CONTENIDO: aquí no van, y es a propósito.
  *
- * Por CÓDIGO, no por interfaz: así viajan con el repositorio. Los campos van con
- * register_post_meta(), que es donde ACF acaba escribiendo igualmente, de modo
- * que el sitio funciona aunque ACF no esté instalado todavía.
+ * Regla del proyecto: los CPT NO se registran por código. Se crean con **ACF
+ * (Advanced Custom Fields)**, que es además donde se rellenan sus campos. Y ACF
+ * se instala **solo si de verdad hace falta un CPT**: una landing o una home no
+ * necesitan ninguno, y meterlo "por si acaso" es un plugin de más.
  *
- * NOTA CONSCIENTE: registrar un CPT en el tema y no en un plugin significa que
- * cambiar de tema deja sus entradas invisibles (no se borran, pero no se ven).
- * Es una decisión tomada a propósito: estos proyectos no persiguen portabilidad
- * de tema.
+ * Cuando toque: instalar ACF, crear el CPT desde su interfaz (registra CPT y
+ * taxonomías desde la 6.1) y activar \`acf-json/\` en este tema hijo para que la
+ * definición viaje con el repositorio y no se quede solo en la base de datos.
  */
-add_action(
-	'init',
-	static function (): void {
-		// register_post_type( '...', array( 'public' => true, 'show_in_rest' => true, ... ) );
-		// register_post_meta( '...', '...', array( 'show_in_rest' => true, 'single' => true, 'type' => 'string' ) );
-	}
-);
 `;
 
 /* --- El punto de entrada de la verificación ------------------------------ */
