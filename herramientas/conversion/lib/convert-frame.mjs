@@ -762,8 +762,13 @@ function classifyCardText(node, tag, cardCtx, isMeta) {
 // ---------------------------------------------------------------------------
 // Conversión
 // ---------------------------------------------------------------------------
-export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, containerWidth = null } = {}) {
-  resetUid();
+export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, containerWidth = null, namespace = null } = {}) {
+  // Namespace por defecto = id del nodo Figma raíz: distingue esta conversión
+  // de cualquier OTRA conversión independiente (otro proceso Node, p.ej. el
+  // header o el footer de la misma página) para que sus uniqueId nunca
+  // choquen aunque las dos empiecen su contador en 0. Ver el comentario largo
+  // en emit.mjs junto a resetUid().
+  resetUid(namespace ?? root?.id ?? "");
   usedH1 = false;
   const tokenize = makeTokenizer(tokenMap ?? {});
   const warnings = [];

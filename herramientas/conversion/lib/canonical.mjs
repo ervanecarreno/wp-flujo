@@ -261,6 +261,29 @@ export const KEY_ORDER = {
   "generateblocks-pro/tab-menu-item": ["uniqueId", "tagName", "styles", "css", "globalClasses", "htmlAttributes", "tabItemOpen", "metadata", "className"],
   "generateblocks-pro/tab-items": ["uniqueId", "tagName", "styles", "css", "globalClasses", "htmlAttributes", "metadata", "className"],
   "generateblocks-pro/tab-item": ["uniqueId", "tagName", "styles", "css", "globalClasses", "htmlAttributes", "tabItemOpen", "metadata", "className"],
+
+  // --- GB Pro: Site Header / Navigation — VERIFICADO el 3/09/2026 contra un
+  // export real de WordPress: post 49656 "Site header ejemplo Claude" (Elemento
+  // GeneratePress, patrón oficial de patterns.generatepress.com), leído del
+  // post_content REAL vía wp-cli, no del panel del editor. Nota: aquí styles/css
+  // van ANTES de tagName — al revés que element/media. No extrapolar a otros
+  // bloques nuevos sin volver a verificar (mismo criterio que carousel/accordion
+  // arriba). globalClasses/metadata/className NO aparecían en el export —
+  // posición asumida (patrón habitual: al final), sin confirmar.
+  "generateblocks-pro/site-header": ["uniqueId", "styles", "css", "tagName", "globalClasses", "htmlAttributes", "metadata", "className"],
+  "generateblocks-pro/navigation": ["uniqueId", "styles", "css", "tagName", "htmlAttributes", "globalClasses", "metadata", "className"],
+  // menu-toggle: htmlAttributes va ANTES de tagName (al revés que navigation,
+  // que lo lleva DESPUÉS) — verificado literal en el mismo export, no es un
+  // error de transcripción. iconOnly va el último de los observados.
+  "generateblocks-pro/menu-toggle": ["uniqueId", "styles", "css", "htmlAttributes", "tagName", "iconOnly", "globalClasses", "metadata", "className"],
+  "generateblocks-pro/menu-container": ["uniqueId", "styles", "css", "tagName", "globalClasses", "htmlAttributes", "metadata", "className"],
+  // classic-menu: "menu" (el ID del menú de WP) va PRIMERO, antes de uniqueId.
+  // classic-menu-item/classic-sub-menu son plantillas de estilo que autocierran
+  // (bloque dinámico: WordPress renderiza el <ul>/<li> real en tiempo de
+  // render — el post_content no lleva su HTML, solo el delimitador).
+  "generateblocks-pro/classic-menu": ["menu", "uniqueId", "styles", "css"],
+  "generateblocks-pro/classic-menu-item": ["uniqueId", "styles", "css"],
+  "generateblocks-pro/classic-sub-menu": ["uniqueId", "styles", "css"],
 };
 
 /** Reordena las claves de attrs según el orden canónico del bloque. */

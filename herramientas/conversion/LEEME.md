@@ -19,7 +19,7 @@ Node ≥ 18, **sin dependencias** salvo donde se indica.
 | Fichero | Qué hace |
 |---|---|
 | `canonical.mjs` | Serialización canónica de atributos de bloque: los escapes unicode de `serialize_block_attributes()`, CSS alfabetizado y minificado, orden de claves, utilidades (`rgba`, `pxToRem`) |
-| `emit.mjs` | Emisores canónicos de GB V2: `element`, `text`, `media`, `shape`, `linkButton`. `CLASS_MODE` configurable |
+| `emit.mjs` | Emisores canónicos de GB V2: `element`, `text`, `media`, `shape`, `linkButton`, carousel/accordion/tabs (GB Pro), y desde el 3/09/2026 **Site Header / Navigation** (`siteHeader`, `navigation`, `menuToggle`, `menuContainer`, `classicMenu`+`classicMenuItem`+`classicSubMenu` — ver abajo). `CLASS_MODE` configurable |
 | `convert-frame.mjs` | **La pieza que faltaba**: convierte un frame de Figma en bloques |
 | `figma-client.mjs` | Cliente REST de Figma: nodos, variables locales, rellenos de imagen, PNG del frame |
 | `tokens.mjs` · `infer-tokens.mjs` | Resolución de variables de Figma a tokens, e inferencia cuando no hay variables |
@@ -392,3 +392,47 @@ letra. Pasarlo a px lo congela en el valor de un cuerpo de 16 y en un titular de
 
 **Cómo se detecta:** la puerta 4/5 (`qa-visual-diff.mjs --diseno`). Sin ella esto no se ve, porque
 la página carga, valida y se sirve perfectamente — solo que con otras medidas.
+
+---
+
+## Site Header / Navigation — el header/menú YA NO se construye a mano
+
+Hasta el 3/09/2026, un header con menú se convertía como un `element` genérico con `<ul><li>` y,
+en el mejor de los casos, un `display:none` a un breakpoint elegido a mano — sin ningún menú
+alternativo para tablet/móvil (medido en `WEB ACELIA/build/header.mjs`: el menú simplemente
+desaparecía por debajo de 860px). GenerateBlocks Pro V2 tiene bloques dedicados para esto que
+resuelven la parte móvil de fábrica, y ahora `emit.mjs` sabe emitirlos:
+
+| Función | Bloque WP | Qué es |
+|---|---|---|
+| `siteHeader()` | `generateblocks-pro/site-header` | Contenedor que reemplaza el header por defecto de GP |
+| `navigation()` | `generateblocks-pro/navigation` | El menú: `htmlAttributes` lleva `data-gb-mobile-breakpoint` y `data-gb-mobile-menu-type` (p.ej. `"full-overlay"`) — el comportamiento móvil lo resuelve GB en el front, sin JS propio |
+| `menuToggle()` | `generateblocks-pro/menu-toggle` | El botón hamburguesa (icono SVG incluido, igual al que genera GB) |
+| `menuContainer()` | `generateblocks-pro/menu-container` | El panel que agrupa lo que se muestra/oculta al abrir el menú — hijos con `className:"gb-menu-show-on-toggled"` / `"gb-menu-hide-on-toggled"` |
+| `classicMenu()` + `classicMenuItem()` + `classicSubMenu()` | `generateblocks-pro/classic-menu(-item\|-sub-menu)` | Referencia a un **menú real de WordPress por ID** (`menu:"5"`). **Bloque dinámico**: no lleva HTML propio en `post_content` — WordPress renderiza el `<ul>/<li>` real en tiempo de render |
+
+**Verificado byte a byte** contra un export real de WordPress (post 49656 "Site header ejemplo
+Claude", patrón oficial de patterns.generatepress.com, leído del `post_content` vía wp-cli, no del
+panel del editor) — ver el comentario largo en `emit.mjs` junto a cada función.
+
+**De paso salieron dos bugs reales en código YA existente**, ambos corregidos y confirmados contra
+el mismo export:
+
+1. **Orden de clases**: `className` (el atributo "clases CSS adicionales" del panel de WP) va
+   SIEMPRE al final, DESPUÉS del id class — nunca mezclado con `globalClasses`, que va ANTES. La
+   función compartida `classList()` los trataba igual; ya no.
+2. **`media()` no soportaba `linkHtmlAttributes`** (envolver la imagen en un `<a>`, típico del
+   logo del header) aunque `canonical.mjs` ya reservaba el hueco en `KEY_ORDER` desde antes. Añadido.
+
+**Una discrepancia NO adoptada, a propósito:** ese export trae `"styles":{}` explícito en dos
+bloques `text` sin estilo propio. El corpus real de 742 bloques (`herramientas/corpus-gb/`,
+calibrado abriendo el editor de verdad) dice que se omite por completo cuando no hay estilos. Un
+solo pattern pegado no pesa lo mismo que 742 bloques calibrados con el editor — se deja como
+estaba. Si algún día hace falta zanjarlo de verdad: abrir este mismo post en el editor real y ver
+si lo conserva o lo limpia al guardar.
+
+**Lo que falta** (no es parte de esto): `convert-frame.mjs` todavía NO detecta automáticamente
+"esto es un header de Figma, usa `siteHeader`/`navigation`" — hay que llamarlos a mano desde el
+script de build del proyecto, igual que ya se hace con `carousel()`/`accordion()`. Y sigue
+pendiente auditar el resto de `convert-frame.mjs` para el responsive tablet/móvil general
+(flex vs. grid según convenga), que es un problema más amplio que solo el header.

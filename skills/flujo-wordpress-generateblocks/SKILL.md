@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.3.0
+version: 0.3.1
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -62,7 +62,7 @@ Detalle completo de cada fase, con las fuentes: `traspaso-2026-08-26/SETUP-RECOM
 plugin. El respaldo con nivel de confianza por afirmación está en
 `traspaso-2026-08-26/investigacion/resultados-completos.md`.
 
-## Las ocho trampas ya pagadas
+## Las nueve trampas ya pagadas
 
 Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
 
@@ -112,6 +112,23 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
    ```
    node herramientas/gb-regenerar-css.mjs --sitio "<app/public>" --puerto <N> \n     --post <ID> --url <url> --marcado build/pagina.html
    ```
+
+9. **Dos conversiones INDEPENDIENTES pueden generar el mismo `uniqueId`, y WordPress las fusiona
+   en silencio.** `convert-frame` genera IDs deterministas a partir de un contador que arranca en
+   0 cada vez. Si un Elemento GeneratePress reutilizable (header/footer) y la página que lo
+   incluye se convierten en procesos Node **separados**, cada uno con su propio contador, pueden
+   coincidir en el `uniqueId` de su enésimo nodo sin estilos propios. Es invisible en cada marcado
+   por separado —cada uno valida y pasa el round-trip— y solo revienta cuando GenerateBlocks
+   compila el CSS de la página real: compila por nombre de clase (`.gb-element-{id}`), y una regla
+   pisa a la otra. Medido: el header de un proyecto perdía `justify-content` y `max-width` porque
+   coincidía con el `uniqueId` de un componente de la home.
+
+   **Arreglado de raíz el 3/09/2026**: `convertFrame()` namespaces el contador con el `id` del
+   nodo Figma raíz por defecto (parámetro `namespace` para forzarlo a mano si hace falta). Cada
+   frame Figma es un nodo distinto, así que dos conversiones independientes ya no comparten
+   namespace y no pueden colisionar — sin que el proyecto de cliente tenga que acordarse de nada.
+   El desplazamiento manual de contador (quemar N llamadas a `uid()` tras `resetUid()`) que se
+   aplicaba antes en el proyecto cliente queda obsoleto.
 
 
 ## Descartado con fundamento — no volver a proponerlo

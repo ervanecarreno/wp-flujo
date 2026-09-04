@@ -18,12 +18,25 @@ import {
 } from "./canonical.mjs";
 
 let counter = 0;
-export function resetUid() { counter = 0; }
+let nsSeed = "";
+/**
+ * `namespace` distingue conversiones INDEPENDIENTES (procesos Node distintos)
+ * que WordPress puede acabar fusionando en una sola página — p.ej. un
+ * Elemento GeneratePress de header/footer más el contenido de la página que
+ * lo incluye. Sin namespace, dos scripts que arrancan su propio contador en 0
+ * pueden emitir el mismo uniqueId para su enésimo nodo sin estilos propios;
+ * es invisible en cada marcado por separado y solo revienta cuando GB
+ * compila el CSS real por nombre de clase (`.gb-element-{id}`) y una regla
+ * pisa a la otra en silencio. `convertFrame()` pasa aquí el `id` del nodo
+ * Figma raíz por defecto, que ya es único por frame — así ningún proyecto
+ * tiene que acordarse de aplicar un desplazamiento a mano.
+ */
+export function resetUid(namespace = "") { counter = 0; nsSeed = namespace; }
 /** uniqueId estable de 8 hex como los que genera GB */
 export function uid(seed = "") {
   counter++;
   let h = 2166136261 >>> 0;
-  const s = seed + ":" + counter;
+  const s = nsSeed + "|" + seed + ":" + counter;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
     h = Math.imul(h, 16777619);
@@ -48,6 +61,17 @@ const BASE_CLASS = {
   "generateblocks-pro/tab-menu-item": "gb-tabs__menu-item",
   "generateblocks-pro/tab-items": "gb-tabs__items",
   "generateblocks-pro/tab-item": "gb-tabs__item",
+  "generateblocks-pro/site-header": "gb-site-header",
+  "generateblocks-pro/navigation": "gb-navigation",
+  "generateblocks-pro/menu-toggle": "gb-menu-toggle",
+  "generateblocks-pro/menu-container": "gb-menu-container",
+  // classic-menu/-item/-sub-menu: base observada en el export real aunque el
+  // bloque no imprime HTML propio (ver comentario en canonical.mjs) — se usa
+  // solo para construir el selector CSS de `styles`/`css`, no para una clase
+  // que este módulo llegue a renderizar.
+  "generateblocks-pro/classic-menu": "gb-menu",
+  "generateblocks-pro/classic-menu-item": "gb-menu-item",
+  "generateblocks-pro/classic-sub-menu": "gb-sub-menu",
 };
 
 /**
@@ -106,10 +130,26 @@ function classList(blockName, uniqueId, attrs) {
       "generateblocks-pro/accordion-toggle-icon", "generateblocks-pro/accordion-content",
       "generateblocks-pro/tabs", "generateblocks-pro/tabs-menu", "generateblocks-pro/tab-menu-item",
       "generateblocks-pro/tab-items", "generateblocks-pro/tab-item",
+      // Site Header / Navigation / Menu Toggle / Menu Container — verificado en
+      // el mismo export real (post 49656, 3/09/2026): los 4 llevan su clase
+      // base SIEMPRE, igual que accordion/tabs (class="gb-site-header
+      // gb-site-header-{id}", nunca solo el id class).
+      "generateblocks-pro/site-header", "generateblocks-pro/navigation",
+      "generateblocks-pro/menu-toggle", "generateblocks-pro/menu-container",
     ].includes(blockName);
+    // `className` (atributo core de WP, "clases CSS adicionales" del panel)
+    // va SIEMPRE al final, DESPUÉS del id class — lo añade el soporte de
+    // bloque genérico de WP por fuera de lo que renderiza GB, nunca se
+    // mezcla con `globalClasses`. Verificado el 3/09/2026 contra el export
+    // real post 49656: "Nav Items"/"Overlay Header"/"Overlay Items" (element
+    // con styles Y className) dan class="gb-element-{id} {className}", NO
+    // "{className} gb-element-{id}" — y sigue siendo compatible con el caso
+    // ya calibrado el 2/09/2026 (globalClasses SIN className): corpus-gb da
+    // "gbp-section__inner gb-element-{id}", globals ANTES del id class.
     if (withBase) parts.push(base);
-    parts.push(...globals, ...extra);
+    parts.push(...globals);
     if (hasStyles) parts.push(idCls);
+    parts.push(...extra);
     if (!parts.length) parts.push(base);
   }
   return parts.join(" ");
@@ -219,8 +259,14 @@ export function text({ uniqueId, tagName = "p", content = "", styles = {}, globa
   return `${delimiter("generateblocks/text", attrs)}\n${body}\n<!-- /wp:generateblocks/text -->`;
 }
 
-/** Imagen. src/alt van en htmlAttributes (objeto plano, nunca array). */
-export function media({ uniqueId, tagName = "img", styles = {}, htmlAttributes = {}, globalClasses, mediaId, metadata, className }) {
+/**
+ * Imagen. src/alt van en htmlAttributes (objeto plano, nunca array).
+ * `linkHtmlAttributes` (típico: `{ href: "/" }`) envuelve el `<img>` en un
+ * `<a>` — verificado el 3/09/2026 contra el export real post 49656 (logo del
+ * header enlazando a portada). Sin `linkHtmlAttributes` no hay envoltorio,
+ * igual que antes.
+ */
+export function media({ uniqueId, tagName = "img", styles = {}, htmlAttributes = {}, globalClasses, mediaId, linkHtmlAttributes, metadata, className }) {
   const id = uniqueId ?? uid("img" + (htmlAttributes.src ?? ""));
   const attrs = { uniqueId: id, tagName };
   if (Object.keys(styles).length) {
@@ -230,11 +276,13 @@ export function media({ uniqueId, tagName = "img", styles = {}, htmlAttributes =
   if (globalClasses?.length) attrs.globalClasses = globalClasses;
   attrs.htmlAttributes = htmlAttributes;
   if (mediaId) attrs.mediaId = mediaId;
+  if (linkHtmlAttributes) attrs.linkHtmlAttributes = linkHtmlAttributes;
   if (metadata) attrs.metadata = metadata;
   if (className) attrs.className = className;
 
   const cls = classList("generateblocks/media", id, attrs);
-  const body = `<img class="${cls}"${htmlAttrString(htmlAttributes)}/>`;
+  const img = `<img class="${cls}"${htmlAttrString(htmlAttributes)}/>`;
+  const body = linkHtmlAttributes ? `<a${htmlAttrString(linkHtmlAttributes)}>${img}</a>` : img;
   return `${delimiter("generateblocks/media", attrs)}\n${body}\n<!-- /wp:generateblocks/media -->`;
 }
 
@@ -659,4 +707,144 @@ export function tabItem({ uniqueId, tagName = "div", styles = {}, isOpen = false
   const inner = children.filter(Boolean).join("\n\n");
   const body = `<${tagName} class="${cls}"${htmlAttrString(ha)}>${inner}</${tagName}>`;
   return `${delimiter("generateblocks-pro/tab-item", attrs)}\n${body}\n<!-- /wp:generateblocks-pro/tab-item -->`;
+}
+
+// ---------------------------------------------------------------------------
+// GB Pro: Site Header / Navigation — VERIFICADO el 3/09/2026 contra un export
+// real de WordPress (post 49656 "Site header ejemplo Claude", un patrón
+// oficial de patterns.generatepress.com pegado por el usuario como Elemento
+// GeneratePress; leído del post_content REAL vía wp-cli, no del panel del
+// editor). Resuelve el trabajo a mano que hacía `header.mjs`/`footer.mjs` de
+// WEB ACELIA (nav como `<ul><li>` planos + `display:none` a un breakpoint sin
+// alternativa móvil): `Navigation` trae hamburguesa, panel móvil y
+// visibilidad por dispositivo de fábrica, sin CSS a mano — ver trampa #9 del
+// SKILL y el hallazgo previo en la memoria del proyecto.
+// ---------------------------------------------------------------------------
+
+/** Contenedor que reemplaza el header por defecto de GeneratePress. Normalmente envuelve un `navigation()`. */
+export function siteHeader({ uniqueId, tagName = "header", styles = {}, globalClasses, htmlAttributes, metadata, className, children = [] }) {
+  const id = uniqueId ?? uid("site-header");
+  const attrs = { uniqueId: id };
+  if (Object.keys(styles).length) { attrs.styles = styles; attrs.css = buildCanonicalCss(`.gb-site-header-${id}`, styles); }
+  attrs.tagName = tagName;
+  if (globalClasses?.length) attrs.globalClasses = globalClasses;
+  if (htmlAttributes) attrs.htmlAttributes = htmlAttributes;
+  if (metadata) attrs.metadata = metadata;
+  if (className) attrs.className = className;
+
+  const cls = classList("generateblocks-pro/site-header", id, attrs);
+  const inner = children.filter(Boolean).join("\n\n");
+  const body = `<${tagName} class="${cls}"${htmlAttrString(htmlAttributes)}>${inner}</${tagName}>`;
+  return `${delimiter("generateblocks-pro/site-header", attrs)}\n${body}\n<!-- /wp:generateblocks-pro/site-header -->`;
+}
+
+/**
+ * El menú en sí. `htmlAttributes` es donde vive el comportamiento móvil —
+ * `data-gb-mobile-breakpoint` (px) y `data-gb-mobile-menu-type` (p.ej.
+ * "full-overlay") — GB los lee en el front sin JS propio del proyecto.
+ * children típicos: media() del logo, un menuToggle(), un menuContainer().
+ */
+export function navigation({ uniqueId, tagName = "nav", styles = {}, htmlAttributes, globalClasses, metadata, className, children = [] }) {
+  const id = uniqueId ?? uid("navigation");
+  const attrs = { uniqueId: id, tagName };
+  if (Object.keys(styles).length) { attrs.styles = styles; attrs.css = buildCanonicalCss(`.gb-navigation-${id}`, styles); }
+  if (htmlAttributes) attrs.htmlAttributes = htmlAttributes;
+  if (globalClasses?.length) attrs.globalClasses = globalClasses;
+  if (metadata) attrs.metadata = metadata;
+  if (className) attrs.className = className;
+
+  const cls = classList("generateblocks-pro/navigation", id, attrs);
+  const inner = children.filter(Boolean).join("\n\n");
+  const body = `<${tagName} class="${cls}"${htmlAttrString(htmlAttributes)}>${inner}</${tagName}>`;
+  return `${delimiter("generateblocks-pro/navigation", attrs)}\n${body}\n<!-- /wp:generateblocks-pro/navigation -->`;
+}
+
+/* Iconos hamburguesa/cerrar por defecto del `menu-toggle` de GB Pro — copiados
+   LITERALES del export real (post 49656). No son un icon set propio del
+   proyecto: son el SVG que GB inyecta cuando no se sobreescribe el icono. */
+const MENU_TOGGLE_OPEN_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"></rect><line x1="40" y1="128" x2="216" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"></line><line x1="40" y1="64" x2="216" y2="64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"></line><line x1="40" y1="192" x2="216" y2="192" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"></line></svg>';
+const MENU_TOGGLE_CLOSE_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"></rect><line x1="200" y1="56" x2="56" y2="200" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"></line><line x1="200" y1="200" x2="56" y2="56" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"></line></svg>';
+
+/** Botón hamburguesa. `htmlAttributes` va ANTES de `tagName` en el orden canónico — verificado, no es un descuido. */
+export function menuToggle({ uniqueId, tagName = "button", styles = {}, htmlAttributes = { "aria-label": "Menu" }, iconOnly = true, globalClasses, metadata, className }) {
+  const id = uniqueId ?? uid("menu-toggle");
+  const attrs = { uniqueId: id };
+  if (Object.keys(styles).length) { attrs.styles = styles; attrs.css = buildCanonicalCss(`.gb-menu-toggle-${id}`, styles); }
+  if (htmlAttributes) attrs.htmlAttributes = htmlAttributes;
+  attrs.tagName = tagName;
+  if (iconOnly) attrs.iconOnly = iconOnly;
+  if (globalClasses?.length) attrs.globalClasses = globalClasses;
+  if (metadata) attrs.metadata = metadata;
+  if (className) attrs.className = className;
+
+  const cls = classList("generateblocks-pro/menu-toggle", id, attrs);
+  const body = `<${tagName} class="${cls}"${htmlAttrString(htmlAttributes)}><span class="gb-menu-open-icon">${MENU_TOGGLE_OPEN_ICON}</span><span class="gb-menu-close-icon">${MENU_TOGGLE_CLOSE_ICON}</span></${tagName}>`;
+  return `${delimiter("generateblocks-pro/menu-toggle", attrs)}\n${body}\n<!-- /wp:generateblocks-pro/menu-toggle -->`;
+}
+
+/**
+ * Panel que agrupa lo que se muestra/oculta al abrir el menú móvil. El
+ * estado "abierto en móvil" se estiliza con la pseudo-clase compuesta
+ * `"&.gb-menu-container--mobile"` como clave de `styles` (soportada ya por
+ * `buildCanonicalCss` vía el prefijo "&") — GB alterna esa clase por JS
+ * propio, sin que el proyecto tenga que escribirlo. Los hijos que solo deben
+ * verse en el panel móvil llevan `className:"gb-menu-show-on-toggled"`; los
+ * que deben desaparecer, `"gb-menu-hide-on-toggled"` (ver el ejemplo real:
+ * "Nav Items" los oculta, "Overlay Header"/"Overlay Items" los muestran).
+ */
+export function menuContainer({ uniqueId, tagName = "div", styles = {}, globalClasses, htmlAttributes, metadata, className, children = [] }) {
+  const id = uniqueId ?? uid("menu-container");
+  const attrs = { uniqueId: id };
+  if (Object.keys(styles).length) { attrs.styles = styles; attrs.css = buildCanonicalCss(`.gb-menu-container-${id}`, styles); }
+  attrs.tagName = tagName;
+  if (globalClasses?.length) attrs.globalClasses = globalClasses;
+  if (htmlAttributes) attrs.htmlAttributes = htmlAttributes;
+  if (metadata) attrs.metadata = metadata;
+  if (className) attrs.className = className;
+
+  const cls = classList("generateblocks-pro/menu-container", id, attrs);
+  const inner = children.filter(Boolean).join("\n\n");
+  const body = `<${tagName} class="${cls}"${htmlAttrString(htmlAttributes)}>${inner}</${tagName}>`;
+  return `${delimiter("generateblocks-pro/menu-container", attrs)}\n${body}\n<!-- /wp:generateblocks-pro/menu-container -->`;
+}
+
+function selfClosingDelimiter(blockName, attrs) {
+  const ordered = orderAttrs(blockName, attrs);
+  return `<!-- wp:${blockName} ${serializeBlockAttributes(ordered)} /-->`;
+}
+
+/**
+ * Referencia a un menú REAL de WordPress por su ID numérico (`menu`, como
+ * string — el export lo lleva así: `"menu":"5"`). Bloque DINÁMICO: a
+ * diferencia de todo lo demás en este fichero, no imprime su propio HTML —
+ * WordPress renderiza el `<ul>`/`<li>` real en tiempo de render a partir del
+ * menú referenciado, así que el post_content SOLO lleva los tres
+ * delimitadores (sin cuerpo, sin cierre con contenido). `item`/`subMenu` son
+ * plantillas de estilo — normalmente el resultado de `classicMenuItem()` y,
+ * si hay submenús, `classicSubMenu()` — que van DENTRO del delimitador de
+ * `classicMenu`, nunca como `children` de otro bloque.
+ */
+export function classicMenu({ uniqueId, menu, styles = {}, item, subMenu }) {
+  const id = uniqueId ?? uid("classic-menu");
+  const attrs = { menu: String(menu), uniqueId: id };
+  if (Object.keys(styles).length) { attrs.styles = styles; attrs.css = buildCanonicalCss(`.gb-menu-${id}`, styles); }
+
+  const inner = [item, subMenu].filter(Boolean).join("\n\n");
+  return `${delimiter("generateblocks-pro/classic-menu", attrs)}\n${inner}\n<!-- /wp:generateblocks-pro/classic-menu -->`;
+}
+
+/** Plantilla de estilo para cada item del menú clásico. Autocierra, sin HTML propio (ver classicMenu). */
+export function classicMenuItem({ uniqueId, styles = {} }) {
+  const id = uniqueId ?? uid("classic-menu-item");
+  const attrs = { uniqueId: id };
+  if (Object.keys(styles).length) { attrs.styles = styles; attrs.css = buildCanonicalCss(`.gb-menu-item-${id}`, styles); }
+  return selfClosingDelimiter("generateblocks-pro/classic-menu-item", attrs);
+}
+
+/** Plantilla de estilo para el submenú desplegable. Autocierra, sin HTML propio (ver classicMenu). */
+export function classicSubMenu({ uniqueId, styles = {} }) {
+  const id = uniqueId ?? uid("classic-sub-menu");
+  const attrs = { uniqueId: id };
+  if (Object.keys(styles).length) { attrs.styles = styles; attrs.css = buildCanonicalCss(`.gb-sub-menu-${id}`, styles); }
+  return selfClosingDelimiter("generateblocks-pro/classic-sub-menu", attrs);
 }
