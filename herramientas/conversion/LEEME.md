@@ -526,5 +526,22 @@ diseño que el frame Desktop no expresa. Medido sobre `home-4.node.json` (págin
 (`validate-blocks.mjs`, `audit-gb.js`, 0 errores/avisos), se publicó como post real en
 `figma-staging` y se vio en el navegador — 3 columnas iguales, alineadas, con las 3 reglas
 (base + 1024px + 767px) presentes en el CSS realmente servido. El post de prueba se borró tras
-verificar. **Sigue sin calibrarse contra `qa-editor-check.mjs`** (el editor real de WordPress) ni
-contra un caso con el umbral de 150px al límite.
+verificar.
+
+**Pasado por el editor real el 4/09/2026** (`qa-editor-check.mjs`, la única capa que ve el
+«Attempt Recovery»), sobre las tres funciones nuevas a la vez —navegación nativa, grids y apilado
+en móvil— y sobre el contenido vivo del proyecto de referencia:
+
+| Qué | Bloques | Inválidos | Drift al guardar |
+|---|---|---|---|
+| `home-4.node.json` convertida entera (nav + 3 grids + 25 apilados) | 339 | 0 | ninguno |
+| Elemento «ACELIA Site Header» (bloques Site Header/Navigation nuevos) | 31 | 0 | ninguno |
+| Elemento «ACELIA Site Footer» | 31 | 0 | ninguno |
+| Página «ACELIA Home» | 160 | 0 | ninguno |
+
+Que los bloques Pro nuevos (`site-header`, `navigation`, `menu-toggle`, `menu-container`) carguen
+en el editor sin marcarse inválidos y se re-serialicen idénticos confirma de la forma más fuerte
+disponible que el orden de claves de `KEY_ORDER` y la canónica de `emit.mjs` son correctos: es
+justo lo que ninguno de los dos linters ni el round-trip de REST podían garantizar.
+
+Sigue sin probarse un caso con el umbral de 150px (grid) o de 360px (apilado) justo al límite.
