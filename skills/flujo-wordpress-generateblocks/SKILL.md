@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.7.0
+version: 0.8.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -54,7 +54,7 @@ importación, con sus dos trampas silenciosas, en [[importar-handoff-diseno]].
 | 3 | **Repo** | Solo lo de la fase 2. Nunca core, `uploads/` ni plugins de terceros |
 | 4 | **Generación de marcado, importación del handoff, o conversión desde Figma** | Imágenes **primero** con `wp media import --porcelain` para usar IDs reales. Color por clase CSS, jamás por el panel del bloque. Pasar el validador. Si el marcado ya viene hecho: `wp post create <fichero>`, **nunca** `wp_insert_post()` — ver [[importar-handoff-diseno]]. Si se convierte desde Figma, el toolkit está en `herramientas/conversion/` (ver su LEEME): `convert-frame` → `assemble.mjs` → **los dos** validadores |
 | 5 | **Plantillas, noticias, CPT** | Los CPT ya están por código desde la fase 2; las secciones van a `/patterns` como PHP, no pegadas en la base de datos |
-| 6 | **Animación con GSAP** | Va **después** de la fase 5, query loops ya montados. Animar antes y convertir luego a query loop rompe la animación. GB Pro no tiene animación por scroll: su panel Effects es solo hover/focus. Solo si el proyecto la necesita (igual que ACF): `node herramientas/animacion/instalar-gsap.js` engancha GSAP+ScrollTrigger al tema hijo y deja la plantilla de `assets/animations.js` con el patrón seguro (`prefers-reduced-motion`, query loops sin cachear el DOM); la animación de cada sección se escribe a mano ahí, con referencia real (Smart Animate de Figma o una URL) |
+| 6 | **Animación con GSAP** | Va **después** de la fase 5, query loops ya montados. Animar antes y convertir luego a query loop rompe la animación. GB Pro no tiene animación por scroll: su panel Effects es solo hover/focus. Solo si el proyecto la necesita (igual que ACF): `node herramientas/animacion/instalar-gsap.js` engancha GSAP+ScrollTrigger al tema hijo y deja la plantilla de `assets/animations.js` con el patrón seguro (`prefers-reduced-motion`, query loops sin cachear el DOM); la animación de cada sección se escribe a mano ahí, con referencia real (Smart Animate de Figma, una URL, o una anotación de Figma en la sección — ver abajo) |
 | 7 | **Puerta de calidad** | Contra staging con la **URL real**, subdirectorio incluido. Nunca contra un HTML local. Cadena de cinco puertas: `qa-run.mjs` (contrato publicado → validadores → round-trip → editor real → la página contra su diseño) más la skill `puerta-calidad-wordpress` |
 | 8 | **Producción** | `wp search-replace --dry-run --skip-columns=guid` primero. Nunca editar URLs a mano. Reimportar la configuración del tema: el search-replace no la trae |
 
@@ -229,6 +229,31 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     resto. Sigue haciendo falta reconstruir y republicar la página entera — lo que cambia es que
     ese republicado ahora tiene un diff pequeño y localizado, no uno que parece tocarlo todo.
 
+## Anotaciones de Figma: canal de instrucciones por sección
+
+**Verificado el 7/09/2026.** El cliente/diseñador puede dejar una anotación de Dev Mode anclada a
+una sección concreta de Figma, y Claude puede leerla — es el sitio correcto para la "referencia
+real" que pide la fase 6 (animación), o cualquier nota que solo aplique a esa sección y no a la
+página entera.
+
+Requiere el MCP `plugin:figma:figma` **conectado y autorizado en esta sesión** (OAuth por
+navegador, no un token permanente — se repite en cada sesión nueva si no queda cacheado). Si las
+herramientas `use_figma`/`get_metadata` no aparecen, primero `mcp__plugin_figma_figma__authenticate`
+y pedir al usuario que abra el enlace.
+
+Para leerlas, un `use_figma` de solo lectura sobre el nodo o la página (las anotaciones pueden
+estar en un nodo hijo, no en el frame raíz — recorrer con `findAll`):
+
+```js
+const node = await figma.getNodeByIdAsync('<nodeId>');
+const conAnotacion = [node, ...node.findAll(() => true)]
+  .filter(n => n.annotations && n.annotations.length > 0)
+  .map(n => ({ id: n.id, name: n.name, annotations: n.annotations }));
+return conAnotacion;
+```
+
+Esto es distinto de "Figma como fuente del marcado" (descartado, ver abajo): leer una anotación de
+texto es una lectura puntual y barata, no extracción de árbol de nodos para generar bloques.
 
 ## Descartado con fundamento — no volver a proponerlo
 

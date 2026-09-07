@@ -3,7 +3,29 @@
 > **Fuente de verdad del estado del proyecto.** Al retomar, lee esto primero: ni el README ni la
 > memoria de Claude Code lo sustituyen. Actualízalo al cerrar cada sesión de trabajo.
 
-**Última actualización:** 2/09/2026.
+**Última actualización:** 7/09/2026.
+
+---
+
+## Cerrado el 7/09/2026: MCP de Figma conectado, y anotaciones de Dev Mode como canal de instrucciones
+
+**El MCP de Figma (`plugin:figma:figma`) ya conecta y autoriza** desde esta máquina — el
+`docs/rutas-de-conversion.md` del 28/08 lo daba por no disponible; ya no es cierto. La conexión es
+por OAuth **por sesión** (`mcp__plugin_figma_figma__authenticate`, enlace en el navegador), no un
+token que quede guardado entre sesiones.
+
+**Probado de verdad:** el usuario dejó una anotación de Dev Mode en la sección "Section - Benefits"
+del fichero `hyAMxyeACYAZF32olj6sZU` ("Prueba de animaciones"), y se leyó literal con `use_figma`
+(`node.annotations`, recorriendo con `findAll` porque la anotación no estaba en el frame raíz sino
+en una sección hija). Contenido real, no simulado: un saludo de prueba con un enlace de referencia
+de animación GSAP.
+
+Documentado como capacidad del flujo, no como caso puntual: sección nueva "Anotaciones de Figma:
+canal de instrucciones por sección" en la skill `flujo-wordpress-generateblocks` (0.7.0→0.8.0), y
+la fase 6 de su tabla ya la referencia como tercera opción de "referencia real" junto a Smart
+Animate y una URL. `docs/rutas-de-conversion.md` actualizado con la corrección de disponibilidad
+del MCP, dejando claro que no cambia la conclusión sobre Variables/extracción de marcado — es un
+canal distinto y más barato (lectura puntual de un nodo, no extracción de árbol).
 
 ---
 

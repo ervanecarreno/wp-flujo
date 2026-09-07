@@ -98,6 +98,14 @@ Nota: aunque estuviera, chocaría con el mismo muro. Un MCP de Figma leería las
 fichero para mapear tokens, y este fichero no expone ninguna. La ruta 2 no arregla por sí sola el
 problema de fondo.
 
+**Actualización 7/09/2026: el MCP sí está disponible**, con autorización OAuth por sesión
+(`mcp__plugin_figma_figma__authenticate`; no queda un token permanente entre sesiones). Sigue sin
+cambiar la conclusión de este documento — el cuello de botella son las Variables del fichero, no la
+conexión — pero abre un uso que no es extracción de marcado: **leer anotaciones de Dev Mode por
+sección** (`node.annotations` vía `use_figma`), útil como canal de instrucciones puntuales del
+cliente/diseñador (p. ej. la referencia de animación de la fase 6). Documentado en la skill
+`flujo-wordpress-generateblocks`, sección "Anotaciones de Figma".
+
 ## Recomendación operativa
 
 - **Hoy, para entregar:** ruta 1 (handoff), pidiendo que los colores vayan como `var(--token)` en
