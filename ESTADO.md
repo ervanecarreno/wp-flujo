@@ -7,6 +7,17 @@
 
 ---
 
+## Cerrado el 7/09/2026: skills oficiales de GSAP vendorizadas
+
+`instalar-gsap.js` (ver más abajo) resuelve el andamiaje — la biblioteca de clases ya-funcionan y su
+red de seguridad. No enseña a escribir GSAP correcto cuando una animación se sale de esas siete
+clases. Para eso se han añadido a `skills/` las 8 skills oficiales de GreenSock
+(`github.com/greensock/gsap-skills`, MIT — licencia en `skills/LICENCIA-GSAP-SKILLS.txt`):
+`gsap-core`, `gsap-timeline`, `gsap-scrolltrigger`, `gsap-plugins`, `gsap-utils`, `gsap-performance`,
+`gsap-react`, `gsap-frameworks`. Copiadas dentro del plugin (no solo instaladas como marketplace
+aparte) para que viajen con `wp-flujo` a cualquier máquina sin pasos extra. La Fase 6 de la skill
+principal ya las referencia. Plugin en `0.13.0`.
+
 ## Cerrado el 7/09/2026: las tres lecciones de Hedvig, convertidas en herramientas
 
 Después de montar Hedvig y corregirla dos veces (animación equivocada, fidelidad contra el Figma

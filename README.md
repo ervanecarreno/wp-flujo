@@ -12,7 +12,7 @@ Para el estado del trabajo y qué toca hacer ahora, lee **[ESTADO.md](ESTADO.md)
 
 | Carpeta | Contenido |
 |---|---|
-| `skills/` | Las 5 skills: el flujo de 8 fases, importación de handoff, generación de bloques, wp-cli en Local y la puerta de calidad |
+| `skills/` | Las 5 skills propias del flujo, más las 8 skills oficiales de GSAP vendorizadas (ver abajo) |
 | `herramientas/` | Validadores Node sin dependencias (`audit-gb.js`, `audit-cross.js`, `fix-gb.js`) |
 | `herramientas/conversion/` | **Figma → GenerateBlocks**: conversión de frames, emisores canónicos, ensamblador y QA. Cierra la laguna que el flujo tenía reconocida. Ver su [LEEME](herramientas/conversion/LEEME.md) |
 | `herramientas/wp-cli/` | `wp.cmd` y `php.cmd`: usan el PHP y wp-cli que ya trae Local WP, sin instalar nada |
@@ -35,6 +35,29 @@ Para el estado del trabajo y qué toca hacer ahora, lee **[ESTADO.md](ESTADO.md)
 - **`wp-cli-en-local`** — antes de proponer cualquier comando `wp` o `php`.
 - **`puerta-calidad-wordpress`** — antes de entregar o publicar.
 
+## Las 8 skills de GSAP (vendorizadas)
+
+Copia local de las skills oficiales de GreenSock (`github.com/greensock/gsap-skills`, MIT — licencia
+en `skills/LICENCIA-GSAP-SKILLS.txt`), metidas dentro del plugin para que viajen con él en cualquier
+máquina donde se instale, sin depender de un marketplace externo añadido a mano.
+
+- **`gsap-core`** — API base: `gsap.to/from/fromTo`, easing, stagger, `gsap.matchMedia()` (responsive
+  y `prefers-reduced-motion`).
+- **`gsap-timeline`** — secuenciar varios pasos con `gsap.timeline()`.
+- **`gsap-scrolltrigger`** — animación ligada al scroll. La que más se usa en Fase 6.
+- **`gsap-plugins`** — Flip, Draggable, SplitText, MorphSVG y el resto (todos gratis tras la compra
+  de Webflow, sin Club GSAP).
+- **`gsap-utils`** — helpers (`clamp`, `mapRange`, etc.).
+- **`gsap-performance`** — buenas prácticas de rendimiento.
+- **`gsap-react`** / **`gsap-frameworks`** — solo aplican si un proyecto de cliente usa React/Vue/
+  Svelte, algo fuera de lo habitual en este flujo (tema hijo PHP + JS vanilla), pero se dejan por si
+  hace falta.
+
+Estas skills enseñan **cómo escribir GSAP correcto** (API, timelines, ScrollTrigger). No sustituyen a
+`herramientas/animacion/instalar-gsap.js`, que resuelve otra cosa: deja instalada la biblioteca de
+clases del proyecto (`-reveal`, `-stagger`, etc.) y el enqueue en WordPress. Se usan juntas: el
+tooling monta el andamiaje, las skills guían cómo se escribe la animación dentro de él.
+
 ## Usarlo en un proyecto de cliente
 
 Las skills tienen que estar disponibles **fuera** de esta carpeta, porque los proyectos de cliente
@@ -45,7 +68,7 @@ interactivo: primero se añade este repositorio como *marketplace* (la ruta
 `C:\TRABAJOS\wp-flujo`, que ya contiene `.claude-plugin/marketplace.json`) y después se instala
 el plugin `wp-generateblocks`.
 
-Alternativa sin plugin, para probarlo antes: copiar las cinco carpetas de `skills/` a
+Alternativa sin plugin, para probarlo antes: copiar todas las carpetas de `skills/` a
 `%USERPROFILE%\.claude\skills\`. **Sin verificar todavía** en esta máquina — esa carpeta no existe
 aún, así que habría que crearla y comprobar que las skills se cargan.
 
