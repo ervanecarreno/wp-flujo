@@ -11,3 +11,4 @@
 - [Puerta de calidad WordPress](puerta-calidad-wordpress.md) — las 5 herramientas CLI que validan el entorno antes de producción
 - [Figma MCP + anotaciones](figma-mcp-anotaciones.md) — el MCP sí conecta (OAuth por sesión); anotaciones de Dev Mode son canal de instrucciones por sección
 - [Proyecto Hedvig](proyecto-hedvig-landing.md) — activo en figma-staging; ACELIA descartado y limpiado de WordPress (carpeta local intacta, sin usar)
+- [Lección: verificar referencia de animación](leccion-verificar-referencia-animacion.md) — entrar a la URL y medir con JS, no asumir el patrón GSAP habitual
