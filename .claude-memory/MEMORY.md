@@ -9,3 +9,4 @@
 - [Lección: colores en GenerateBlocks](leccion-colores-generateblocks.md) — nunca elegir color en el panel del bloque, siempre por clase CSS
 - [Lección: animación sobre contenido dinámico](leccion-animacion-contenido-dinamico.md) — GSAP debe re-consultar el DOM y refrescar ScrollTrigger
 - [Puerta de calidad WordPress](puerta-calidad-wordpress.md) — las 5 herramientas CLI que validan el entorno antes de producción
+- [Figma MCP + anotaciones](figma-mcp-anotaciones.md) — el MCP sí conecta (OAuth por sesión); anotaciones de Dev Mode son canal de instrucciones por sección
