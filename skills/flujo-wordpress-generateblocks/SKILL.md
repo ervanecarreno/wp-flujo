@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.8.0
+version: 0.9.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -116,7 +116,7 @@ alguien lo va a usar.
 **Consecuencia asumida** (del contrato en el tema, no de los CPT, que ahora viven en ACF): cambiar
 de tema deja el sitio sin los tokens hasta que se instale el tema hijo nuevo. Aceptado.
 
-## Las once trampas ya pagadas
+## Las doce trampas ya pagadas
 
 Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
 
@@ -228,6 +228,21 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     Lo que esto NO da: publicar solo un fragmento dentro de una página ya viva sin regenerar el
     resto. Sigue haciendo falta reconstruir y republicar la página entera — lo que cambia es que
     ese republicado ahora tiene un diff pequeño y localizado, no uno que parece tocarlo todo.
+
+12. **Escribir en `wp/tema-hijo/` no publica nada: sigue sin copiarse al tema real de Local.**
+    Verificado el 7/09/2026 en ACELIA. `instalar-gsap.js` (y cualquier edición manual de
+    `functions.php` o `assets/` del tema hijo) escribe en la carpeta **versionada del repo**, no
+    hay symlink con `wp-content/themes/<tema>/` dentro de `Local Sites/<sitio>/app/public/`. La
+    instalación de GSAP del 4/09 se quedó tres días marcada como "hecha" en `ESTADO.md` sin que el
+    sitio real tuviera ni el script encolado ni `assets/animations.js` — `node verificar.mjs` no lo
+    detecta, porque no comprueba scripts encolados, solo el contrato de diseño y el marcado.
+
+    **Regla:** después de tocar cualquier fichero de `wp/tema-hijo/` (no solo el contrato de
+    diseño, que ya lo documentaba `acelia.tokens.css`), copiarlo a la carpeta del tema en
+    `Local Sites/<sitio>/app/public/wp-content/themes/<tema>/` antes de darlo por publicado, y
+    pasar `php -l` sobre `functions.php` copiado. Confirmar con `read_page`/JS en el navegador
+    (`document.scripts`, no solo el DOM) que el script realmente se sirve, no solo que el fichero
+    existe en disco.
 
 ## Anotaciones de Figma: canal de instrucciones por sección
 

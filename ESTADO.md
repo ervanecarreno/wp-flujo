@@ -7,6 +7,22 @@
 
 ---
 
+## Cerrado el 7/09/2026: primera animación GSAP real, y trampa nueva (doce)
+
+Prueba real de principio a fin en `WEB ACELIA` (Local WP `figma-staging`): la anotación de Figma
+leída antes (ver la entrada de MCP más abajo) apuntaba a `hedvig.framer.website` como referencia de
+animación. Se implementó esa animación —fundido + deslizamiento por scroll, con `GSAP`+
+`ScrollTrigger`— en la sección "Expertise" de ACELIA (la más parecida en forma a la sección
+"Benefits" de la anotación), publicada y verificada contra el sitio real: `node verificar.mjs`
+completo en verde tras el cambio.
+
+**Trampa 12, nueva en la skill (0.8.0→0.9.0):** `wp/tema-hijo/` de un proyecto es la carpeta
+versionada del repo, no el tema activo de Local — no hay symlink. `instalar-gsap.js` había escrito
+GSAP ahí el 4/09, pero nunca se copió al tema real; la fase 6 de ACELIA llevó tres días marcada
+como "hecha" sin que el sitio sirviera el script, y `node verificar.mjs` no lo detecta (no
+comprueba scripts encolados). Corregido en ACELIA copiando `functions.php` y `assets/` al tema de
+Local. Documentado en la skill y en la cabecera de `instalar-gsap.js`.
+
 ## Cerrado el 7/09/2026: MCP de Figma conectado, y anotaciones de Dev Mode como canal de instrucciones
 
 **El MCP de Figma (`plugin:figma:figma`) ya conecta y autoriza** desde esta máquina — el

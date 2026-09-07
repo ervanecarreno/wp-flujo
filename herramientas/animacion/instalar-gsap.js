@@ -30,6 +30,14 @@
  *   node herramientas/animacion/instalar-gsap.js [--tema-hijo wp/tema-hijo] [--forzar]
  *
  * Node, sin dependencias. No pisa nada que ya exista salvo con --forzar.
+ *
+ * OJO — esto escribe en la carpeta VERSIONADA del repo, no en el tema activo
+ * de Local WP: no hay symlink entre `wp/tema-hijo/` y
+ * `Local Sites/<sitio>/app/public/wp-content/themes/<tema>/`. Sin copiar
+ * ambos ficheros al tema real, el sitio sigue sin GSAP aunque el repo diga lo
+ * contrario — pasó de verdad en ACELIA (trampa 12 de la skill
+ * `flujo-wordpress-generateblocks`, verificado 7/09/2026: tres días con la
+ * fase 6 marcada como hecha sin que el sitio sirviera el script).
  */
 "use strict";
 
