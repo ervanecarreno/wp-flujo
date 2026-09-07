@@ -1,18 +1,24 @@
 ---
 name: leccion-verificar-referencia-animacion
-description: "cuando una referencia de animación da una URL, hay que entrar y medir con JS mientras se scrollea — no asumir el patrón GSAP habitual del flujo"
+description: "cuando una referencia de animación da una URL, medirla con herramientas/referencia/medir-referencia.mjs — no asumir el patrón GSAP habitual del flujo"
 metadata: 
   node_type: memory
   type: feedback
   originSessionId: df9e952d-84b2-49bf-9dbe-ffde836763ff
-  modified: 2026-09-07T09:27:33.276Z
+  modified: 2026-09-07T12:16:19.247Z
 ---
 
 Cuando el usuario (o una anotación de Figma) da una URL como referencia de una animación, entrar a
-esa URL de verdad y medir el comportamiento con scroll real + `getComputedStyle` (vía
-`javascript_tool`, cambiando `window.scrollTo` y leyendo `transform`/`opacity`/`position` de los
-nodos relevantes) — no basta con mirar una captura de pantalla, ni con asumir el patrón más
-habitual de este flujo (GSAP + ScrollTrigger, fundido/deslizamiento).
+esa URL de verdad y medirla — no basta con mirar una captura de pantalla, ni con asumir el patrón
+más habitual de este flujo (GSAP + ScrollTrigger, fundido/deslizamiento).
+
+**Actualizado 7/09/2026:** esto ya no hace falta hacerlo a mano con `javascript_tool`. Existe
+`node herramientas/referencia/medir-referencia.mjs <url>` en el plugin `wp-flujo` — en un comando
+da la paleta, la escala tipográfica, los contenedores por sección, y sobre todo qué elementos
+tienen `opacity`/`transform`/`filter` puestos EN LÍNEA (el estado inicial que dejan los motores
+tipo Framer antes de disparar el JS) y qué es `position:sticky`/`fixed`. Úsalo primero; solo si
+hace falta algo más fino (comportamiento exacto durante el scroll) recurrir a `javascript_tool` a
+mano.
 
 **Why:** en el proyecto Hedvig, la primera versión de la animación de la sección "Benefits" se
 escribió a partir de leer la anotación de Figma ("mira cómo anima `hedvig.framer.website`") sin
