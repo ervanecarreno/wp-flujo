@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.9.0
+version: 0.10.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -116,7 +116,7 @@ alguien lo va a usar.
 **Consecuencia asumida** (del contrato en el tema, no de los CPT, que ahora viven en ACF): cambiar
 de tema deja el sitio sin los tokens hasta que se instale el tema hijo nuevo. Aceptado.
 
-## Las doce trampas ya pagadas
+## Las dieciséis trampas ya pagadas
 
 Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
 
@@ -243,6 +243,40 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     pasar `php -l` sobre `functions.php` copiado. Confirmar con `read_page`/JS en el navegador
     (`document.scripts`, no solo el DOM) que el script realmente se sirve, no solo que el fichero
     existe en disco.
+
+13. **Una sección a sangre completa (full-bleed) no basta con `width:100%`.**
+    Verificado el 7/09/2026 en Hedvig. GeneratePress envuelve TODO el sitio —cabecera incluida
+    cuando no es un Elemento aparte— en `.site.grid-container`, con el ancho de "Container Width"
+    del Personalizador (1400px de ejemplo). Una sección con `width:100%` hereda ESE ancho, no el
+    del viewport: se queda con un margen blanco a los lados, con el fondo oscuro sin llegar a los
+    bordes. Hace falta el truco clásico `width:100vw; position:relative; left:50%; right:50%;
+    margin-left:-50vw; margin-right:-50vw` en la sección, **y además** quitarle `max-width` a
+    `.site`/`.site-content`/`.entry-content` (inline, con `!important`: el Personalizador genera su
+    propio CSS dinámico con más especificidad que un `.site-content` a secas).
+
+14. **`sizes="auto"` de WordPress 6.7+ rompe imágenes `object-fit:cover` con `loading="lazy"`.**
+    Verificado el 7/09/2026: una imagen de fondo con `object-fit:cover` y `width/height:100%` no se
+    veía —parecía no cargar— con el hero completamente en blanco. WordPress añade su propio
+    `sizes="auto, …"` a cualquier `<img loading="lazy">` (pensado para reducir CLS), y en Chrome
+    eso puede fijar el ancho de LAYOUT de la imagen al de un candidato del `srcset` en vez del 100%
+    que pide el CSS. Un `sizes` propio no basta: WordPress le antepone `auto,` igual. La salida es
+    `loading="eager"` —el filtro solo se dispara con `lazy`— asumible en una landing de una
+    pantalla; en una página larga, tocaría vivir con el `sizes` real o forzar la imagen fuera del
+    filtro de otra forma.
+
+15. **Un Elemento de GeneratePress necesita DOS metas, no una.** `_generate_block_type`
+    (`site-header`, `site-footer`…) sin `_generate_element_type = block` **no se renderiza, sin
+    ningún aviso** — ni error, ni el Element aparece en la página, aunque `_generate_element_display_conditions`
+    esté bien puesto y `gb-regenerar-css.mjs` diga "el marcado no se renderiza en esta página".
+    Verificado el 7/09/2026 en Hedvig; el ejemplo de ACELIA que sirvió de referencia debía llevar
+    esta meta puesta a mano desde el editor, sin que quedara documentado.
+
+16. **`overflow-x:hidden` va en `html`, no en `body`.** Necesario para recortar el desbordamiento
+    horizontal que deja el truco de la sección a sangre completa (trampa 13) cuando hay barra de
+    scroll vertical. Puesto en `body`, crea un contenedor de scroll PROPIO —por especificación,
+    `overflow-y` pasa de `visible` a `auto` en cuanto `overflow-x` deja de ser `visible`— y la
+    rueda del ratón deja de mover la página (el scroll pasa a vivir dentro de ese `body`, no en la
+    ventana). En `html` recorta igual sin ese efecto secundario.
 
 ## Anotaciones de Figma: canal de instrucciones por sección
 

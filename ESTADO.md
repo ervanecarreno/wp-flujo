@@ -7,6 +7,26 @@
 
 ---
 
+## Cerrado el 7/09/2026: primera landing real completa (Hedvig), cuatro trampas nuevas (13-16)
+
+ACELIA se descartó (era una prueba, palabras del usuario) y se limpió por completo de
+`figma-staging` (páginas, Elementos, menú, medios, tema — vía wp-cli, uno por uno). En su lugar se
+montó **Hedvig**, una landing de 8 secciones completa a partir del fichero de Figma de la anotación
+(`hyAMxyeACYAZF32olj6sZU`), primera vez que el flujo se corre de principio a fin sobre un diseño
+real de Figma sin handoff previo: contrato medido nodo a nodo por MCP (sin variables con nombre en
+el fichero, así que el color va aplanado), imágenes descargadas con `download_assets`, marcado
+íntegro a mano con `emit.mjs`, header/footer como Elementos de GeneratePress, y la animación GSAP
+de la anotación (fase 6) aplicada a las 3 tarjetas reales de "Benefits". `node verificar.mjs`
+completo en verde. Detalle en `WEB HEDVIG/ESTADO.md`.
+
+**Cuatro trampas nuevas, verificadas de verdad contra el sitio (13-16 de la skill, 0.9.0→0.10.0):**
+secciones a sangre completa dentro de GeneratePress (necesitan el truco 100vw **y** quitarle
+`max-width` a `.site`, no solo `width:100%` en la sección); `sizes="auto"` de WordPress 6.7+
+rompiendo imágenes `object-fit:cover` con `loading="lazy"` (arreglo: `eager`); un Elemento de
+GeneratePress que no se renderiza —sin ningún aviso— si le falta `_generate_element_type=block`
+además de `_generate_block_type`; y `overflow-x:hidden` en `body` en vez de `html`, que le da a
+`body` su propio contenedor de scroll y la rueda del ratón deja de mover la página.
+
 ## Cerrado el 7/09/2026: primera animación GSAP real, y trampa nueva (doce)
 
 Prueba real de principio a fin en `WEB ACELIA` (Local WP `figma-staging`): la anotación de Figma
