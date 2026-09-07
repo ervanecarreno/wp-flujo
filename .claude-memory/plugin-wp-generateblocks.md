@@ -1,10 +1,11 @@
 ---
 name: plugin-wp-generateblocks
-description: El flujo de 8 fases ya está empaquetado como plugin de Claude Code en C:\TRABAJOS\wp-flujo, con 5 skills y las herramientas dentro
+description: "El flujo de 8 fases ya está empaquetado como plugin de Claude Code en C:\\TRABAJOS\\wp-flujo, con 5 skills propias más 8 skills de GSAP vendorizadas"
 metadata: 
   node_type: memory
   type: project
-  modified: 2026-08-28T11:20:00.000Z
+  modified: 2026-09-07T12:44:22.430Z
+  originSessionId: df9e952d-84b2-49bf-9dbe-ffde836763ff
 ---
 
 Desde el 27/08/2026 el flujo de [[flujo-wordpress-generateblocks]] **ya no es solo un documento**:
@@ -21,6 +22,14 @@ plugin, son lo único que puede hacer que validar no dependa de acordarse.
 `importar-handoff-diseno` (marcado que ya existe: elige vía e importa),
 `generar-bloques-generateblocks` (método, checklist de 10 casillas, validador obligatorio),
 `wp-cli-en-local` (los envoltorios de wp-cli) y `puerta-calidad-wordpress` (fase 7).
+
+**Añadido el 7/09/2026:** las 8 skills oficiales de GSAP (`gsap-core`, `gsap-timeline`,
+`gsap-scrolltrigger`, `gsap-plugins`, `gsap-utils`, `gsap-performance`, `gsap-react`,
+`gsap-frameworks`) están **vendorizadas** dentro de `skills/`, copiadas desde
+`github.com/greensock/gsap-skills` (MIT) en vez de instalarlas aparte como marketplace, para que
+viajen con el plugin a cualquier máquina. Complementan a `herramientas/animacion/instalar-gsap.js`:
+la herramienta monta el andamiaje (biblioteca de clases), las skills enseñan la API cuando hace
+falta escribir GSAP a mano.
 
 **Decisión del 28/08/2026 pedida por Javier:** en todo proyecto nuevo hay que **preguntar el tipo de
 conversión** entre GenerateBlocks Pro V2 (la habitual, por defecto) y Gutenberg nativo (la que se
