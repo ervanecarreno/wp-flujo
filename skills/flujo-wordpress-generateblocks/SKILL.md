@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.12.0
+version: 0.13.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -54,7 +54,7 @@ importación, con sus dos trampas silenciosas, en [[importar-handoff-diseno]].
 | 3 | **Repo** | Solo lo de la fase 2. Nunca core, `uploads/` ni plugins de terceros |
 | 4 | **Generación de marcado, importación del handoff, o conversión desde Figma** | Imágenes **primero** con `wp media import --porcelain` para usar IDs reales. Color por clase CSS, jamás por el panel del bloque. Pasar el validador. Si el marcado ya viene hecho: `wp post create <fichero>`, **nunca** `wp_insert_post()` — ver [[importar-handoff-diseno]]. Si se convierte desde Figma, el toolkit está en `herramientas/conversion/` (ver su LEEME): `convert-frame` → `assemble.mjs` → **los dos** validadores |
 | 5 | **Plantillas, noticias, CPT** | Los CPT ya están por código desde la fase 2; las secciones van a `/patterns` como PHP, no pegadas en la base de datos |
-| 6 | **Animación con GSAP** | Va **después** de la fase 5, query loops ya montados. Animar antes y convertir luego a query loop rompe la animación. GB Pro no tiene animación por scroll: su panel Effects es solo hover/focus. Solo si el proyecto la necesita (igual que ACF): `node herramientas/animacion/instalar-gsap.js` engancha GSAP+ScrollTrigger al tema hijo y deja la plantilla de `assets/animations.js` con el patrón seguro (`prefers-reduced-motion`, query loops sin cachear el DOM); la animación de cada sección se escribe a mano ahí, con referencia real (Smart Animate de Figma, una URL, o una anotación de Figma en la sección — ver abajo) |
+| 6 | **Animación con GSAP** | Va **después** de la fase 5, query loops ya montados. Animar antes y convertir luego a query loop rompe la animación. GB Pro no tiene animación por scroll: su panel Effects es solo hover/focus. Solo si el proyecto la necesita (igual que ACF): `node herramientas/animacion/instalar-gsap.js` instala una **biblioteca de clases ya lista** (`-reveal`, `-stagger`, `-words`, `-scroll-words`, `-zoom`, `-stack`, ver su LEEME), no una plantilla — animar una sección es poner la clase en el marcado, no escribir GSAP. Si hay una web de referencia, medirla primero con `herramientas/referencia/medir-referencia.mjs <url>` en vez de suponer el patrón (trampa 17/18); tras cualquier cambio en `wp/tema-hijo/`, `node herramientas/desplegar-tema.mjs --sitio "<...>"` (trampa 12) |
 | 7 | **Puerta de calidad** | Contra staging con la **URL real**, subdirectorio incluido. Nunca contra un HTML local. Cadena de cinco puertas: `qa-run.mjs` (contrato publicado → validadores → round-trip → editor real → la página contra su diseño) más la skill `puerta-calidad-wordpress` |
 | 8 | **Producción** | `wp search-replace --dry-run --skip-columns=guid` primero. Nunca editar URLs a mano. Reimportar la configuración del tema: el search-replace no la trae |
 
@@ -238,11 +238,15 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     detecta, porque no comprueba scripts encolados, solo el contrato de diseño y el marcado.
 
     **Regla:** después de tocar cualquier fichero de `wp/tema-hijo/` (no solo el contrato de
-    diseño, que ya lo documentaba `acelia.tokens.css`), copiarlo a la carpeta del tema en
-    `Local Sites/<sitio>/app/public/wp-content/themes/<tema>/` antes de darlo por publicado, y
-    pasar `php -l` sobre `functions.php` copiado. Confirmar con `read_page`/JS en el navegador
-    (`document.scripts`, no solo el DOM) que el script realmente se sirve, no solo que el fichero
-    existe en disco.
+    diseño, que ya lo documentaba `acelia.tokens.css`), desplegarlo antes de darlo por publicado:
+
+    ```
+    node herramientas/desplegar-tema.mjs --sitio "<Local Sites>/<sitio>/app/public"
+    ```
+
+    Copia todo el árbol y pasa `php -l` sobre el `functions.php` ya copiado. Aun así, confirmar con
+    `read_page`/JS en el navegador (`document.scripts`, no solo el DOM) que el script realmente se
+    sirve, no solo que el fichero existe en disco.
 
 13. **Una sección a sangre completa (full-bleed) no basta con `width:100%`.**
     Verificado el 7/09/2026 en Hedvig. GeneratePress envuelve TODO el sitio —cabecera incluida
@@ -286,19 +290,12 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     lo ve un validador: el marcado era válido y la página "parecía" bien.
 
     **Regla:** cuando el cliente da una URL de referencia, el Figma sirve para entender la
-    intención, pero la fidelidad se mide contra la web servida. Y se MIDE, no se mira:
-
-    ```js
-    // Escala tipográfica y color reales de un titular
-    const cs = getComputedStyle(el);            // fontSize, lineHeight, letterSpacing, color
-    // Estructura y medidas: contenedor, padding de sección, gaps, radios
-    el.getBoundingClientRect(); cs.padding; cs.gap; cs.borderRadius;
-    // Qué anima: los motores tipo Framer dejan el estado en el atributo style
-    document.querySelectorAll('[style*="opacity"],[style*="transform"]')
-    ```
-
-    Con eso salen el contenedor, la escala, los radios, los paddings y los patrones de animación
-    en cuatro o cinco consultas, y el resultado coincide al píxel en vez de "parecerse".
+    intención, pero la fidelidad se mide contra la web servida. Y se MIDE, no se mira —con
+    `herramientas/referencia/medir-referencia.mjs <url>` (nace de esta misma trampa, ver su
+    entrada en `herramientas/LEEME.md`): en un comando da la paleta real, la escala tipográfica
+    completa, contenedor y padding de cada sección, radios, paddings, y qué elementos tienen
+    `opacity`/`transform`/`filter` puestos en línea — el estado inicial que dejan los motores tipo
+    Framer antes de disparar el JS, y la pista de la trampa 18.
 
 ## Anotaciones de Figma: canal de instrucciones por sección
 
@@ -331,10 +328,11 @@ animación.** Cuando la anotación da una URL de referencia ("mira cómo anima e
 versión de la fase 6 se escribió suponiendo el patrón más habitual (fundido + deslizamiento con
 GSAP) sin entrar a esa URL — salió mal: la animación real de `hedvig.framer.website` en su sección
 "Benefits" era apilamiento por **CSS puro** (`position:sticky`), sin una sola línea de GSAP.
-**Regla:** cuando la anotación (o el usuario) da una referencia real, entrar a esa URL de verdad —
-`navigate` + `computer scroll`, o mejor, medir con `javascript_tool` (`getComputedStyle` de los
-nodos relevantes mientras se cambia `window.scrollTo`) para ver si `transform`/`opacity` cambian de
-verdad o si el efecto es puro CSS (sticky, grid, etc.). Suponer el patrón "típico" de GSAP de este
+**Regla:** cuando la anotación (o el usuario) da una referencia real, entrar a esa URL de verdad y
+medirla — `node herramientas/referencia/medir-referencia.mjs <url>` da de una vez la lista de
+elementos con `opacity`/`transform`/`filter` en línea (o su ausencia: sección "ANIMACIÓN" del
+informe) y los `position:sticky`/`fixed` con su padre, que es justo lo que distingue "anima con
+GSAP" de "es CSS puro" sin tener que scrollear a mano. Suponer el patrón "típico" de GSAP de este
 flujo sin comprobarlo es exactamente el fallo que esta trampa registra.
 
 ## Descartado con fundamento — no volver a proponerlo

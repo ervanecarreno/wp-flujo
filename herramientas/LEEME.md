@@ -320,3 +320,82 @@ al escribir, y eso es lo que rompe la caché.
 
 **Dónde va en el método:** al final de la fase 4, cada vez que se importe o actualice marcado por
 wp-cli, y antes de la puerta de calidad.
+
+## `animacion/instalar-gsap.js` — biblioteca de animación, no una plantilla
+
+Hasta el 7/09/2026 este script dejaba una plantilla con dos ejemplos comentados: cada proyecto
+volvía a escribir los mismos patrones (entrada por scroll, escalonado, palabra a palabra, texto
+ligado al scroll, apilado sticky) y volvía a tropezar con los mismos dos fallos — parpadeo del
+contenido antes de que arrancara GSAP, y página en blanco si el CDN no respondía.
+
+Ahora instala una **biblioteca que ya funciona**. No se escribe JavaScript para animar una sección:
+se pone una clase en el marcado (`className: "<slug>-reveal"`, etc.) y anima. El JS solo se toca
+para afinar tiempos, en un objeto `CONFIG` al principio de `assets/animations.js`.
+
+Clases, todas con el prefijo del proyecto (el "Text Domain" de `style.css`):
+
+| Clase | Efecto |
+|---|---|
+| `-reveal` / `-reveal-sm` / `-reveal-xs` | Entra desde abajo (32 / 24 / 12px) |
+| `-reveal-x` / `-reveal-x-izq` | Entra desde la derecha / la izquierda |
+| `-stagger` (en un contenedor) | Sus hijos con clase `-reveal*` entran en cascada, un solo disparador |
+| `-words` | Titular palabra a palabra con desenfoque, al cargar |
+| `-scroll-words` | Cada palabra de apagada a legible, **ligada al scroll** (scrub) |
+| `-zoom` | Imagen que se desacerca (scale → 1) |
+| `-stack` (en un contenedor) | Sus hijos se apilan con `position:sticky` — **CSS puro, sin JS** |
+
+El estado inicial (oculto) va en un `<style>` que `functions.php` imprime en el `<head>`, bajo
+`html.<slug>-anim`. Un script mínimo, también en el `<head>`, pone esa clase y programa su
+retirada a los 2,5s: si `animations.js` no llega a arrancar, el contenido aparece igual en vez de
+quedarse invisible para siempre. Ver la trampa 17/18 en la skill: la primera vez que se escribió
+esto a mano en un proyecto, no tenía esa red de seguridad.
+
+Contenido de query loop (paginación, "cargar más", filtro AJAX): nunca captures el NodeList fuera
+de la biblioteca. Tras actualizar el DOM, llama a `window.<slug>Animaciones.refrescar()`.
+
+## `desplegar-tema.mjs` — copia el tema hijo al tema real de Local
+
+Cierra la trampa 12: `wp/tema-hijo/` es la carpeta VERSIONADA del proyecto, no el tema activo del
+sitio — no hay symlink con `Local Sites/<sitio>/app/public/wp-content/themes/<tema>/`. Sin este
+paso, un cambio en `functions.php` o en `assets/` (a mano, o por `instalar-gsap.js`) se queda solo
+en el repo. Pasó de verdad en ACELIA: tres días con la fase 6 marcada como hecha en `ESTADO.md`
+sin que el sitio sirviera el script, porque `node verificar.mjs` no comprueba scripts encolados.
+
+```
+node herramientas/desplegar-tema.mjs --sitio "<Local Sites>/<sitio>/app/public"
+```
+
+Deduce solo el nombre de la carpeta del tema (`generatepress-<slug>`, del "Text Domain" de
+`style.css` — la misma convención que fija `nuevo-proyecto.js`), copia todo el árbol y pasa `php -l`
+sobre el `functions.php` YA COPIADO, no sobre la fuente: si la copia fallara a medias, es lo que el
+sitio va a ejecutar de verdad lo que hay que comprobar.
+
+**Corre esto cada vez que toques algo dentro de `wp/tema-hijo/`**, no solo tras `instalar-gsap.js`.
+
+## `referencia/medir-referencia.mjs` — audita una web de referencia con medidas, no con la vista
+
+Nace de la trampa 17/18, pagada dos veces seguidas en Hedvig el 7/09/2026: una landing construida
+leyendo el fichero de Figma en vez de la web real que el cliente dio como referencia (el Figma
+tenía copias de texto distintas y ni footer), y una animación adivinada por el patrón habitual del
+flujo (GSAP) cuando la real era apilamiento por CSS puro. Las dos veces la comprobación que
+destapó el error fue la misma: abrir la URL y teclear `getComputedStyle`/`getBoundingClientRect` a
+mano, docenas de veces. Este script la hace en un solo comando.
+
+```
+node herramientas/referencia/medir-referencia.mjs <url> [--ancho 1440] [--salida datos.json]
+```
+
+Da, de la web real: paleta por área ocupada, escala tipográfica completa (tamaño, peso,
+interlineado, tracking, color — no solo el tamaño), radios y paddings más usados, contenedor de
+cada sección de primer nivel, y **qué elementos tienen `opacity`/`transform`/`filter` puestos EN
+LÍNEA** — así es como los motores de animación tipo Framer marcan el estado inicial antes de
+disparar el JS, con la página recién cargada y sin haber scrolleado un píxel. Si una sección no
+aparece ahí, no anima con JS: es CSS, o no anima. También lista los elementos `position:sticky`/
+`fixed` — varios con el mismo padre y sin hueco entre ellos es la huella del apilado de tarjetas
+que salió en Hedvig; confírmalo con scroll real antes de darlo por hecho.
+
+No decide qué construir: da los números. La fidelidad sigue siendo trabajo con criterio, pero
+contra medidas, no contra la impresión de una captura de pantalla.
+
+Usa `playwright-core` (ya en `package.json`, un `npm install` sin descargar Chromium: abre el
+Chrome o Edge ya instalado, igual que `qa-editor-check.mjs` y `qa-visual-diff.mjs`).

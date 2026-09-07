@@ -16,7 +16,9 @@ Para el estado del trabajo y qué toca hacer ahora, lee **[ESTADO.md](ESTADO.md)
 | `herramientas/` | Validadores Node sin dependencias (`audit-gb.js`, `audit-cross.js`, `fix-gb.js`) |
 | `herramientas/conversion/` | **Figma → GenerateBlocks**: conversión de frames, emisores canónicos, ensamblador y QA. Cierra la laguna que el flujo tenía reconocida. Ver su [LEEME](herramientas/conversion/LEEME.md) |
 | `herramientas/wp-cli/` | `wp.cmd` y `php.cmd`: usan el PHP y wp-cli que ya trae Local WP, sin instalar nada |
-| `herramientas/animacion/` | Fase 6 (GSAP): `instalar-gsap.js` engancha GSAP + ScrollTrigger al tema hijo, solo cuando el proyecto lo necesita |
+| `herramientas/animacion/` | Fase 6 (GSAP): `instalar-gsap.js` instala una biblioteca de clases de animación ya lista (no una plantilla), solo cuando el proyecto lo necesita |
+| `herramientas/desplegar-tema.mjs` | Copia `wp/tema-hijo/` al tema real del sitio en Local — corre esto tras tocar cualquier fichero del tema hijo |
+| `herramientas/referencia/` | `medir-referencia.mjs`: audita una web de referencia (paleta, tipografía, contenedores, animación) con medidas reales, no a ojo |
 | `docs/` | El método de referencia de GB Pro V2 y la auditoría del caso de estudio |
 | `verificacion/` | Pruebas empíricas puntuales, como el round-trip del escapado de WordPress |
 | `traspaso-2026-08-26/` | El flujo sintetizado y los 130 KB de investigación con fuentes |

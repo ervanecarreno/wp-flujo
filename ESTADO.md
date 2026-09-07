@@ -7,6 +7,35 @@
 
 ---
 
+## Cerrado el 7/09/2026: las tres lecciones de Hedvig, convertidas en herramientas
+
+Después de montar Hedvig y corregirla dos veces (animación equivocada, fidelidad contra el Figma
+en vez de la web real), se llevaron las tres lecciones al plugin, para que el próximo proyecto no
+tenga que volver a pagarlas a mano:
+
+- **`herramientas/animacion/instalar-gsap.js` deja de escribir una plantilla — instala una
+  biblioteca.** Siete clases ya-funcionan (`-reveal*`, `-stagger`, `-words`, `-scroll-words`,
+  `-zoom`, `-stack`) en vez de ejemplos comentados para reescribir cada vez. Con red de seguridad:
+  estado inicial vía CSS en el `<head>`, y si GSAP no arranca en 2,5s el contenido aparece igual.
+  Probado contra un tema hijo sintético, incluida una re-ejecución con `--forzar` con código del
+  usuario antes Y después del bloque (un fallo real que salió en la propia prueba: el recorte
+  "hasta el final del fichero" se comía lo que hubiera después — corregido con un marcador de
+  cierre explícito).
+- **`herramientas/desplegar-tema.mjs`, nuevo — cierra la trampa 12** (`wp/tema-hijo/` no se copia
+  solo al tema real de Local). Deduce la carpeta del tema del "Text Domain" de `style.css`, copia
+  todo el árbol y lint-ea el `functions.php` ya copiado. Probado contra Hedvig real: mismos
+  ficheros, byte a byte.
+- **`herramientas/referencia/medir-referencia.mjs`, nuevo — cierra la trampa 17/18** (Figma no es
+  la autoridad cuando hay web servida; una animación se mide, no se supone). Con Playwright,
+  audita una URL en un comando: paleta, escala tipográfica completa, contenedores por sección,
+  radios/paddings, y — lo que motivó la herramienta — qué lleva `opacity`/`transform`/`filter` en
+  línea (el estado inicial que dejan los motores tipo Framer) y qué es `position:sticky`/`fixed`.
+  Probado contra `hedvig.framer.website`: encontró los 8 `id` de sección y las 3 tarjetas sticky
+  con el mismo padre sin que nadie se lo dijera.
+
+Las tres documentadas en `herramientas/LEEME.md` y enganchadas en la fila de la fase 6 y las
+trampas 12/17/18 de la skill (0.12.0→0.13.0).
+
 ## Cerrado el 7/09/2026: trampa 17 — la animación de una anotación se comprueba en la URL, no se supone
 
 La primera versión de la fase 6 en Hedvig (ver más abajo) leyó la anotación de Figma ("mira cómo
