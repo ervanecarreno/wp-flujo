@@ -1,4 +1,4 @@
-- [Plugin wp-generateblocks](plugin-wp-generateblocks.md) - el flujo ya es un plugin con 5 skills; se pregunta el tipo de conversión en cada proyecto
+- [Plugin wp-generateblocks](plugin-wp-generateblocks.md) - plugin con 5 skills propias + 8 de GSAP vendorizadas; se pregunta el tipo de conversión en cada proyecto
 - [Estrategia de portabilidad](estrategia-portabilidad-maquinas.md) — ruta canónica fija, memoria versionada por junction, el chat no viaja
 - [Perfil de Javier](perfil-javier-wordpress.md) — stack fijo WordPress, sus prioridades, y qué tiene y qué NO tiene instalado
 - [Flujo WordPress+GenerateBlocks](flujo-wordpress-generateblocks.md) — el flujo definitivo de 8 fases, usar en todo proyecto nuevo
@@ -12,3 +12,4 @@
 - [Figma MCP + anotaciones](figma-mcp-anotaciones.md) — el MCP sí conecta (OAuth por sesión); anotaciones de Dev Mode son canal de instrucciones por sección
 - [Proyecto Hedvig](proyecto-hedvig-landing.md) — activo en figma-staging; ACELIA descartado y limpiado de WordPress (carpeta local intacta, sin usar)
 - [Lección: verificar referencia de animación](leccion-verificar-referencia-animacion.md) — medir con `medir-referencia.mjs`, no asumir el patrón GSAP habitual
+- [Investigación WordPress Studio](investigacion-wordpress-studio.md) — comparativa vs Local WP, PAUSADA; riesgo SQLite vs MySQL antes de pilotar
