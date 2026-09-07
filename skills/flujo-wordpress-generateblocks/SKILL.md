@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.10.0
+version: 0.11.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -303,6 +303,17 @@ return conAnotacion;
 
 Esto es distinto de "Figma como fuente del marcado" (descartado, ver abajo): leer una anotación de
 texto es una lectura puntual y barata, no extracción de árbol de nodos para generar bloques.
+
+**Trampa 17, verificada el 7/09/2026 en Hedvig: leer la anotación no es lo mismo que ver la
+animación.** Cuando la anotación da una URL de referencia ("mira cómo anima esta web"), la primera
+versión de la fase 6 se escribió suponiendo el patrón más habitual (fundido + deslizamiento con
+GSAP) sin entrar a esa URL — salió mal: la animación real de `hedvig.framer.website` en su sección
+"Benefits" era apilamiento por **CSS puro** (`position:sticky`), sin una sola línea de GSAP.
+**Regla:** cuando la anotación (o el usuario) da una referencia real, entrar a esa URL de verdad —
+`navigate` + `computer scroll`, o mejor, medir con `javascript_tool` (`getComputedStyle` de los
+nodos relevantes mientras se cambia `window.scrollTo`) para ver si `transform`/`opacity` cambian de
+verdad o si el efecto es puro CSS (sticky, grid, etc.). Suponer el patrón "típico" de GSAP de este
+flujo sin comprobarlo es exactamente el fallo que esta trampa registra.
 
 ## Descartado con fundamento — no volver a proponerlo
 

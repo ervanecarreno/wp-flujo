@@ -7,6 +7,17 @@
 
 ---
 
+## Cerrado el 7/09/2026: trampa 17 — la animación de una anotación se comprueba en la URL, no se supone
+
+La primera versión de la fase 6 en Hedvig (ver más abajo) leyó la anotación de Figma ("mira cómo
+anima `hedvig.framer.website`") pero no entró a esa URL — asumió el patrón GSAP más habitual del
+flujo (fundido + deslizamiento) y salió mal: el usuario corrigió que había que ver la web real. Se
+entró de verdad, se hizo scroll y se midió con `getComputedStyle` mientras se cambiaba
+`window.scrollTo`: la sección "Benefits" de esa web no usa GSAP en absoluto — es apilamiento por
+CSS puro (`position:sticky`, tarjetas sin hueco entre ellas, cada una tapando a la anterior por
+orden del DOM). Corregido en Hedvig y documentado como trampa 17 de la skill (0.10.0→0.11.0):
+cuando una referencia da una URL, se entra a esa URL y se mide, no se supone el patrón típico.
+
 ## Cerrado el 7/09/2026: primera landing real completa (Hedvig), cuatro trampas nuevas (13-16)
 
 ACELIA se descartó (era una prueba, palabras del usuario) y se limpió por completo de
