@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.11.0
+version: 0.12.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -116,7 +116,7 @@ alguien lo va a usar.
 **Consecuencia asumida** (del contrato en el tema, no de los CPT, que ahora viven en ACF): cambiar
 de tema deja el sitio sin los tokens hasta que se instale el tema hijo nuevo. Aceptado.
 
-## Las dieciséis trampas ya pagadas
+## Las dieciocho trampas ya pagadas
 
 Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
 
@@ -278,6 +278,28 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     rueda del ratón deja de mover la página (el scroll pasa a vivir dentro de ese `body`, no en la
     ventana). En `html` recorta igual sin ese efecto secundario.
 
+17. **Si hay web de referencia servida Y fichero de Figma, manda la WEB.** Verificado el 7/09/2026
+    en Hedvig, y caro: la landing se construyó entera desde el Figma y salió con el titular
+    equivocado en el Hero (el Figma pone ahí el que la web real usa en el CTA final), sin sección
+    de CTA, sin footer (el Figma solo tiene la insignia de Framer), con el contenedor a 1280 en vez
+    de 1120 y con seis tarjetas de la sección «Try it» reducidas a etiquetas sueltas. Nada de eso
+    lo ve un validador: el marcado era válido y la página "parecía" bien.
+
+    **Regla:** cuando el cliente da una URL de referencia, el Figma sirve para entender la
+    intención, pero la fidelidad se mide contra la web servida. Y se MIDE, no se mira:
+
+    ```js
+    // Escala tipográfica y color reales de un titular
+    const cs = getComputedStyle(el);            // fontSize, lineHeight, letterSpacing, color
+    // Estructura y medidas: contenedor, padding de sección, gaps, radios
+    el.getBoundingClientRect(); cs.padding; cs.gap; cs.borderRadius;
+    // Qué anima: los motores tipo Framer dejan el estado en el atributo style
+    document.querySelectorAll('[style*="opacity"],[style*="transform"]')
+    ```
+
+    Con eso salen el contenedor, la escala, los radios, los paddings y los patrones de animación
+    en cuatro o cinco consultas, y el resultado coincide al píxel en vez de "parecerse".
+
 ## Anotaciones de Figma: canal de instrucciones por sección
 
 **Verificado el 7/09/2026.** El cliente/diseñador puede dejar una anotación de Dev Mode anclada a
@@ -304,7 +326,7 @@ return conAnotacion;
 Esto es distinto de "Figma como fuente del marcado" (descartado, ver abajo): leer una anotación de
 texto es una lectura puntual y barata, no extracción de árbol de nodos para generar bloques.
 
-**Trampa 17, verificada el 7/09/2026 en Hedvig: leer la anotación no es lo mismo que ver la
+**Trampa 18, verificada el 7/09/2026 en Hedvig: leer la anotación no es lo mismo que ver la
 animación.** Cuando la anotación da una URL de referencia ("mira cómo anima esta web"), la primera
 versión de la fase 6 se escribió suponiendo el patrón más habitual (fundido + deslizamiento con
 GSAP) sin entrar a esa URL — salió mal: la animación real de `hedvig.framer.website` en su sección
