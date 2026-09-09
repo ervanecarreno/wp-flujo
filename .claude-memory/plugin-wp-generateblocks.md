@@ -11,7 +11,16 @@ metadata:
 Desde el 27/08/2026 el flujo de [[flujo-wordpress-generateblocks]] **ya no es solo un documento**:
 está empaquetado como plugin de Claude Code en el propio repo `C:\TRABAJOS\wp-flujo`
 (el repo ES el plugin: `.claude-plugin/plugin.json` en la raíz, más `marketplace.json` con
-`"source": "./"`). Se llama **`wp-generateblocks`**, versión 0.2.0.
+`"source": "./"`). Se llama **`wp-generateblocks`**, y desde el 9/09/2026 vive publicado en
+github.com/ervanecarreno/wp-flujo (privado), con releases etiquetadas por `claude plugin tag` en
+formato `wp-generateblocks--v<version>`. Va por 0.13.1.
+
+**Trampa del propio plugin, aprendida el 9/09/2026:** `/plugin install` hace una **copia** en
+`~/.claude/plugins/cache/`, no un enlace vivo al repo. Editar `C:\TRABAJOS\wp-flujo` no cambia lo
+que Claude carga: hace falta `claude plugin update wp-generateblocks@metropolis-wp` y reiniciar.
+Sin eso, el plugin instalado estuvo congelado en 0.2.0 durante dos semanas mientras el repo iba por
+0.13.0 — sin comandos ni skills de GSAP, y sin ningún aviso. `claude plugin list` dice la versión
+real instalada.
 
 Decisión de fondo: plugin y no skill suelta, porque lo que se perdió al cambiar de máquina no fue
 el texto —la skill de cuenta se sincronizó sola— sino los **scripts**; y los hooks, exclusivos de
