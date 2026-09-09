@@ -172,7 +172,17 @@
           <p>Dos líneas en Claude Code, una detrás de otra:</p>
           <pre>/plugin marketplace add C:\TRABAJOS\wp-flujo
 /plugin install wp-generateblocks@metropolis-wp</pre>
-          <p>Desde ese momento el método está disponible en cualquier carpeta que abras, no solo en esa.</p>
+          <p><strong>Son dos líneas porque son dos cosas distintas.</strong> La primera registra el catálogo — le dice a Claude dónde mirar, sin instalar nada. La segunda coge el plugin de ese catálogo y lo instala. Un catálogo puede contener varios plugins, y por eso el <code>add</code> no se repite aunque mañana empaquetes un segundo flujo.</p>
+          <p>Desde ese momento el método está disponible en cualquier carpeta que abras, no solo en esa. <strong>Al empezar un proyecto nuevo no escribes nada de esto.</strong></p>
+        </div>
+      </li>
+      <li class="paso">
+        <span class="paso-n">C</span>
+        <div>
+          <div class="paso-head"><h3>Actualízalo cuando el plugin cambie</h3><span class="quien tu">a mano</span></div>
+          <p>Instalar hace una <strong>copia</strong> del plugin en la carpeta de Claude, no un enlace vivo al repositorio. Editar el repositorio no actualiza lo que Claude carga. Después de un <code>git pull</code> o de tocar una skill, en el terminal:</p>
+          <pre>claude plugin update wp-generateblocks@metropolis-wp</pre>
+          <p>Y reinicia Claude Code para que surta efecto. Este es el único comando que se repite en el tiempo — no por proyecto, sino cada vez que el plugin cambia. Si se olvida, sigues trabajando con la versión vieja sin ningún aviso. Para comprobar en qué versión estás: <code>claude plugin list</code>.</p>
         </div>
       </li>
     </ol>

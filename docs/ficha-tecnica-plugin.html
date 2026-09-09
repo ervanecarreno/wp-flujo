@@ -384,9 +384,9 @@
         <p>Cada skill lleva su propio número en la cabecera del <code>SKILL.md</code>. La del flujo de 8 fases va un paso por delante del plugin: cambia más a menudo que el resto.</p>
       </div>
       <div class="vc-cell">
-        <span class="num">git log</span>
-        <h3>El changelog real</h3>
-        <p>No hay tags de release todavía — el historial de commits de este repo <em>es</em> el changelog. Cada trampa nueva, cada herramienta, es un commit con su porqué.</p>
+        <span class="num">--v0.13.0</span>
+        <h3>La etiqueta de release</h3>
+        <p>Cada versión publicada lleva su etiqueta de git con el formato de la herramienta — <code>wp-generateblocks--v0.13.0</code>, creada con <code>claude plugin tag</code>, que de paso comprueba que <code>plugin.json</code> y el marketplace digan el mismo número. Entre etiqueta y etiqueta, el <code>git log</code> es el changelog: cada trampa nueva es un commit con su porqué.</p>
       </div>
       <div class="vc-cell">
         <span class="num">Stop hook</span>
@@ -397,11 +397,12 @@
   </section>
 
   <section>
-    <p class="eyebrow">Una vez por máquina</p>
+    <p class="eyebrow">Una vez por máquina — nunca por proyecto</p>
     <h2>Instalación</h2>
     <ol class="steps">
-      <li><div><strong>Añade el marketplace.</strong> <code>/plugin marketplace add C:\TRABAJOS\wp-flujo</code> — la ruta ya trae <code>.claude-plugin/marketplace.json</code>, no hace falta nada más.</div></li>
-      <li><div><strong>Instala el plugin.</strong> <code>/plugin install wp-generateblocks@metropolis-wp</code>. A partir de aquí, sus skills están disponibles en <em>cualquier</em> proyecto que abras, no solo en este repo.</div></li>
+      <li><div><strong>Añade el marketplace.</strong> <code>/plugin marketplace add C:\TRABAJOS\wp-flujo</code> — la ruta ya trae <code>.claude-plugin/marketplace.json</code>, no hace falta nada más. Esto solo registra el catálogo: le dice a Claude <em>dónde mirar</em>, sin instalar nada todavía.</div></li>
+      <li><div><strong>Instala el plugin.</strong> <code>/plugin install wp-generateblocks@metropolis-wp</code> — el segundo paso, porque un catálogo puede contener varios plugins y este coge uno. A partir de aquí, sus skills están disponibles en <em>cualquier</em> proyecto que abras, no solo en este repo: al empezar una web nueva no se escribe nada de esto.</div></li>
+      <li><div><strong>Mantenlo al día.</strong> <code>claude plugin update wp-generateblocks@metropolis-wp</code>, y reinicia Claude Code. Instalar hace una <em>copia</em>, no un enlace vivo: editar este repo no cambia lo que Claude carga. Es el único comando que se repite en el tiempo — cada vez que el plugin cambia, no cada vez que empiezas un proyecto. <code>claude plugin list</code> dice en qué versión estás.</div></li>
       <li><div><strong>Desactiva la skill vieja de la cuenta.</strong> Si existe <code>web-para-wordpress</code> en tu cuenta, apágala — empuja a <code>theme.json</code> y ACF Blocks, justo lo contrario de lo que concluyó la investigación de este flujo.</div></li>
     </ol>
   </section>
