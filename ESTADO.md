@@ -16,7 +16,7 @@ clases. Para eso se han añadido a `skills/` las 8 skills oficiales de GreenSock
 `gsap-core`, `gsap-timeline`, `gsap-scrolltrigger`, `gsap-plugins`, `gsap-utils`, `gsap-performance`,
 `gsap-react`, `gsap-frameworks`. Copiadas dentro del plugin (no solo instaladas como marketplace
 aparte) para que viajen con `wp-flujo` a cualquier máquina sin pasos extra. La Fase 6 de la skill
-principal ya las referencia. Plugin en `0.13.0`.
+principal ya las referencia. Plugin en `0.13.1`.
 
 ## Cerrado el 7/09/2026: las tres lecciones de Hedvig, convertidas en herramientas
 
@@ -776,3 +776,22 @@ fue exactamente lo que pasó el 27/08/2026.
 
 Al terminar de trabajar: `git add -A && git commit`. Sin remoto, no hay `push` — eso lleva proyecto
 **y** memoria dentro del propio commit, listo para copiar la carpeta a otra máquina.
+
+## Cerrado el 9/09/2026: repositorio publicado y frontmatter roto de `puerta-calidad-wordpress`
+
+Subido todo a `github.com/ervanecarreno/wp-flujo` (privado) tras catorce commits sin empujar, y
+estrenado el etiquetado de releases con `claude plugin tag`, que usa el formato
+`wp-generateblocks--v<version>` y comprueba que `plugin.json` y el marketplace digan lo mismo.
+
+Esa comprobación destapó un fallo que llevaba tiempo pasando desapercibido: la descripción de
+`skills/puerta-calidad-wordpress/SKILL.md` era un escalar YAML sin comillas y contenía `: `
+(«...un WordPress: contrato de diseño publicado...»). El frontmatter no parseaba, y **la skill se
+cargaba con metadatos vacíos**: sin descripción, nunca se disparaba sola. Es exactamente la clase
+de fallo silencioso que este repo documenta como trampa — el validador de plugins sí lo ve, pero
+nadie lo había corrido. Arreglado entrecomillando la descripción (skill 0.2.0 → 0.2.1).
+
+Descubierto de paso: `/plugin install` hace una **copia** a `~/.claude/plugins/cache/`, no un
+enlace vivo. El plugin instalado en esta máquina estaba congelado en 0.2.0 desde el 28/08 mientras
+el repo iba por 0.13.0 — sin comandos ni skills de GSAP. Hace falta
+`claude plugin update wp-generateblocks@metropolis-wp` y reiniciar cada vez que el repo cambia.
+Documentado en las dos páginas de `docs/`.

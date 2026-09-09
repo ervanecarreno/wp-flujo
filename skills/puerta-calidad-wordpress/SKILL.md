@@ -1,7 +1,7 @@
 ---
 name: puerta-calidad-wordpress
-description: Puerta de calidad antes de entregar o subir a producción un WordPress: contrato de diseño publicado (tokens y tipografía que resuelven de verdad), enlaces e imágenes rotas, peso de imagen, accesibilidad WCAG, CLS/LCP y salud de WordPress. Úsala cuando se vaya a entregar, revisar o publicar un sitio, cuando se hable de accesibilidad, Lighthouse, imágenes pesadas o enlaces rotos, y siempre antes de dar por bueno un despliegue.
-version: 0.2.0
+description: "Puerta de calidad antes de entregar o subir a producción un WordPress: contrato de diseño publicado (tokens y tipografía que resuelven de verdad), enlaces e imágenes rotas, peso de imagen, accesibilidad WCAG, CLS/LCP y salud de WordPress. Úsala cuando se vaya a entregar, revisar o publicar un sitio, cuando se hable de accesibilidad, Lighthouse, imágenes pesadas o enlaces rotos, y siempre antes de dar por bueno un despliegue."
+version: 0.2.1
 ---
 
 # Puerta de calidad antes de producción
