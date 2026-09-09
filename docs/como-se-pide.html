@@ -1,0 +1,622 @@
+<title>Pedirlo bien la primera vez</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --papel:      #f2f3f1;
+    --alzado:     #ffffff;
+    --tinta:      #12222b;
+    --tinta-sec:  #4d5c64;
+    --tinta-ter:  #7e8b91;
+    --lapiz:      #a63d1e;
+    --lapiz-tenue:#f6ebe6;
+    --linea:      #d8dbd8;
+    --linea-fina: #e6e8e5;
+    --panel:      #12222b;
+    --panel-txt:  #dfe4e2;
+    --panel-cmt:  #7f9099;
+    --panel-res:  #e8a87c;
+
+    --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --texto:   "Source Serif 4", Georgia, "Times New Roman", serif;
+    --mono:    "IBM Plex Mono", Consolas, "Courier New", monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --papel:      #0e171c;
+      --alzado:     #142228;
+      --tinta:      #e6ebe9;
+      --tinta-sec:  #a3b1b6;
+      --tinta-ter:  #74858c;
+      --lapiz:      #e8734a;
+      --lapiz-tenue:#26201d;
+      --linea:      #2b3a41;
+      --linea-fina: #1d2a30;
+      --panel:      #060d11;
+      --panel-txt:  #d5dedc;
+      --panel-cmt:  #6d8189;
+      --panel-res:  #f0b083;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --papel:      #0e171c;
+    --alzado:     #142228;
+    --tinta:      #e6ebe9;
+    --tinta-sec:  #a3b1b6;
+    --tinta-ter:  #74858c;
+    --lapiz:      #e8734a;
+    --lapiz-tenue:#26201d;
+    --linea:      #2b3a41;
+    --linea-fina: #1d2a30;
+    --panel:      #060d11;
+    --panel-txt:  #d5dedc;
+    --panel-cmt:  #6d8189;
+    --panel-res:  #f0b083;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--papel);
+    color: var(--tinta);
+    font-family: var(--texto);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .hoja {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 4.5rem 1.75rem 7rem;
+  }
+
+  /* ── Cabecera ─────────────────────────────────────────── */
+
+  .cabecera {
+    border-bottom: 2px solid var(--tinta);
+    padding-bottom: 2rem;
+    margin-bottom: 3.5rem;
+  }
+
+  .sello {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--lapiz);
+    margin: 0 0 1.1rem;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(2.3rem, 6vw, 3.5rem);
+    line-height: 1.02;
+    letter-spacing: -.025em;
+    margin: 0 0 1.1rem;
+    text-wrap: balance;
+  }
+
+  .entradilla {
+    font-size: 1.14rem;
+    color: var(--tinta-sec);
+    max-width: 40rem;
+    margin: 0;
+  }
+  .entradilla + .entradilla { margin-top: .9rem; }
+
+  /* ── Secciones numeradas ──────────────────────────────── */
+
+  section { margin-bottom: 3.75rem; }
+
+  .bloque {
+    display: grid;
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+    gap: 0 1.5rem;
+    align-items: start;
+  }
+
+  @media (max-width: 720px) {
+    .bloque { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .num { margin-bottom: .35rem; padding-top: 0; }
+  }
+
+  .num {
+    font-family: var(--mono);
+    font-size: .82rem;
+    font-weight: 500;
+    color: var(--lapiz);
+    padding-top: .55rem;
+    letter-spacing: .04em;
+  }
+
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(1.45rem, 3vw, 1.85rem);
+    line-height: 1.14;
+    letter-spacing: -.018em;
+    margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 1.02rem;
+    letter-spacing: -.005em;
+    margin: 2.2rem 0 .7rem;
+  }
+
+  .cuerpo > p { max-width: 38rem; margin: 0 0 1rem; }
+  .cuerpo > p:last-child { margin-bottom: 0; }
+
+  strong { font-weight: 600; color: var(--tinta); }
+  em { font-style: italic; }
+
+  code {
+    font-family: var(--mono);
+    font-size: .84em;
+    background: var(--linea-fina);
+    padding: .12em .38em;
+    border-radius: 3px;
+    color: var(--tinta);
+  }
+
+  /* ── Panel de consola ─────────────────────────────────── */
+
+  .consola { margin: 1.5rem 0; }
+
+  .consola-et {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--tinta-ter);
+    margin: 0 0 .5rem;
+  }
+
+  pre {
+    background: var(--panel);
+    color: var(--panel-txt);
+    font-family: var(--mono);
+    font-size: .82rem;
+    line-height: 1.72;
+    padding: 1.35rem 1.5rem;
+    margin: 0;
+    border-radius: 5px;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  pre .c { color: var(--panel-cmt); }
+  pre .h { color: var(--panel-res); }
+
+  /* ── Tablas ───────────────────────────────────────────── */
+
+  .tabla-env { overflow-x: auto; margin: 1.4rem 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .93rem;
+    min-width: 30rem;
+  }
+
+  th {
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: .74rem;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--tinta-ter);
+    text-align: left;
+    padding: 0 1.1rem .6rem 0;
+    border-bottom: 1.5px solid var(--tinta);
+  }
+
+  td {
+    padding: .78rem 1.1rem .78rem 0;
+    border-bottom: 1px solid var(--linea-fina);
+    vertical-align: top;
+    color: var(--tinta-sec);
+  }
+  td:first-child { color: var(--tinta); font-weight: 600; }
+  td code { font-size: .8em; }
+  tr:last-child td { border-bottom: none; }
+
+  /* ── Aviso a lápiz rojo ───────────────────────────────── */
+
+  .aviso {
+    border-left: 3px solid var(--lapiz);
+    background: var(--lapiz-tenue);
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    font-size: .96rem;
+    max-width: 38rem;
+  }
+  .aviso p { margin: 0; color: var(--tinta-sec); }
+  .aviso p + p { margin-top: .6rem; }
+  .aviso strong { color: var(--lapiz); }
+
+  /* ── Listas ───────────────────────────────────────────── */
+
+  ol.pasos, ul.puntos {
+    margin: 1.1rem 0;
+    padding-left: 0;
+    list-style: none;
+    max-width: 38rem;
+  }
+
+  ol.pasos { counter-reset: p; }
+  ol.pasos li {
+    counter-increment: p;
+    position: relative;
+    padding-left: 2.1rem;
+    margin-bottom: .8rem;
+    color: var(--tinta-sec);
+  }
+  ol.pasos li::before {
+    content: counter(p);
+    position: absolute;
+    left: 0;
+    top: .1em;
+    font-family: var(--mono);
+    font-size: .78rem;
+    color: var(--lapiz);
+  }
+
+  ul.puntos li {
+    position: relative;
+    padding-left: 1.4rem;
+    margin-bottom: .7rem;
+    color: var(--tinta-sec);
+  }
+  ul.puntos li::before {
+    content: "—";
+    position: absolute;
+    left: 0;
+    color: var(--tinta-ter);
+  }
+
+  /* ── Cierre ───────────────────────────────────────────── */
+
+  .cierre {
+    border-top: 2px solid var(--tinta);
+    padding-top: 1.75rem;
+    margin-top: 4.5rem;
+    font-size: .92rem;
+    color: var(--tinta-ter);
+    max-width: 38rem;
+  }
+  .cierre p { margin: 0 0 .6rem; }
+  .cierre p:last-child { margin-bottom: 0; }
+  .cierre code { background: none; padding: 0; color: var(--tinta-sec); }
+</style>
+
+<div class="hoja">
+
+  <header class="cabecera">
+    <p class="sello">wp-generateblocks · flujo Metrópolis</p>
+    <h1>Pedirlo bien la primera vez</h1>
+    <p class="entradilla">Cómo se arranca un proyecto web con este flujo: qué hay que tener antes,
+      qué cuatro datos hacen falta y qué se escribe literalmente en Claude Code.</p>
+    <p class="entradilla">La idea que hay que entender antes que ninguna otra: <strong>esto no es
+      «hazme una home»</strong>. Es una cadena, con un contrato de diseño en un extremo y cinco
+      comprobaciones en el otro. Pedida en el orden equivocado la cadena no falla —pasa, y lo que
+      sale está mal.</p>
+  </header>
+
+  <section class="bloque">
+    <div class="num">01</div>
+    <div class="cuerpo">
+      <h2>Lo que se instala una vez, no en cada proyecto</h2>
+
+      <p>El flujo vive en un plugin de Claude Code. Una vez instalado, sus skills se cargan solas
+        en cualquier carpeta: no hay que copiar nada dentro del proyecto del cliente.</p>
+
+      <div class="tabla-env">
+        <table>
+          <thead>
+            <tr><th>Pieza</th><th>Cómo</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Claude Code</td>
+              <td>En un terminal interactivo. El menú <code>/plugin</code> solo existe ahí.</td>
+            </tr>
+            <tr>
+              <td>El plugin</td>
+              <td><code>/plugin</code> → añadir el <em>marketplace</em>
+                <code>ervanecarreno/wp-flujo</code> → instalar <code>wp-generateblocks</code>.
+                El repo es privado: primero hay que pedir acceso.</td>
+            </tr>
+            <tr>
+              <td>Node</td>
+              <td>Probado en v24. Los validadores no tienen dependencias:
+                <strong>no hay <code>npm install</code></strong>.</td>
+            </tr>
+            <tr>
+              <td>Local WP</td>
+              <td>Trae dentro el PHP y el wp-cli que usa el flujo. No hay que instalar ninguno
+                de los dos por separado.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="aviso">
+        <p><strong>Desactiva la skill vieja.</strong> Si en la cuenta hay una skill llamada
+          <code>web-para-wordpress</code>, quítala. Empuja hacia <code>theme.json</code> y ACF
+          Blocks —lo contrario de lo que concluyó la investigación— y compite con este plugin sin
+          que se note quién ha ganado.</p>
+      </div>
+
+      <p>La instalación desde la ruta local está verificada. Desde GitHub debería funcionar igual
+        teniendo acceso al repo, pero eso todavía no lo he probado en otra máquina.</p>
+    </div>
+  </section>
+
+  <section class="bloque">
+    <div class="num">02</div>
+    <div class="cuerpo">
+      <h2>Los cuatro datos, antes de escribir nada</h2>
+
+      <p>El generador no arranca sin ellos y no se los puede inventar. Llevarlos preparados ahorra
+        una ronda entera de preguntas.</p>
+
+      <div class="tabla-env">
+        <table>
+          <thead>
+            <tr><th>Dato</th><th>Qué es y de dónde sale</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>sistema</td>
+              <td>El sistema de diseño. Da nombre al contrato y a su CSS
+                (<code>pergamino.tokens.json</code>). Si el cliente ya tiene uno, ese.</td>
+            </tr>
+            <tr>
+              <td>slug</td>
+              <td>Identificador del plugin del proyecto dentro de WordPress. Minúsculas y
+                guiones: <code>ayto-tazacorte</code>.</td>
+            </tr>
+            <tr>
+              <td>sitio</td>
+              <td>La carpeta del sitio en Local WP. <strong>Si no existe todavía, ese es el
+                primer trabajo</strong>, no un detalle que se resuelve después.</td>
+            </tr>
+            <tr>
+              <td>puerto</td>
+              <td>El <code>WP_MYSQL_PORT</code> de ese sitio. Se saca de Local, o probando
+                <code>wp core version</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloque">
+    <div class="num">03</div>
+    <div class="cuerpo">
+      <h2>La petición, literal</h2>
+
+      <p>Hay un comando propio para esto. No pidas «móntame la estructura»: el generador existe
+        justamente porque hacerlo a mano se dejaba piezas, y las dos que más caro salieron —los
+        tokens que no llegaban al navegador y las fuentes declaradas pero no cargadas— eran las
+        dos por lo mismo.</p>
+
+      <div class="consola">
+        <p class="consola-et">Proyecto nuevo, desde cero</p>
+<pre><span class="h">/wp-nuevo-proyecto</span> "WEB Ayuntamiento de Tazacorte" pergamino ayto-tazacorte</pre>
+      </div>
+
+      <p>Te preguntará por lo que le falte de los cuatro datos, en una sola tanda, y montará el
+        esqueleto: <code>design/</code>, el contrato y su CSS, el plugin del proyecto ya encolando
+        tokens y fuentes desde el primer minuto, <code>verificar.mjs</code> y el
+        <code>.gitignore</code>. Después te lee los pasos que quedan.</p>
+
+      <h3>Si el diseño ya existe</h3>
+
+      <p>Cuando hay un handoff de Claude Design, un Figma o un HTML ya hecho, dilo en la misma
+        frase. Cambia la fase por la que se entra, no el flujo.</p>
+
+      <div class="consola">
+        <p class="consola-et">Con diseño de partida</p>
+<pre><span class="c"># Handoff ya convertido, o el HTML del diseño</span>
+Tengo el handoff de Claude Design en <span class="h">&lt;ruta&gt;</span>. Quiero llevarlo a
+WordPress con el flujo. El sitio en Local es <span class="h">&lt;sitio&gt;</span>, puerto <span class="h">&lt;n&gt;</span>.
+
+<span class="c"># Desde Figma — solo si el fichero expone variables</span>
+El diseño está en <span class="h">&lt;url de Figma&gt;</span>. Comprueba primero si expone
+variables con nombre; si devuelve colores planos, dímelo antes de convertir.</pre>
+      </div>
+
+      <div class="aviso">
+        <p><strong>Partir de Figma es condicional.</strong> Solo si el fichero expone la paleta
+          como variables con nombre. Si la API devuelve <code>colors: []</code>, lo que se lee son
+          HEX aplanados y el contrato nace muerto. Es una comprobación, no una opinión.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloque">
+    <div class="num">04</div>
+    <div class="cuerpo">
+      <h2>El orden que no se negocia</h2>
+
+      <p>Ocho fases. La que la gente se salta —y la que más caro sale— es la primera.</p>
+
+      <div class="tabla-env">
+        <table>
+          <thead>
+            <tr><th>Fase</th><th>Lo que no puede fallar</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>0 · Entorno</td>
+              <td>El WordPress vacío va <strong>antes</strong> del diseño. Ahí se anotan tres
+                datos que el diseño necesita: subdirectorio, breakpoint real (GeneratePress usa
+                768 y GenerateBlocks 767) y carpeta de uploads.</td>
+            </tr>
+            <tr>
+              <td>1 · Diseño</td>
+              <td>Se congela el contrato. Aquí se elige el tipo de conversión.</td>
+            </tr>
+            <tr>
+              <td>2–3 · Repo</td>
+              <td><code>git init</code> en <code>wp-content/</code>, tema hijo, CPT por código,
+                <code>acf-json/</code> y <code>/patterns/</code>. Y exportar la configuración del
+                tema: no está en código, vive en la base de datos.</td>
+            </tr>
+            <tr>
+              <td>4 · Marcado</td>
+              <td>Las imágenes primero, con <code>wp media import --porcelain</code>, para usar
+                IDs reales. El color por clase CSS, jamás por el panel del bloque.</td>
+            </tr>
+            <tr>
+              <td>5–6 · Plantillas y animación</td>
+              <td>GSAP va <em>después</em> de los query loops. Animar antes y convertirlos luego
+                rompe la animación.</td>
+            </tr>
+            <tr>
+              <td>7 · Puerta de calidad</td>
+              <td>Contra la URL real y servida. Nunca contra un HTML local.</td>
+            </tr>
+            <tr>
+              <td>8 · Producción</td>
+              <td><code>wp search-replace --dry-run --skip-columns=guid</code> primero. Y
+                reimportar la configuración del tema: el search-replace no la trae.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="aviso">
+        <p><strong>La fase 0 va primera.</strong> Sin el subdirectorio anotado, el diseño se
+          cierra a ciegas. Un fichero de bloques puede dar cero errores sobre 179 bloques y tener
+          11 de 13 imágenes en 404 en producción. Pasó de verdad.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloque">
+    <div class="num">05</div>
+    <div class="cuerpo">
+      <h2>La pregunta que te va a hacer</h2>
+
+      <p>En cuanto haya un diseño que llevar a WordPress, Claude tiene que preguntar qué tipo de
+        conversión quieres. No lo decide él. Conviene llegar con la respuesta pensada.</p>
+
+      <div class="tabla-env">
+        <table>
+          <thead>
+            <tr><th></th><th>A · GenerateBlocks Pro V2</th><th>B · Gutenberg nativo</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Al pegar</td>
+              <td>Ya estilada</td>
+              <td>Sin estilos hasta instalar su CSS</td>
+            </tr>
+            <tr>
+              <td>Recolorear</td>
+              <td>124 HEX repartidos por 179 bloques</td>
+              <td>Un token</td>
+            </tr>
+            <tr>
+              <td>Dependencia</td>
+              <td>Requiere GB Pro activo</td>
+              <td>Ninguna</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><strong>Por defecto A</strong>, que es la vía habitual. Pero si el cliente va a mantener
+        o reteñir la web él mismo, B gana de calle, y hay que decírselo <em>antes</em> de que
+        elija. Si eliges A, pide que los colores vayan como <code>var(--token)</code> en
+        <code>styles</code> y no aplanados a HEX: eso cierra la única desventaja real de A.</p>
+    </div>
+  </section>
+
+  <section class="bloque">
+    <div class="num">06</div>
+    <div class="cuerpo">
+      <h2>Cómo se comprueba</h2>
+
+      <p>Un solo comando, y necesita la URL real de la página publicada.</p>
+
+      <div class="consola">
+        <p class="consola-et">Verificación</p>
+<pre><span class="h">/wp-verificar</span> https://ayto-tazacorte.local/inicio/</pre>
+      </div>
+
+      <p>Corre cinco puertas, y cada una comprueba algo que las demás no ven:</p>
+
+      <ol class="pasos">
+        <li><strong>Contrato publicado</strong> — que el navegador reciba de verdad los tokens y
+          las fuentes.</li>
+        <li><strong>Los dos validadores</strong> — sobre el marcado. Los dos siempre: ninguno
+          domina al otro.</li>
+        <li><strong>Round-trip</strong> — le pregunta a WordPress qué hace al guardar, en vez de
+          suponerlo.</li>
+        <li><strong>Editor real</strong> — abre la página en Gutenberg y le pregunta si algún
+          bloque es inválido.</li>
+        <li><strong>La página contra su diseño</strong> — compara la altura de cada sección.</li>
+      </ol>
+
+      <div class="aviso">
+        <p><strong>Declarar no es publicar.</strong> Que el marcado diga
+          <code>var(--bg-page)</code> no significa que el navegador lo reciba. Este flujo cometió
+          ese fallo dos veces en dos semanas sin que ninguna otra capa lo viera.</p>
+        <p>Por eso la primera puerta necesita la <em>URL servida</em>, con subdirectorio si lo
+          hay. Si no la tienes, consíguela: saltarse ese paso es exactamente el fallo que la
+          puerta existe para cazar.</p>
+      </div>
+
+      <p>Para la entrega o el paso a producción esto no basta. Ahí va además la skill
+        <code>puerta-calidad-wordpress</code>: enlaces rotos, peso de imagen, accesibilidad y
+        rendimiento.</p>
+    </div>
+  </section>
+
+  <section class="bloque">
+    <div class="num">07</div>
+    <div class="cuerpo">
+      <h2>Cuatro formas de pedirlo mal</h2>
+
+      <p>Todas vistas, y todas silenciosas: no dan error, dan un resultado equivocado.</p>
+
+      <ul class="puntos">
+        <li><strong>Pedir marcado sin haber hecho la fase 0.</strong> Sale, valida, y las imágenes
+          están en 404. El validador mira el fichero, no el entorno.</li>
+        <li><strong>Dar un HTML local en vez de la URL servida.</strong> La puerta de calidad se
+          queda sin poder comprobar lo único que de verdad importa.</li>
+        <li><strong>Escribir el contrato en <code>em</code> o <code>rem</code>.</strong> No es
+          portable: la raíz forma parte del entorno, no del contrato. GeneratePress sirve 18px y
+          el diseño asumía 16 —todo salía un 12,5% más grande, y encajaba al píxel en cada
+          sección—. <strong>El contrato va en píxeles.</strong></li>
+        <li><strong>Importar por wp-cli y darlo por hecho.</strong> GenerateBlocks reescribe su
+          CSS <em>al guardar desde el editor</em>, y <code>wp post create</code> no lo dispara. La
+          página carga, con su estructura y su contenido, pero los bloques nuevos salen sin
+          estilo. No lo ve ningún validador. Se cierra con <code>gb-regenerar-css.mjs</code> al
+          final de la fase 4.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="cierre">
+    <p>El método completo está en la skill <code>flujo-wordpress-generateblocks</code>, que Claude
+      Code carga sola en la carpeta del proyecto. No hay nada que abrir ni que leer antes de
+      empezar.</p>
+    <p>El detalle de cada fase, con las fuentes y el nivel de confianza por afirmación, en
+      <code>traspaso-2026-08-26/</code> del repo del plugin.</p>
+  </footer>
+
+</div>

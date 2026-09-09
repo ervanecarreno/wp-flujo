@@ -1,0 +1,329 @@
+<title>De cero a publicado</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --ink:#16211c;
+    --ink-soft:#47554c;
+    --ink-faint:#6d7a70;
+    --paper:#f1f3ec;
+    --paper-raised:#e6e9dd;
+    --paper-card:#fbfbf7;
+    --accent:#c85a1f;
+    --accent-ink:#7a3510;
+    --accent-tint:#f0dcc7;
+    --claude:#2f5d50;
+    --claude-tint:#dbe7e0;
+    --line:rgba(22,33,28,.15);
+    --line-strong:rgba(22,33,28,.3);
+    --serif:'IBM Plex Serif', ui-serif, Georgia, serif;
+    --sans:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    --mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#eef1e9; --ink-soft:#c3ccc1; --ink-faint:#8d988e;
+      --paper:#141d18; --paper-raised:#1c2620; --paper-card:#1a231d;
+      --accent:#e2894a; --accent-ink:#f4c79a; --accent-tint:#3a2718;
+      --claude:#8fc4b0; --claude-tint:#20342c;
+      --line:rgba(238,241,233,.14); --line-strong:rgba(238,241,233,.28);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#eef1e9; --ink-soft:#c3ccc1; --ink-faint:#8d988e;
+    --paper:#141d18; --paper-raised:#1c2620; --paper-card:#1a231d;
+    --accent:#e2894a; --accent-ink:#f4c79a; --accent-tint:#3a2718;
+    --claude:#8fc4b0; --claude-tint:#20342c;
+    --line:rgba(238,241,233,.14); --line-strong:rgba(238,241,233,.28);
+  }
+
+  *{box-sizing:border-box;}
+  body{background:var(--paper); color:var(--ink); font-family:var(--sans); line-height:1.55; -webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--accent-tint); color:var(--accent-ink);}
+  .sheet{max-width:800px; margin:0 auto; padding:56px 28px 88px;}
+
+  /* ---------- encabezado ---------- */
+  header.top{border-bottom:2px solid var(--ink); padding-bottom:24px;}
+  .kicker{
+    font-family:var(--mono); font-size:12.5px; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--ink-faint); margin:0 0 14px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:600; font-size:clamp(30px,5.4vw,44px);
+    letter-spacing:-.015em; margin:0 0 10px; text-wrap:balance;
+  }
+  .lede{font-size:17.5px; color:var(--ink-soft); max-width:56ch; margin:0;}
+
+  /* ---------- cómo se habla ---------- */
+  .talk{
+    margin-top:36px; padding:22px 24px; background:var(--paper-card);
+    border:1px solid var(--line-strong); border-radius:4px;
+  }
+  .talk h2{font-family:var(--serif); font-size:20px; font-weight:600; margin:0 0 10px;}
+  .talk p{margin:0 0 14px; color:var(--ink-soft); font-size:15px; max-width:64ch;}
+  .talk p:last-child{margin-bottom:0;}
+  .says{display:flex; flex-direction:column; gap:8px; margin:16px 0 4px;}
+  .say{
+    font-family:var(--mono); font-size:13.5px; color:var(--ink);
+    background:var(--paper-raised); padding:9px 13px; border-radius:3px;
+    border-left:2px solid var(--accent);
+  }
+
+  /* ---------- secciones ---------- */
+  section{margin-top:52px;}
+  .sec-head{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:6px;}
+  .sec-head h2{font-family:var(--serif); font-size:25px; font-weight:600; margin:0;}
+  .sec-note{font-family:var(--mono); font-size:12px; color:var(--ink-faint); letter-spacing:.04em;}
+  .sec-intro{color:var(--ink-soft); font-size:15px; max-width:62ch; margin:0 0 22px;}
+
+  /* ---------- pasos ---------- */
+  .pasos{list-style:none; margin:0; padding:0;}
+  .paso{
+    display:grid; grid-template-columns:44px 1fr; gap:0 18px;
+    padding:20px 0; border-top:1px solid var(--line);
+  }
+  .paso:first-child{border-top:none; padding-top:4px;}
+  .paso-n{
+    font-family:var(--mono); font-size:14px; font-weight:500;
+    color:var(--ink-faint); padding-top:3px;
+    font-variant-numeric:tabular-nums;
+  }
+  .paso-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 12px; margin-bottom:7px;}
+  .paso h3{font-family:var(--serif); font-size:19px; font-weight:600; margin:0; text-wrap:balance;}
+  .quien{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.07em;
+    text-transform:uppercase; padding:3px 8px; border-radius:100px; white-space:nowrap;
+  }
+  .quien.tu{background:var(--accent-tint); color:var(--accent-ink);}
+  .quien.claude{background:var(--claude-tint); color:var(--claude);}
+  .paso p{margin:0 0 10px; color:var(--ink-soft); font-size:15px; max-width:62ch;}
+  .paso p:last-child{margin-bottom:0;}
+  .paso code{
+    font-family:var(--mono); font-size:.9em; background:var(--paper-raised);
+    padding:.12em .4em; border-radius:3px; color:var(--ink);
+  }
+  pre{
+    font-family:var(--mono); font-size:13px; background:var(--paper-raised);
+    padding:12px 14px; border-radius:3px; overflow-x:auto; margin:0 0 10px;
+    color:var(--ink); line-height:1.5;
+  }
+  .ojo{
+    display:flex; gap:9px; font-size:14px; color:var(--ink-soft);
+    border-left:2px solid var(--accent); padding:2px 0 2px 12px; margin-top:10px;
+    max-width:60ch;
+  }
+  .ojo b{color:var(--ink); font-weight:600;}
+
+  /* ---------- cierre ---------- */
+  .cierre{
+    margin-top:52px; padding:24px 26px; background:var(--paper-card);
+    border:1px solid var(--line-strong); border-radius:4px;
+  }
+  .cierre h2{font-family:var(--serif); font-size:21px; font-weight:600; margin:0 0 10px;}
+  .cierre p{color:var(--ink-soft); font-size:15px; margin:0 0 12px; max-width:62ch;}
+  .cierre p:last-child{margin-bottom:0;}
+
+  footer{
+    margin-top:56px; padding-top:20px; border-top:1px solid var(--line);
+    font-family:var(--mono); font-size:12px; color:var(--ink-faint);
+    display:flex; flex-wrap:wrap; gap:8px 20px; justify-content:space-between;
+  }
+  footer a{color:var(--accent-ink);}
+</style>
+
+<div class="sheet">
+
+  <header class="top">
+    <p class="kicker">wp-flujo · guía de uso</p>
+    <h1>De cero a publicado</h1>
+    <p class="lede">Todo lo que pasa entre no tener nada y tener la web del cliente publicada, en orden, diciendo en cada paso si lo haces tú a mano o se lo pides a Claude.</p>
+  </header>
+
+  <div class="talk">
+    <h2>Antes del paso 1: esto no es un asistente</h2>
+    <p>No hay una pantalla que te lleve de la mano. Abres Claude Code dentro de la carpeta del proyecto y <strong>hablas normal</strong>: el plugin reconoce de qué va lo que dices y carga solo el método que toca. No hay comandos que memorizar.</p>
+    <div class="says">
+      <span class="say">Vamos a montar la home del ayuntamiento en GenerateBlocks</span>
+      <span class="say">Este diseño ya está convertido, impórtalo</span>
+      <span class="say">Pásalo a producción</span>
+    </div>
+    <p>Las tres frases activan partes distintas del plugin sin que nombres ninguna. Solo hay <strong>dos atajos</strong> que sí se escriben tal cual, y los verás en los pasos 4 y 13: <code>/wp-nuevo-proyecto</code> y <code>/wp-verificar</code>.</p>
+  </div>
+
+  <section>
+    <div class="sec-head">
+      <h2>Preparación</h2>
+      <span class="sec-note">una vez por ordenador · ~15 min</span>
+    </div>
+    <p class="sec-intro">Esto se hace la primera vez y no se vuelve a tocar nunca, ni aunque cambies de cliente.</p>
+
+    <ol class="pasos">
+      <li class="paso">
+        <span class="paso-n">A</span>
+        <div>
+          <div class="paso-head"><h3>Instala Local WP</h3><span class="quien tu">a mano</span></div>
+          <p>Es el programa que levanta WordPress en tu ordenador. <strong>No instales PHP ni wp-cli por tu cuenta</strong>: Local ya los trae dentro y el plugin sabe encontrarlos ahí.</p>
+        </div>
+      </li>
+      <li class="paso">
+        <span class="paso-n">B</span>
+        <div>
+          <div class="paso-head"><h3>Mete el plugin en Claude Code</h3><span class="quien tu">a mano</span></div>
+          <p>Dos líneas en Claude Code, una detrás de otra:</p>
+          <pre>/plugin marketplace add C:\TRABAJOS\wp-flujo
+/plugin install wp-generateblocks@metropolis-wp</pre>
+          <p>Desde ese momento el método está disponible en cualquier carpeta que abras, no solo en esa.</p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <h2>El proyecto</h2>
+      <span class="sec-note">de aquí en adelante, una vez por web</span>
+    </div>
+    <p class="sec-intro">El orden importa. Los tres primeros pasos son tuyos y van <em>antes</em> de diseñar nada: si te los saltas, el diseño se cierra a ciegas y luego no encaja.</p>
+
+    <ol class="pasos">
+
+      <li class="paso">
+        <span class="paso-n">01</span>
+        <div>
+          <div class="paso-head"><h3>Crea el sitio en Local</h3><span class="quien tu">a mano</span></div>
+          <p>Nuevo sitio en Local WP, con nombre en minúsculas y guiones (<code>ayto-tazacorte</code>). Arráncalo y entra una vez para comprobar que carga.</p>
+          <p>Antes de cerrar Local, apunta el <strong>puerto de la base de datos</strong>: está en la pestaña <em>Database</em> del sitio, y es un número de cinco cifras como <code>10011</code>. Lo vas a necesitar en el paso 4.</p>
+        </div>
+      </li>
+
+      <li class="paso">
+        <span class="paso-n">02</span>
+        <div>
+          <div class="paso-head"><h3>Instala GeneratePress y GenerateBlocks Pro</h3><span class="quien tu">a mano</span></div>
+          <p>Desde el escritorio de ese WordPress recién creado, como cualquier tema y plugin. Son los dos únicos imprescindibles.</p>
+          <div class="ojo"><span>⌁</span><span><b>ACF, solo si el proyecto lo pide.</b> Hace falta cuando la web lleva contenidos repetibles —noticias, fichas, eventos—. Una landing o una home no necesitan ninguno: instalarlo «por si acaso» es un plugin de más.</span></div>
+        </div>
+      </li>
+
+      <li class="paso">
+        <span class="paso-n">03</span>
+        <div>
+          <div class="paso-head"><h3>Genera una contraseña de aplicación</h3><span class="quien tu">a mano</span></div>
+          <p>En ese WordPress: <em>Usuarios → tu perfil → Contraseñas de aplicación</em>. Le das un nombre, la creas, y copias lo que sale — con los espacios incluidos, tal cual.</p>
+          <p>Es lo que permite a Claude preguntarle cosas a WordPress directamente en vez de suponerlas. Sin esto el flujo funciona, pero se queda sin uno de sus controles.</p>
+        </div>
+      </li>
+
+      <li class="paso">
+        <span class="paso-n">04</span>
+        <div>
+          <div class="paso-head"><h3>Arranca el proyecto</h3><span class="quien claude">se lo pides</span></div>
+          <p>Abre Claude Code en la carpeta vacía donde vaya a vivir el proyecto y escribe el primero de los dos atajos:</p>
+          <pre>/wp-nuevo-proyecto "WEB Ayuntamiento de Tazacorte"</pre>
+          <p>Claude te pregunta las cuatro cosas que no puede adivinar —cómo se llama el sistema de diseño, el identificador corto del proyecto, la carpeta del sitio en Local y ese puerto del paso 1— y monta el esqueleto entero: el contrato de diseño, el tema hijo, las reglas del proyecto y el comprobador.</p>
+          <div class="ojo"><span>⌁</span><span><b>No lo montes tú copiando de otro proyecto.</b> El generador existe precisamente porque hacerlo a mano se olvidaba piezas, y las piezas que se olvidaban eran justo las que fallaban dos semanas después.</span></div>
+        </div>
+      </li>
+
+      <li class="paso">
+        <span class="paso-n">05</span>
+        <div>
+          <div class="paso-head"><h3>Guarda las credenciales</h3><span class="quien claude">se lo pides</span></div>
+          <p>Claude te ofrece hacer el <code>git init</code> y rellenar el fichero de credenciales con la contraseña del paso 3. Ese fichero <strong>nunca entra en git</strong>, y ya viene configurado para quedarse fuera.</p>
+          <div class="ojo"><span>⌁</span><span><b>La contraseña va entre comillas.</b> Lleva espacios: sin comillas se corta por el primero y luego falla algo que no parece tener nada que ver.</span></div>
+        </div>
+      </li>
+
+      <li class="paso">
+        <span class="paso-n">06</span>
+        <div>
+          <div class="paso-head"><h3>Congela el contrato de diseño</h3><span class="quien claude">se lo pides</span></div>
+          <p>Aquí decides tú: colores, tipografías, tamaños, espaciados. Claude los escribe en un único fichero y genera el CSS a partir de él.</p>
+          <p>La regla del sistema es que <strong>los nombres se congelan y los valores no</strong>. Cambiar el azul del cliente por otro azul es una edición de treinta segundos; cambiar cómo se llama ese color es una migración. Por eso los nombres se piensan una vez, al principio.</p>
+        </div>
+      </li>
+
+      <li class="paso">
+        <span class="paso-n">07</span>
+        <div>
+          <div class="paso-head"><h3>Instala el tema hijo en WordPress</h3><span class="quien claude">se lo pides</span></div>
+          <p>Claude copia el tema generado a Local y lo activa. Es el momento en que el contrato deja de ser un fichero tuyo y empieza a existir de verdad en el navegador, y también dentro del editor de WordPress.</p>
+          <div class="ojo"><span>⌁</span><span><b>Antes de activar, mira qué había.</b> Logo, menús y CSS adicional del tema anterior no viajan de un tema a otro. Pídele a Claude que lo compruebe primero si el WordPress no estaba recién hecho.</span></div>
+        </div>
+      </li>
+
+      <li class="paso">
+        <span class="paso-n">08</span>
+        <div>
+          <div class="paso-head"><h3>Empuja el contrato a los ajustes del tema</h3><span class="quien claude">se lo pides</span></div>
+          <p>Un paso corto que evita un problema largo: la paleta que sale en el editor y los márgenes del contenido se rellenan desde los mismos tokens. Así nadie elige a ojo un color parecido en un panel, que es como una web acaba con dos paletas.</p>
+        </div>
+      </li>
+
+      <li class="paso">
+        <span class="paso-n">09</span>
+        <div>
+          <div class="paso-head"><h3>Comprueba en vacío</h3><span class="quien claude">se lo pides</span></div>
+          <p>Todavía no hay ni una página, y aun así merece la pena pasar el comprobador: confirma que el contrato está sincronizado y que el tema está puesto. Si algo está torcido, es mucho más barato verlo ahora que con la web entera encima.</p>
+        </div>
+      </li>
+
+      <li class="paso">
+        <span class="paso-n">10</span>
+        <div>
+          <div class="paso-head"><h3>El diseño, y la pregunta obligatoria</h3><span class="quien claude">se lo pides</span></div>
+          <p>Le enseñas el diseño —en HTML, un handoff ya convertido, o un Figma que tenga los colores como variables con nombre— y antes de convertir nada Claude te hace una pregunta que no decide solo:</p>
+          <p><strong>¿GenerateBlocks Pro V2 o Gutenberg nativo?</strong> La primera llega estilada de una vez y es la vía habitual. La segunda tarda un paso más pero deja la marca en un solo sitio: si el cliente va a mantener la web o reteñirla más adelante, esa gana de calle. Contéstale con lo que sepas del cliente.</p>
+        </div>
+      </li>
+
+      <li class="paso">
+        <span class="paso-n">11</span>
+        <div>
+          <div class="paso-head"><h3>Marcado, validado y publicado</h3><span class="quien claude">se lo pides</span></div>
+          <p>Claude genera los bloques, los pasa por dos validadores distintos y los publica en WordPress por línea de comandos. No se copia y pega en el editor: al pegar, WordPress toca el contenido en silencio.</p>
+          <p>Tu papel aquí es mirar el resultado y decir qué está mal. Si algo no encaja con el diseño, díselo con palabras normales; el sitio se rehace, no se parchea.</p>
+        </div>
+      </li>
+
+      <li class="paso">
+        <span class="paso-n">12</span>
+        <div>
+          <div class="paso-head"><h3>Animación, si la web la lleva</h3><span class="quien claude">se lo pides</span></div>
+          <p>Va al final a propósito, con las páginas ya montadas: animar antes y reorganizar después rompe la animación. Si hay una web de referencia que imitar, dale la dirección — el plugin la mide en vez de suponer cómo se mueve.</p>
+        </div>
+      </li>
+
+      <li class="paso">
+        <span class="paso-n">13</span>
+        <div>
+          <div class="paso-head"><h3>La comprobación de verdad</h3><span class="quien tu">a mano</span></div>
+          <p>El segundo y último atajo, ahora con la dirección real de la página ya publicada:</p>
+          <pre>/wp-verificar http://ayto-tazacorte.local/inicio/</pre>
+          <p>Este es el paso que más se salta la gente y el único que caza el fallo silencioso favorito de este flujo: que el marcado <em>diga</em> el color y la tipografía correctos, pero el navegador no los reciba. Declarar no es publicar, y sin este paso no se distingue.</p>
+        </div>
+      </li>
+
+      <li class="paso">
+        <span class="paso-n">14</span>
+        <div>
+          <div class="paso-head"><h3>A producción</h3><span class="quien claude">se lo pides</span></div>
+          <p>Claude hace el cambio de direcciones en modo ensayo primero, te enseña qué va a cambiar, y solo entonces lo aplica. Las URLs nunca se editan a mano: WordPress las guarda absolutas y repartidas, y a mano siempre queda alguna.</p>
+        </div>
+      </li>
+
+    </ol>
+  </section>
+
+  <div class="cierre">
+    <h2>Si algo se tuerce</h2>
+    <p>Díselo con palabras, no busques el comando. «Esto no se ve como el diseño», «el menú no sale en el móvil», «el color no es ese» — el plugin lleva dieciocho fallos silenciosos ya documentados de proyectos anteriores, y varios de esos síntomas los reconoce al vuelo porque ya se pagaron una vez.</p>
+    <p>Y si vuelves al proyecto días después: cada web generada con esto lleva un <code>ESTADO.md</code> dentro que dice en qué fase se quedó. Empieza por ahí.</p>
+  </div>
+
+  <footer>
+    <span>wp-flujo v0.13.0 · Metrópolis Comunicación</span>
+    <span><a href="https://claude.ai/code/artifact/3a366538-ba6d-4f39-b246-dfcf3504605b">Ver la ficha técnica →</a></span>
+  </footer>
+
+</div>

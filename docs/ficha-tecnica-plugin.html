@@ -1,0 +1,560 @@
+<title>wp-flujo, de mano en mano</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --ink:#16211c;
+    --ink-soft:#47554c;
+    --ink-faint:#6d7a70;
+    --paper:#f1f3ec;
+    --paper-raised:#e6e9dd;
+    --paper-card:#fbfbf7;
+    --accent:#c85a1f;
+    --accent-ink:#7a3510;
+    --accent-tint:#f0dcc7;
+    --line:rgba(22,33,28,.15);
+    --line-strong:rgba(22,33,28,.3);
+    --serif:'IBM Plex Serif', ui-serif, Georgia, serif;
+    --sans:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    --mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#eef1e9;
+      --ink-soft:#c3ccc1;
+      --ink-faint:#8d988e;
+      --paper:#141d18;
+      --paper-raised:#1c2620;
+      --paper-card:#1a231d;
+      --accent:#e2894a;
+      --accent-ink:#f4c79a;
+      --accent-tint:#3a2718;
+      --line:rgba(238,241,233,.14);
+      --line-strong:rgba(238,241,233,.28);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#eef1e9;
+    --ink-soft:#c3ccc1;
+    --ink-faint:#8d988e;
+    --paper:#141d18;
+    --paper-raised:#1c2620;
+    --paper-card:#1a231d;
+    --accent:#e2894a;
+    --accent-ink:#f4c79a;
+    --accent-tint:#3a2718;
+    --line:rgba(238,241,233,.14);
+    --line-strong:rgba(238,241,233,.28);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--accent-tint);color:var(--accent-ink);}
+
+  .sheet{
+    max-width:780px;
+    margin:0 auto;
+    padding:64px 28px 96px;
+  }
+
+  /* ---------- cover ---------- */
+  .cover{
+    border:1px solid var(--line-strong);
+    border-radius:4px;
+    padding:36px 36px 30px;
+    background:var(--paper-card);
+    position:relative;
+  }
+  .cover::before{
+    content:"";
+    position:absolute; inset:8px;
+    border:1px solid var(--line);
+    border-radius:2px;
+    pointer-events:none;
+  }
+  .kicker{
+    font-family:var(--mono);
+    font-size:12.5px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:22px;
+  }
+  .kicker span:last-child{color:var(--accent-ink);}
+  h1{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(30px,5vw,42px);
+    letter-spacing:-.01em;
+    text-wrap:balance;
+    margin:0 0 6px;
+  }
+  .tagline{
+    font-size:17px;
+    color:var(--ink-soft);
+    max-width:52ch;
+    margin:0 0 20px;
+  }
+  .badges{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 10px;
+    margin-top:4px;
+  }
+  .badge{
+    font-family:var(--mono);
+    font-size:12px;
+    padding:4px 9px;
+    border:1px solid var(--line-strong);
+    border-radius:100px;
+    color:var(--ink-soft);
+    white-space:nowrap;
+  }
+  .badge.accent{
+    border-color:transparent;
+    background:var(--accent-tint);
+    color:var(--accent-ink);
+  }
+
+  /* ---------- sections ---------- */
+  section{margin-top:52px;}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--accent-ink);
+    margin:0 0 8px;
+  }
+  h2{
+    font-family:var(--serif);
+    font-size:24px;
+    font-weight:600;
+    margin:0 0 14px;
+    text-wrap:balance;
+  }
+  p{margin:0 0 14px; max-width:64ch;}
+  p:last-child{margin-bottom:0;}
+
+  /* ---------- version block ---------- */
+  .vc-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .vc-cell{
+    background:var(--paper-card);
+    padding:18px 20px;
+  }
+  .vc-cell h3{
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:13px;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+    color:var(--ink-faint);
+    margin:0 0 8px;
+  }
+  .vc-cell .num{
+    font-family:var(--mono);
+    font-size:20px;
+    color:var(--accent-ink);
+    display:block;
+    margin-bottom:6px;
+  }
+  .vc-cell p{font-size:14.5px; color:var(--ink-soft); margin:0;}
+  @media (max-width:600px){ .vc-grid{grid-template-columns:1fr;} }
+
+  /* ---------- steps (instalación) ---------- */
+  .steps{list-style:none; margin:0; padding:0; counter-reset:step;}
+  .steps li{
+    counter-increment:step;
+    display:grid;
+    grid-template-columns:32px 1fr;
+    gap:4px 16px;
+    padding:14px 0;
+    border-top:1px solid var(--line);
+  }
+  .steps li:first-child{border-top:none;}
+  .steps li::before{
+    content:counter(step);
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--accent-ink);
+    border:1px solid var(--line-strong);
+    border-radius:100px;
+    width:26px; height:26px;
+    display:flex; align-items:center; justify-content:center;
+    margin-top:1px;
+  }
+  .steps strong{font-weight:600;}
+  .steps code, p code, .vc-cell code{
+    font-family:var(--mono);
+    font-size:.92em;
+    background:var(--paper-raised);
+    padding:.1em .4em;
+    border-radius:3px;
+  }
+
+  /* ---------- fases (the core spec list) ---------- */
+  .fases{
+    border:1px solid var(--line-strong);
+    border-radius:4px;
+    overflow:hidden;
+    background:var(--paper-card);
+  }
+  .fase{
+    display:grid;
+    grid-template-columns:56px 1fr;
+    border-top:1px solid var(--line);
+  }
+  .fase:first-child{border-top:none;}
+  .fase-num{
+    font-family:var(--mono);
+    font-size:15px;
+    color:var(--accent-ink);
+    background:var(--paper-raised);
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding-top:18px;
+    border-right:1px solid var(--line);
+  }
+  .fase-body{padding:16px 20px 18px;}
+  .fase-head{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:baseline;
+    gap:8px 12px;
+    margin-bottom:6px;
+  }
+  .fase-head h3{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:17px;
+    margin:0;
+  }
+  .tag{
+    font-family:var(--mono);
+    font-size:10.5px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    padding:2px 7px;
+    border-radius:100px;
+    white-space:nowrap;
+  }
+  .tag.auto{background:var(--accent-tint); color:var(--accent-ink);}
+  .tag.manual{border:1px solid var(--line-strong); color:var(--ink-faint);}
+  .fase-body p{font-size:14.5px; color:var(--ink-soft); margin:0;}
+
+  /* ---------- comandos ---------- */
+  .cmds{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  @media (max-width:600px){ .cmds{grid-template-columns:1fr;} }
+  .cmd-card{
+    border:1px solid var(--line-strong);
+    border-radius:4px;
+    padding:18px 20px;
+    background:var(--paper-card);
+  }
+  .cmd-name{
+    font-family:var(--mono);
+    font-size:14.5px;
+    color:var(--accent-ink);
+    display:block;
+    margin-bottom:8px;
+  }
+  .cmd-card p{font-size:14.5px; color:var(--ink-soft);}
+
+  /* ---------- inventario (skills/tools) ---------- */
+  .inv{display:flex; flex-direction:column; gap:22px;}
+  .inv-row{
+    display:grid;
+    grid-template-columns:150px 1fr;
+    gap:14px;
+    align-items:start;
+  }
+  @media (max-width:600px){ .inv-row{grid-template-columns:1fr; gap:6px;} }
+  .inv-label{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--ink-faint);
+    padding-top:3px;
+  }
+  .chips{display:flex; flex-wrap:wrap; gap:7px;}
+  .chip{
+    font-family:var(--mono);
+    font-size:12.5px;
+    padding:4px 9px;
+    background:var(--paper-raised);
+    border-radius:3px;
+    color:var(--ink-soft);
+  }
+
+  /* ---------- trampas stat ---------- */
+  .stat-row{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:18px;
+  }
+  .stat-num{
+    font-family:var(--serif);
+    font-size:46px;
+    font-weight:600;
+    color:var(--accent-ink);
+    line-height:1;
+  }
+  .stat-label{color:var(--ink-soft); font-size:14.5px; max-width:38ch;}
+  .quote-grid{display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); border-radius:4px; overflow:hidden;}
+  .quote{
+    background:var(--paper-card);
+    padding:13px 18px;
+    font-size:14px;
+    color:var(--ink-soft);
+    display:flex;
+    gap:12px;
+  }
+  .quote .qn{font-family:var(--mono); color:var(--accent-ink); flex:none;}
+
+  /* ---------- footer ---------- */
+  footer{
+    margin-top:64px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px 20px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--ink-faint);
+  }
+</style>
+
+<div class="sheet">
+
+  <div class="cover">
+    <div class="kicker">
+      <span>Ficha técnica · plugin de Claude Code</span>
+      <span>metropolis-wp / wp-generateblocks</span>
+    </div>
+    <h1>wp-flujo</h1>
+    <p class="tagline">El flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF, empaquetado para que Claude lo arranque solo en cuanto huele un proyecto de este tipo.</p>
+    <div class="badges">
+      <span class="badge accent">v0.13.0</span>
+      <span class="badge">13 skills</span>
+      <span class="badge">2 comandos</span>
+      <span class="badge">18 trampas pagadas</span>
+      <span class="badge">Javier — Metrópolis Comunicación</span>
+    </div>
+  </div>
+
+  <section>
+    <p class="eyebrow">Antes de nada</p>
+    <h2>Qué te estoy pasando</h2>
+    <p>No es un tema ni un plugin de WordPress: es <strong>la maquinaria</strong> que Claude Code usa <em>en</em> los proyectos de WordPress. Vive en su propio repo (<code>C:\TRABAJOS\wp-flujo</code>) y se instala una vez como plugin de Claude Code; a partir de ahí, cada proyecto de cliente lo hereda sin volver a tocarlo.</p>
+    <p>Trae el criterio (qué hacer y en qué orden), las skills que lo activan solas, y las herramientas Node que hacen el trabajo sucio — generar el esqueleto, validar bloques, desplegar el tema, medir una web de referencia — para que no dependa de que alguien se acuerde del paso.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Cómo se sabe qué versión hace qué</p>
+    <h2>Control de versiones</h2>
+    <div class="vc-grid">
+      <div class="vc-cell">
+        <span class="num">0.13.0</span>
+        <h3>El plugin entero</h3>
+        <p><code>.claude-plugin/plugin.json</code>. Sube cada vez que se añade o se cierra algo de fondo — la última subida fue al vendorizar las 8 skills de GSAP.</p>
+      </div>
+      <div class="vc-cell">
+        <span class="num">0.14.0</span>
+        <h3>La skill del flujo</h3>
+        <p>Cada skill lleva su propio número en la cabecera del <code>SKILL.md</code>. La del flujo de 8 fases va un paso por delante del plugin: cambia más a menudo que el resto.</p>
+      </div>
+      <div class="vc-cell">
+        <span class="num">git log</span>
+        <h3>El changelog real</h3>
+        <p>No hay tags de release todavía — el historial de commits de este repo <em>es</em> el changelog. Cada trampa nueva, cada herramienta, es un commit con su porqué.</p>
+      </div>
+      <div class="vc-cell">
+        <span class="num">Stop hook</span>
+        <h3>Solo aquí dentro</h3>
+        <p><code>commit-memoria.sh</code> versiona la memoria de Claude al cerrar cada turno — pero solo trabajando <em>en este repo</em>. En un proyecto de cliente no se dispara: ese repo tiene su propio git, aparte.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Una vez por máquina</p>
+    <h2>Instalación</h2>
+    <ol class="steps">
+      <li><div><strong>Añade el marketplace.</strong> <code>/plugin marketplace add C:\TRABAJOS\wp-flujo</code> — la ruta ya trae <code>.claude-plugin/marketplace.json</code>, no hace falta nada más.</div></li>
+      <li><div><strong>Instala el plugin.</strong> <code>/plugin install wp-generateblocks@metropolis-wp</code>. A partir de aquí, sus skills están disponibles en <em>cualquier</em> proyecto que abras, no solo en este repo.</div></li>
+      <li><div><strong>Desactiva la skill vieja de la cuenta.</strong> Si existe <code>web-para-wordpress</code> en tu cuenta, apágala — empuja a <code>theme.json</code> y ACF Blocks, justo lo contrario de lo que concluyó la investigación de este flujo.</div></li>
+    </ol>
+  </section>
+
+  <section>
+    <p class="eyebrow">Lo que pasa cada vez, sin que lo pidas</p>
+    <h2>El ciclo por proyecto</h2>
+    <p>Abres Claude Code dentro de un WordPress de cliente y mencionas GeneratePress, GenerateBlocks, "maquetar una landing" o "pasar a producción": la skill <code>flujo-wordpress-generateblocks</code> se activa sola, sin que la llames por nombre. A partir de ahí, marca la fase en la que estás y avanza así:</p>
+
+    <div class="fases">
+      <div class="fase">
+        <div class="fase-num">00</div>
+        <div class="fase-body">
+          <div class="fase-head"><h3>Bootstrap del WordPress vacío</h3><span class="tag manual">/wp-nuevo-proyecto</span></div>
+          <p>~10 minutos, antes de diseñar nada. Anota subdirectorio, el desfase de breakpoint entre GeneratePress (768) y GenerateBlocks (767), y la carpeta de uploads. El generador monta el esqueleto — nunca a mano, copiando de otro proyecto.</p>
+        </div>
+      </div>
+      <div class="fase">
+        <div class="fase-num">01</div>
+        <div class="fase-body">
+          <div class="fase-head"><h3>Diseño y punto de decisión</h3><span class="tag auto">skill</span></div>
+          <p>HTML directo, handoff ya convertido, o Figma solo si expone variables con nombre. Aquí se pregunta siempre: GenerateBlocks Pro V2 (llega estilada) o Gutenberg nativo (un token cambia toda la página). No lo decide Claude solo.</p>
+        </div>
+      </div>
+      <div class="fase">
+        <div class="fase-num">02</div>
+        <div class="fase-body">
+          <div class="fase-head"><h3>Esqueleto</h3><span class="tag auto">skill</span></div>
+          <p><code>git init</code> en <code>wp-content/</code>, tema hijo con el contrato de diseño dentro, <code>/patterns/</code>, CPT por ACF solo si hacen falta, y la configuración del tema exportada — no vive en código por defecto.</p>
+        </div>
+      </div>
+      <div class="fase">
+        <div class="fase-num">03</div>
+        <div class="fase-body">
+          <div class="fase-head"><h3>Repositorio</h3><span class="tag auto">skill</span></div>
+          <p>Solo lo de la fase 2 entra al repo. Nunca el core de WordPress, nunca <code>uploads/</code>, nunca plugins de terceros.</p>
+        </div>
+      </div>
+      <div class="fase">
+        <div class="fase-num">04</div>
+        <div class="fase-body">
+          <div class="fase-head"><h3>Marcado</h3><span class="tag auto">skill</span></div>
+          <p>Imágenes primero, con IDs reales. Color siempre por clase CSS, jamás desde el panel del bloque. El validador tiene que pasar antes de seguir; si viene de Figma, el toolkit de conversión hace de puente.</p>
+        </div>
+      </div>
+      <div class="fase">
+        <div class="fase-num">05</div>
+        <div class="fase-body">
+          <div class="fase-head"><h3>Plantillas y CPT</h3><span class="tag auto">skill</span></div>
+          <p>Las secciones repetibles van a <code>/patterns</code> como PHP versionado, no pegadas a mano en la base de datos.</p>
+        </div>
+      </div>
+      <div class="fase">
+        <div class="fase-num">06</div>
+        <div class="fase-body">
+          <div class="fase-head"><h3>Animación con GSAP</h3><span class="tag auto">skill</span></div>
+          <p>Solo si el proyecto la necesita, y siempre después de la fase 5. Una herramienta instala una biblioteca de siete clases ya-funcionan; si hace falta escribir GSAP a mano, las 8 skills vendorizadas de GreenSock enseñan la API correcta en vez de improvisarla.</p>
+        </div>
+      </div>
+      <div class="fase">
+        <div class="fase-num">07</div>
+        <div class="fase-body">
+          <div class="fase-head"><h3>Puerta de calidad</h3><span class="tag manual">/wp-verificar</span></div>
+          <p>Contra la URL real, servida, subdirectorio incluido — nunca contra un HTML suelto. Contrato sincronizado, los dos validadores, round-trip con WordPress, y el contrato ya publicado: el paso que más se olvida y el único que caza "declarar no es publicar".</p>
+        </div>
+      </div>
+      <div class="fase">
+        <div class="fase-num">08</div>
+        <div class="fase-body">
+          <div class="fase-head"><h3>Producción</h3><span class="tag auto">skill</span></div>
+          <p><code>wp search-replace --dry-run</code> primero, nunca URLs editadas a mano. La configuración del tema se reimporta aparte: el search-replace no la trae.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Los dos que se invocan a mano</p>
+    <h2>Comandos</h2>
+    <div class="cmds">
+      <div class="cmd-card">
+        <span class="cmd-name">/wp-nuevo-proyecto</span>
+        <p>Levanta el esqueleto de un proyecto de cliente con el flujo Figma → GenerateBlocks ya montado. Pide solo lo que no puede deducir: sistema de diseño, slug del plugin, sitio de Local WP, puerto MySQL.</p>
+      </div>
+      <div class="cmd-card">
+        <span class="cmd-name">/wp-verificar</span>
+        <p>Corre la cadena de comprobación completa del proyecto activo — contrato, los dos validadores, round-trip y contrato ya publicado — usando el <code>verificar.mjs</code> que el generador dejó puesto.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Qué más trae dentro</p>
+    <h2>El resto del equipo</h2>
+    <div class="inv">
+      <div class="inv-row">
+        <span class="inv-label">skills propias</span>
+        <div class="chips">
+          <span class="chip">flujo-wordpress-generateblocks</span>
+          <span class="chip">generar-bloques-generateblocks</span>
+          <span class="chip">importar-handoff-diseno</span>
+          <span class="chip">puerta-calidad-wordpress</span>
+          <span class="chip">wp-cli-en-local</span>
+        </div>
+      </div>
+      <div class="inv-row">
+        <span class="inv-label">skills GSAP</span>
+        <div class="chips">
+          <span class="chip">gsap-core</span>
+          <span class="chip">gsap-timeline</span>
+          <span class="chip">gsap-scrolltrigger</span>
+          <span class="chip">gsap-plugins</span>
+          <span class="chip">gsap-utils</span>
+          <span class="chip">gsap-performance</span>
+          <span class="chip">gsap-react</span>
+          <span class="chip">gsap-frameworks</span>
+        </div>
+      </div>
+      <div class="inv-row">
+        <span class="inv-label">herramientas Node</span>
+        <div class="chips">
+          <span class="chip">nuevo-proyecto.js</span>
+          <span class="chip">audit-gb.js</span>
+          <span class="chip">audit-cross.js</span>
+          <span class="chip">fix-gb.js</span>
+          <span class="chip">conversion/ (Figma→GB)</span>
+          <span class="chip">desplegar-tema.mjs</span>
+          <span class="chip">referencia/medir-referencia.mjs</span>
+          <span class="chip">animacion/instalar-gsap.js</span>
+          <span class="chip">wp-cli/ (wp.cmd, php.cmd)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Por qué hay una skill para cada paso raro</p>
+    <h2>Las trampas ya pagadas</h2>
+    <div class="stat-row">
+      <span class="stat-num">18</span>
+      <span class="stat-label">fallos silenciosos ya cazados y documentados, para que el próximo proyecto no vuelva a pagarlos a mano.</span>
+    </div>
+    <div class="quote-grid">
+      <div class="quote"><span class="qn">02</span><span>GenerateBlocks resuelve a HEX literal el color elegido en su propio panel — de ahí que el color siempre vaya por clase CSS.</span></div>
+      <div class="quote"><span class="qn">10</span><span>Un header de GB Pro sin bloque <code>classic-menu</code> se queda sin menú móvil, y todos los validadores dan verde igual.</span></div>
+      <div class="quote"><span class="qn">12</span><span>Escribir en <code>wp/tema-hijo/</code> no publica nada: sigue sin copiarse al tema real de Local hasta correr <code>desplegar-tema.mjs</code>.</span></div>
+      <div class="quote"><span class="qn">17</span><span>Si hay una web de referencia servida y también un Figma, manda la web — el Figma puede mentir sobre cómo anima algo de verdad.</span></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>C:\TRABAJOS\wp-flujo · marketplace metropolis-wp</span>
+    <span>skills GSAP vendorizadas bajo licencia MIT (GreenSock)</span>
+  </footer>
+
+</div>
