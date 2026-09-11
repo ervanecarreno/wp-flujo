@@ -795,3 +795,41 @@ enlace vivo. El plugin instalado en esta máquina estaba congelado en 0.2.0 desd
 el repo iba por 0.13.0 — sin comandos ni skills de GSAP. Hace falta
 `claude plugin update wp-generateblocks@metropolis-wp` y reiniciar cada vez que el repo cambia.
 Documentado en las dos páginas de `docs/`.
+
+## Cerrado el 11/09/2026: dos skills de diseño, y cuatro candidatas descartadas
+
+Javier trajo diez herramientas de diseño de dos vídeos y pidió analizarlas e instalar las que
+encajaran. Se comprobaron todas contra la API de GitHub (existen, licencia, actividad) antes de
+opinar. Entran dos, quedan fuera cuatro.
+
+**Entran:**
+
+- `directrices-interfaz-web` — las directrices de Vercel Labs (MIT, 7,6 KB de origen). Encaja
+  porque la accesibilidad es obligación legal en los proyectos de ayuntamiento y porque cubre
+  justo el hueco de la fase 7: axe y pa11y cazan lo automatizable, esto cubre foco, teclado,
+  destinos táctiles y comportamiento de formularios. La cabecera vendorizada marca los tres
+  bloques de React/Next que NO aplican y las dos reglas donde manda este flujo (GSAP en fase 6;
+  WCAG 2.1 AA por encima de APCA para cliente público).
+- `sembrar-contrato-de-diseno` — escrita aquí, no vendorizada. Usa el catálogo de
+  `voltagent/awesome-design-md` como semilla de la fase −1. El catálogo **no se copia al repo**:
+  74 ficheros que cambian solos y que solo hacen falta una vez por proyecto.
+
+**Quedan fuera, con motivo:**
+
+- **taste-skill** (`Leonxlnx/taste-skill`, MIT) — bien escrita, pero su `SKILL.md` principal son
+  **87 KB** (~22k tokens al dispararse, el doble que la skill del flujo entero) y su descripción
+  —«landing pages, portfolios, redesigns»— se solaparía con `flujo-wordpress-generateblocks` en
+  todos los proyectos de Javier. Es el mismo problema ya documentado con la skill de cuenta
+  `web-para-wordpress`. Además sus «dials» inventan decisiones visuales, que es exactamente lo que
+  el contrato de tokens congelado existe para impedir. Si algún día se quiere, vendorizar UNA
+  sub-skill con la descripción estrechada, nunca el paquete.
+- **Playwright CLI** — redundante. El plugin ya usa `playwright-core` (14 MB, sobre el Chrome
+  instalado, sin descargar navegador) en cuatro scripts: `qa-editor-check.mjs`,
+  `qa-visual-diff.mjs`, `medir-referencia.mjs` y compañía. Y `qa-editor-check` hace algo que un
+  CLI genérico no: preguntarle al editor de Gutenberg si el bloque es válido.
+- **img2threejs** — Three.js procedimental. Ni encaja con GenerateBlocks ni con la fase 6, que va
+  con GSAP y una biblioteca de siete clases.
+- **Impeccable** (`pbakaus/impeccable`, Apache-2.0) — proyecto serio y grande (crates de Rust, CLI,
+  extensión de navegador, 23 comandos), pero su función estrella, *Live Mode*, necesita un dev
+  server con HMR. WordPress servido por PHP en Local no lo tiene. Candidata real si alguna vez hay
+  un frontend fuera de WordPress.

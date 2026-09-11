@@ -12,7 +12,7 @@ Para el estado del trabajo y qué toca hacer ahora, lee **[ESTADO.md](ESTADO.md)
 
 | Carpeta | Contenido |
 |---|---|
-| `skills/` | Las 5 skills propias del flujo, más las 8 skills oficiales de GSAP vendorizadas (ver abajo) |
+| `skills/` | Las 7 skills propias del flujo, más las 8 skills oficiales de GSAP vendorizadas (ver abajo) |
 | `herramientas/` | Validadores Node sin dependencias (`audit-gb.js`, `audit-cross.js`, `fix-gb.js`) |
 | `herramientas/conversion/` | **Figma → GenerateBlocks**: conversión de frames, emisores canónicos, ensamblador y QA. Cierra la laguna que el flujo tenía reconocida. Ver su [LEEME](herramientas/conversion/LEEME.md) |
 | `herramientas/wp-cli/` | `wp.cmd` y `php.cmd`: usan el PHP y wp-cli que ya trae Local WP, sin instalar nada |
@@ -34,6 +34,13 @@ Para el estado del trabajo y qué toca hacer ahora, lee **[ESTADO.md](ESTADO.md)
   checklist de 10 casillas y obliga a pasar el validador.
 - **`wp-cli-en-local`** — antes de proponer cualquier comando `wp` o `php`.
 - **`puerta-calidad-wordpress`** — antes de entregar o publicar.
+
+## Dos skills de diseño añadidas en 0.14.0
+
+| Skill | Qué resuelve |
+|---|---|
+| `directrices-interfaz-web` | Las directrices oficiales de **Vercel Labs** (MIT), vendorizadas: más de 100 reglas MUST/SHOULD/NEVER de teclado, foco, formularios, animación, maquetación, accesibilidad y rendimiento. **Complementa a la fase 7, no la sustituye:** pa11y y Lighthouse cazan lo automatizable, esto cubre lo que ninguna herramienta ve (foco perdido al cerrar un modal, destinos táctiles de 18 px, formularios que bloquean el pegado). La cabecera de la skill marca qué bloques son de React/Next y no aplican aquí. |
+| `sembrar-contrato-de-diseno` | Arranca `design/<sistema>.tokens.json` partiendo de un DESIGN.md del catálogo de `voltagent/awesome-design-md` (~74 sistemas) en vez de inventar la escala a ojo. Lleva la tabla de conversión al contrato y la regla de siempre: **del DESIGN.md se copian valores, los nombres del contrato no cambian.** El catálogo no se vendoriza: se consulta en el momento. |
 
 ## Las 8 skills de GSAP (vendorizadas)
 
