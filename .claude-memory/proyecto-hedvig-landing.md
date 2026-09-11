@@ -1,33 +1,41 @@
 ---
 name: proyecto-hedvig-landing
-description: WEB HEDVIG es el proyecto activo en figma-staging; ACELIA se descartó y se limpió por completo de WordPress
+description: HEDVIG y ACELIA están cerrados y archivados en _archivo; el sitio figma-staging de Local WP todavía conserva el WordPress de Hedvig
 metadata: 
   node_type: memory
   type: project
   originSessionId: df9e952d-84b2-49bf-9dbe-ffde836763ff
-  modified: 2026-09-07T09:13:34.865Z
+  modified: 2026-09-11T00:00:00.000Z
 ---
 
-**`figma-staging` (Local WP, puerto MySQL 10011) está dedicado ahora a `C:\TRABAJOS\WEB HEDVIG`**,
-una landing completa (8 secciones) montada el 7/09/2026 a partir del fichero de Figma
-`hyAMxyeACYAZF32olj6sZU` ("Prueba de animaciones") — el mismo fichero de [[figma-mcp-anotaciones]].
-Página portada: "Hedvig – home" (post 49781). Incluye la animación GSAP de la anotación (fase 6,
-sección "Benefits", 3 tarjetas) y header/footer como Elementos de GeneratePress.
+**Cerrados los dos, el 11/09/2026.** Javier pidió limpiar los proyectos de prueba. Las carpetas se
+**movieron a `C:\TRABAJOS\_archivo\`** con su convención de nombre, no se borraron:
 
-**ACELIA (`C:\TRABAJOS\WEB ACELIA`) está descartado.** El usuario lo llamó explícitamente "una
-prueba" y pidió borrarlo. Se limpió por completo de `figma-staging` (página, Elementos, menú,
-17 medios, tema `generatepress-acelia` — todo vía wp-cli) el 7/09/2026. La carpeta local **se
-dejó intacta como archivo**, a petición explícita del usuario (eligió "solo limpiar WordPress"
-frente a "borrar todo" cuando se le preguntó) — no tiene remoto git, así que sigue siendo el único
-sitio donde queda su historial, pero no se usa para nada más.
+- `_archivo\WEB ACELIA (prueba cerrada 11-09-2026)` — 15 commits, 56 MB
+- `_archivo\WEB HEDVIG (prueba cerrada 11-09-2026)` — 3 commits, 11 MB
 
-**Why:** evita que una futura conversación intente seguir trabajando en ACELIA (páginas/Elementos
-ya no existen en WordPress) o proponga volver a limpiar/borrar la carpeta local (ya se decidió
-conservarla, no hace falta volver a preguntar).
+Ninguna tiene remoto git: esas carpetas son **el único sitio donde existe su historial**. Por eso se
+archivaron en vez de borrarse, decisión que tomó Javier cuando se le planteó. No proponer borrarlas
+otra vez sin que él lo pida.
 
-**How to apply:** si el usuario menciona "el proyecto de WordPress" o "figma-staging" sin más
-contexto, asumir que se refiere a Hedvig salvo que diga lo contrario. Las cuatro trampas técnicas
-encontradas montando Hedvig (secciones a sangre completa en GeneratePress, `sizes="auto"` de WP
-6.7+, Elementos que necesitan `_generate_element_type` además de `_generate_block_type`,
-`overflow-x:hidden` en `html` no en `body`) están documentadas en la skill
-`flujo-wordpress-generateblocks` (trampas 13-16) — no hace falta repetirlas aquí, se cargan solas.
+En la misma limpieza **sí se borraron del todo**, con su permiso: `Bomberos comparativas web` (que no
+era un proyecto, solo un PDF de anotaciones) y `prueba-claude-design` (cuyo propio `HALLAZGOS.md`
+decía que se borrara al terminar; sus conclusiones ya viven en `docs/prueba-handoff.md` del plugin).
+
+**Lo que queda vivo y no se tocó:** el sitio **`figma-staging` de Local WP (puerto MySQL 10011)**
+todavía tiene dentro el WordPress de Hedvig — la página "Hedvig – home" (post 49781), los Elementos
+de header/footer, el menú y los medios. Archivar la carpeta no toca el WordPress. Si algún día se
+quiere el sitio limpio de verdad, hay que vaciarlo por wp-cli como ya se hizo con ACELIA el
+7/09/2026 (página, Elementos, menú, 17 medios y el tema `generatepress-acelia`).
+
+**Why:** que una conversación futura no intente seguir trabajando en estos proyectos como si
+estuvieran activos, ni vuelva a preguntar si se borran.
+
+**How to apply:** si Javier menciona "el proyecto de WordPress" o "figma-staging" sin más contexto,
+ya **no** se puede asumir Hedvig — preguntar. Las lecciones técnicas que dejaron los dos siguen
+vivas dentro del plugin y se cargan solas: las trampas 13-16 de la skill
+`flujo-wordpress-generateblocks` (secciones a sangre completa en GeneratePress, `sizes="auto"` de
+WP 6.7+, Elementos que necesitan `_generate_element_type`, `overflow-x:hidden` en `html` no en
+`body`), más [[leccion-verificar-referencia-animacion]] y [[leccion-rutas-wordpress-subdirectorio]].
+Varias herramientas de `herramientas/` citan estos proyectos en sus comentarios como la evidencia de
+por qué existe cada regla: esas citas son historia, no rutas — no hay que "arreglarlas".

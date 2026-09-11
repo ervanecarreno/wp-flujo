@@ -10,6 +10,6 @@
 - [Lección: animación sobre contenido dinámico](leccion-animacion-contenido-dinamico.md) — GSAP debe re-consultar el DOM y refrescar ScrollTrigger
 - [Puerta de calidad WordPress](puerta-calidad-wordpress.md) — las 5 herramientas CLI que validan el entorno antes de producción
 - [Figma MCP + anotaciones](figma-mcp-anotaciones.md) — el MCP sí conecta (OAuth por sesión); anotaciones de Dev Mode son canal de instrucciones por sección
-- [Proyecto Hedvig](proyecto-hedvig-landing.md) — activo en figma-staging; ACELIA descartado y limpiado de WordPress (carpeta local intacta, sin usar)
+- [Proyectos Hedvig y ACELIA](proyecto-hedvig-landing.md) — CERRADOS 11/09/2026, archivados en _archivo; figma-staging aun conserva el WordPress de Hedvig
 - [Lección: verificar referencia de animación](leccion-verificar-referencia-animacion.md) — medir con `medir-referencia.mjs`, no asumir el patrón GSAP habitual
 - [Investigación WordPress Studio](investigacion-wordpress-studio.md) — comparativa vs Local WP, PAUSADA; riesgo SQLite vs MySQL antes de pilotar
