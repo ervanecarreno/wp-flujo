@@ -203,6 +203,27 @@ no encaje: `$metadata.renombres` para renombrar el primer tramo (`font-family` �
 `"$css"` dentro de un token, que manda sobre todo lo demás. Avisa de colisiones de nombre y de
 alias `{ruta}` que no resuelven.
 
+## `resolver-huerfanos-color.mjs` — colores fuera del contrato, sin resolverlos a ojo
+
+```
+node herramientas/resolver-huerfanos-color.mjs design/x.tokens.json "#E0B36A:198" "#8A6220:18"
+node herramientas/resolver-huerfanos-color.mjs design/x.tokens.json --huerfanos huerfanos.json -o informe.md
+```
+
+Un handoff casi siempre trae HEX que el contrato congelado no tiene (ver `importar-handoff-diseno`).
+Resolver cada uno a mano —qué dos tokens mezclar, en qué proporción, qué tan parecido queda— es
+mecánico y se hizo así en Fundación Santa Cruz de La Palma para 15 huérfanos: una sesión entera.
+
+Para cada huérfano prueba cada token solo y cada `color-mix(in srgb, tokenA P%, tokenB)` entre los
+tokens base del contrato, y se queda con el más parecido por distancia **redmean**
+(compuphase.com/cmetric.htm, la misma que usa `convert -fuzz` de ImageMagick). Verificado contra la
+tabla real de ese proyecto: reproduce sus Δ sin que nadie tuviera que volver a medir.
+
+Con `--umbral` (por defecto 30) separa lo que entra limpio de lo que no: por debajo, es un
+**derivado** (`color-mix` de dos tokens, nunca un token nuevo); por encima, avisa para que se
+confirme a mano si de verdad hace falta ese matiz. **No mide contraste** — un derivado con Δ bajo
+puede seguir fallando WCAG AA sobre su fondo real.
+
 ## `calibrar-validadores.mjs` — ¿esta regla distingue algo?
 
 ```

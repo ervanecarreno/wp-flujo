@@ -1,6 +1,6 @@
 ---
 name: importar-handoff-diseno
-version: 0.1.0
+version: 0.2.0
 description: Importa a WordPress un handoff de diseño ya convertido a bloques (de Claude Design u otro origen), eligiendo entre GenerateBlocks Pro V2 y Gutenberg nativo. Úsala cuando llegue un zip o carpeta de handoff, cuando se mencione "el diseño ya está convertido", "tengo el marcado hecho", "handoff", "Claude Design", o cuando haya que pegar/importar una home o landing ya maquetada. Actívala sin esperar a que la pidan por su nombre.
 ---
 
@@ -50,6 +50,32 @@ GenerateBlocks Pro 2.7.0 — detalle en `docs/prueba-handoff.md`):
 
 **Por defecto, A**, que es la vía habitual del proyecto. Pero si el encargo dice que el cliente va a
 mantener la web, di lo de B antes de que elijan.
+
+## Colores que llegan fuera del contrato: no a ojo, con la herramienta
+
+El handoff casi siempre trae HEX que el contrato congelado no tiene — es justo el caso de los
+«124 HEX repartidos por 179 bloques» de la tabla de arriba. La tentación es resolverlos a ojo,
+color a color, con una calculadora de contraste al lado: así se hizo en Fundación Santa Cruz de La
+Palma para 15 huérfanos (`design/mapa-colores.md`, 15/09/2026) y costó una sesión entera.
+
+```
+node herramientas/resolver-huerfanos-color.mjs <contrato.tokens.json> "#E0B36A:198" "#8A6220:18" …
+node herramientas/resolver-huerfanos-color.mjs <contrato.tokens.json> --huerfanos huerfanos.json -o informe.md
+```
+
+Para cada huérfano prueba el token solo y cada `color-mix(in srgb, tokenA P%, tokenB)` entre los
+tokens base, y se queda con el más parecido por distancia **redmean** — verificado contra esa misma
+tabla: reproduce sus Δ (por ejemplo `#8A6220` → `gold 65% / ink`, Δ 24) sin que nadie tuviera que
+volver a medir a mano.
+
+Lo que decide el propio Δ, no la herramienta:
+
+- **Δ bajo (por defecto ≤30):** es un derivado — `color-mix` de dos tokens, nunca un token nuevo.
+  Declaralo donde viva el mapa de color del proyecto.
+- **Δ alto:** antes de aceptar un derivado que se nota, pregunta si el color de origen está mal
+  medido (un desliz del diseño) en vez de dar por buena una mezcla forzada.
+- **Lo que la herramienta NO mide es contraste.** Un derivado con Δ bajo puede seguir fallando WCAG
+  AA sobre su fondo real — compruébalo aparte, con las reglas de contraste que traiga el contrato.
 
 ## Importar: siempre con `wp post create`
 

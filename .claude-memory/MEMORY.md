@@ -13,3 +13,4 @@
 - [Proyectos Hedvig y ACELIA](proyecto-hedvig-landing.md) — CERRADOS 11/09/2026, archivados en _archivo; figma-staging aun conserva el WordPress de Hedvig
 - [Lección: verificar referencia de animación](leccion-verificar-referencia-animacion.md) — medir con `medir-referencia.mjs`, no asumir el patrón GSAP habitual
 - [Investigación WordPress Studio](investigacion-wordpress-studio.md) — comparativa vs Local WP, PAUSADA; riesgo SQLite vs MySQL antes de pilotar
+- [Lección: huérfanos de color por redmean](leccion-huerfanos-color-redmean.md) — nueva herramienta `resolver-huerfanos-color.mjs`, la fórmula detrás de las Δ de mapa-colores.md
