@@ -3,9 +3,17 @@
 > **Fuente de verdad del estado del proyecto.** Al retomar, lee esto primero: ni el README ni la
 > memoria de Claude Code lo sustituyen. Actualízalo al cerrar cada sesión de trabajo.
 
-**Última actualización:** 7/09/2026.
+**Última actualización:** 17/09/2026.
 
 ---
+
+## Cerrado el 17/09/2026: 0.14.1, herramienta para colores fuera del contrato
+
+`herramientas/resolver-huerfanos-color.mjs`: para cada HEX de un handoff que no está en el
+contrato, prueba cada token solo y cada `color-mix(in srgb, tokenA P%, tokenB)` y devuelve el mejor
+ajuste por distancia redmean. Sale del mapa de color hecho a mano en Fundación Santa Cruz de La
+Palma, cuyas Δ reproduce. Documentada en `herramientas/LEEME.md` y en `importar-handoff-diseno`
+(0.2.0). Se sube el plugin a `0.14.1` porque la copia instalada en Claude Code (0.14.0) no la traía.
 
 ## Cerrado el 7/09/2026: skills oficiales de GSAP vendorizadas
 
