@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.14.0
+version: 0.15.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -116,7 +116,7 @@ alguien lo va a usar.
 **Consecuencia asumida** (del contrato en el tema, no de los CPT, que ahora viven en ACF): cambiar
 de tema deja el sitio sin los tokens hasta que se instale el tema hijo nuevo. Aceptado.
 
-## Las dieciocho trampas ya pagadas
+## Las veinticuatro trampas ya pagadas
 
 Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
 
@@ -296,6 +296,134 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     completa, contenedor y padding de cada sección, radios, paddings, y qué elementos tienen
     `opacity`/`transform`/`filter` puestos en línea — el estado inicial que dejan los motores tipo
     Framer antes de disparar el JS, y la pista de la trampa 18.
+
+19. **`text()` con el atributo `icon` no valida en el editor real de GenerateBlocks, aunque los dos
+    linters den verde.** Verificado el 21/09/2026 con `qa-editor-check.mjs` sobre una sonda de tres
+    variantes de un mismo antetítulo (icono SVG + texto): `text({ icon: svg })` marca el bloque
+    inválido («Attempt Recovery» para el cliente); `element()` + `shape()` + `text()` por separado
+    valida; y el SVG **dentro del propio `content`** de `text()` también valida y además es más
+    corto. Ninguno de los dos linters estáticos lo detecta —el marcado que genera `icon` es
+    sintácticamente correcto, el editor lo rechaza por otra razón que no se ha investigado más—,
+    así que esto **solo lo ve el editor real**. Regla: para icono + texto en línea (antetítulos,
+    etiquetas), escribe el SVG dentro del `content` de `text()`, no en su parámetro `icon`.
+
+20. **Los glifos Unicode de flecha (`↗ → ▶ ← ›`…) se pintan como EMOJI de color, no como texto.**
+    Ninguna fuente tipográfica del proyecto suele traer esos puntos de código, así que el navegador
+    cae a su fuente de emoji del sistema — sin avisar, y sin que ningún validador de bloques lo
+    detecte, porque el HTML es válido. Se ve al mirar la página de verdad, no en el marcado. Ya
+    estaba anotado para Figma («Jost no tiene ↗: los glifos van en Inter»); resulta que en el
+    navegador el problema es el mismo pero la causa distinta (no es la familia tipográfica, es que
+    NINGUNA familia de texto trae esos glifos). Regla: cualquier flecha o icono de un botón/CTA va
+    en SVG inline con `fill="currentColor"` (hereda el color del texto), nunca como carácter.
+
+21. **GB Pro oculta el icono de «cerrar» del menú móvil con un selector de especificidad CERO**
+    (`:where(.gb-menu-toggle--toggled) .gb-menu-close-icon`). Verificado el 21/09/2026: al poner
+    estilos propios en `.gb-menu-open-icon`/`.gb-menu-close-icon` de un `menuToggle()` (para
+    convertir el hamburguesa de 3 líneas en el diseño real de 2 líneas dentro de un círculo), el
+    icono de cerrar se quedaba visible A LA VEZ que el de abrir — la regla del plugin que lo oculta
+    usa `:where()` precisamente para poder ser pisada por CSS de tema, y cualquier selector propio
+    la pisa sin querer. Regla: si se tocan esos dos selectores, hay que declarar TAMBIÉN el
+    conmutado completo en los estilos propios (`display:none` en el de cerrar por defecto,
+    `&.gb-menu-toggle--toggled .gb-menu-close-icon { display:flex }` y su inverso para el de abrir)
+    — no basta con estilar el aspecto, hay que asumir también la visibilidad.
+
+22. **La paginación de `generateblocks-pro/carousel-pagination` no admite contenido propio dentro
+    de cada viñeta, y su clase real no es la que parece.** Verificado el 21/09/2026 leyendo
+    `carousel.php`/`carousel.js` del plugin: la viñeta la pinta Swiper en tiempo de ejecución con
+    `bulletClass:"gb-carousel-dot"` (el marcado fuente solo trae un `<span
+    class="gb-carousel-pagination-content">` vacío de plantilla) y la activa lleva
+    `.gb-carousel-dot.is-active` — un selector como `.gb-carousel-pagination-item`, que suena
+    razonable, sencillamente no existe y el estilo no se aplica nunca, sin error de ningún linter
+    porque el fallo no está en el marcado. Y aunque se corrija la clase, **Swiper reescribe el
+    contenido del contenedor en cada render**, así que no hay forma de meter un año, un número o
+    cualquier otra cosa DENTRO del punto.
+
+    **El patrón que sí funciona** (usado en Cronología de `WEB FUNDACION SC LA PALMA`, a
+    petición explícita del usuario — «cuando los bloques de GenerateBlocks no lo puedan resolver,
+    usa snippet de código y clases para apuntar»): deja que `carousel-pagination` siga poniendo los
+    puntos (con la clase real, así seguir pulsándolos mueve el carrusel sin JS propio), y pinta lo
+    que no cabe dentro del punto —años, números, lo que sea— como un snippet `wp:html` aparte, con
+    su propia clase (`data-year-index`, `.is-active`…), sincronizado por un `<script>` de ~20
+    líneas que:
+      1. Lee la instancia del carrusel síncronamente por `elemento.gbCarousel` — propiedad que GB
+         Pro asigna en el constructor, sin esperar a ningún evento de "listo" (confirmado en el
+         bundle: `this.element.gbCarousel=this`).
+      2. Se suscribe al evento público `gb-carousel:change`, que el carrusel dispara en cada cambio
+         de diapositiva con `detail.activeIndex` — es la API pública documentada en el propio
+         bundle (`dispatchEvent(new CustomEvent("gb-carousel:change",{detail:{activeIndex}}))`), no
+         hay que adivinar nada ni engancharse a eventos internos de Swiper.
+      3. Para navegar desde el elemento propio (p. ej. pulsar el año, no solo el punto):
+         `elemento.gbCarousel.swiper.slideTo(indice)`.
+    Dale al `carousel()` un `uniqueId` fijo y legible (no el hex aleatorio de `uid()`) para que el
+    snippet lo encuentre por `[data-carousel-id="…"]` sin depender de un id que cambia en cada
+    build. `validate-blocks.mjs` avisa (no da error) de que ese id «no tiene el formato hex de 8
+    típico de GB» — es un aviso cosmético, esperado, no una señal de que algo esté mal.
+
+23. **Empujar los Global Colors de un contrato nuevo a un WordPress con GeneratePress ya
+    configurado dejó ~40 ajustes del tema apuntando a colores que dejaron de existir, y una parte
+    de ellos no vive en ningún ajuste.** Verificado el 21/09/2026: `generate_settings` traía
+    decenas de campos (`h1_color`, `link_color`, `form_button_background_color`…) escritos como
+    `var(--contrast-2)`, `var(--accent)`, etc. — la paleta POR DEFECTO de GeneratePress, que un
+    proyecto anterior en ese mismo WordPress había dejado puesta. Al escribir los 6 Global Colors
+    del contrato con `wp-push-tokens.mjs`, esos nombres se quedaron sin definir: la página cargaba
+    igual, sin ningún error, y el navegador simplemente no aplicaba esos colores.
+
+    Hay DOS capas, no una:
+      1. **Los ajustes de la base de datos** (`generate_settings`): se remapean por PAPEL, no por
+         nombre — `base-3`→fondo, `contrast`/`contrast-2`→texto, `contrast-3`/`accent-2`→hover,
+         `accent`→acento. Un script de `wp eval` que recorra `generate_settings` y haga `strtr()`
+         con ese mapa lo resuelve en un minuto.
+      2. **Los defaults CABLEADOS del propio tema**, que ninguna fila de la base de datos toca:
+         `wp-content/themes/generatepress/inc/defaults.php` fija `text_color`, `form_text_color`,
+         `search_modal_text_color`… a `var(--contrast)` como VALOR POR DEFECTO del ajuste, no como
+         algo que se pueda sobrescribir por opción. Si el proyecto no define ese ajuste explícita-
+         mente, GP sigue emitiendo `var(--contrast)` sin más. La única solución es declarar esos
+         nombres como ALIAS de los tokens del contrato en el `style.css` del tema hijo
+         (`:root { --contrast: var(--color-paper); --accent: var(--color-gold); … }`) — no son
+         tokens nuevos, son el vocabulario que GP espera.
+
+    Y una tercera cosa que agrava las dos anteriores: con `css_print_method: file` (el valor por
+    defecto de GP), el CSS dinámico se cachea a fichero y **no se regenera solo** al cambiar
+    `generate_settings` — hay que borrar a mano las opciones `generate_dynamic_css_output` /
+    `generate_dynamic_css_cached_version` y el fichero cacheado, o pasar `css_print_method` a
+    `inline` (se imprime en cada carga, siempre fresco, y se acaba esta clase de caché obsoleta de
+    raíz). Lo cazó `qa-contrato-publicado.mjs`, que es exactamente para lo que existe: ninguna otra
+    capa de QA mira si lo que el marcado referencia existe de verdad en el navegador.
+
+    **Cuándo aplica:** cualquier WordPress que NO nace vacío para el proyecto — un sitio de Local
+    reciclado, un cliente que ya tenía GeneratePress con su propia paleta. En un `nuevo-proyecto.js`
+    de cero esto no pasa, porque no hay paleta previa que dejar colgada.
+
+24. **Cuando el mismo contenido existe en el `.dc.html` de Claude Design Y en el Figma que se
+    trasladó a partir de él, y el cliente ha seguido ajustando en Figma, manda FIGMA.** Fijado por
+    el usuario el 21/09/2026 en `WEB FUNDACION SC LA PALMA`, con estas palabras: «creo en Claude
+    Design, traspasamos a Figma, hago los ajustes e implementas desde el Figma los contenidos,
+    colores, etc. El HTML es de apoyo». Es la misma familia que la trampa 17 (web real > Figma
+    cuando ambos existen), con el orden invertido: aquí el `.dc.html` es el borrador y Figma el
+    contrato final, porque es donde sigue habiendo trabajo humano después de la exportación.
+
+    Verificado de forma cara en ese mismo proyecto: la primera pasada de una Home completa se
+    escribió leyendo el `.dc.html`, y salió con copy desfasado (un antetítulo del hero mucho más
+    corto que el real, dos palabras cambiadas en un párrafo), fondos de sección equivocados en dos
+    bloques, todos los textos del pie en un color que ya no era el vigente, y sin los 3 iconos de
+    redes sociales que el HTML nunca tuvo pero Figma sí. Ninguna de esas siete cosas la ve un
+    linter de bloques: el marcado era válido, solo que decía otra cosa que la que el cliente había
+    dejado escrita en Figma.
+
+    **Regla:** el `.dc.html` sigue siendo la única fuente para lo que Figma no sabe expresar —
+    `clamp()`, `flex-wrap`, breakpoints, comportamiento de nav/menú— porque Figma no tiene esos
+    conceptos. Para todo lo demás —textos, qué color va dónde, qué elementos existen— se lee el
+    fichero de Figma con `use_figma`, resolviendo el nombre de la variable enlazada de cada nodo
+    (`figma.variables.getVariableByIdAsync`), no el HEX. Si Figma y el HTML discrepan en algo que
+    ninguno de los dos «posee» en exclusiva, se pregunta antes de decidir por cuenta propia.
+
+    **Lo que Figma NO puede dar, ni con REST**, y hay que sacar de otro sitio: assets binarios que
+    no son un relleno de imagen del lienzo — un vídeo, por ejemplo. La API de Figma
+    (`/v1/files/:key/images`) solo devuelve rellenos de imagen; un `videoHash` de un nodo no tiene
+    endpoint de descarga. Para eso manda la **anotación de Dev Mode** del nodo (texto libre que el
+    diseñador deja anclado), que en el caso verificado especificaba el fichero exacto, sus
+    atributos de reproducción y que el fotograma visible en el lienzo es el póster del vídeo en un
+    segundo concreto — dato que solo estaba ahí, en ningún otro sitio.
 
 ## Anotaciones de Figma: canal de instrucciones por sección
 

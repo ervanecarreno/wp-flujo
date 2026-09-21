@@ -15,3 +15,8 @@ traspaso-2026-08-26/sesion-cruda/
 # Nunca versionar credenciales ni estado de sesión de Claude Code
 .claude/settings.local.json
 *.credentials.json
+
+# Token personal de Figma (etapa 1 del pipeline de conversión, extract.mjs).
+# Es un secreto de la cuenta del usuario: da lectura a TODOS sus ficheros de Figma.
+.figma-token
+.figma-token.txt

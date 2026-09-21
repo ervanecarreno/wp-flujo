@@ -225,6 +225,18 @@ function compruebaEtiqueta(bloque, tagName) {
   }
 }
 
+/**
+ * ADVERTENCIA sobre `icon` — trampa 19 de la skill `flujo-wordpress-generateblocks`,
+ * verificada el 21/09/2026 con `qa-editor-check.mjs`: un `text()` con `icon` genera
+ * marcado válido para los dos linters estáticos, pero el EDITOR REAL lo marca inválido
+ * («Attempt Recovery»). No investigado más a fondo por qué; la salida verificada es
+ * escribir el SVG dentro del propio `content`, que valida y es más corto:
+ *   text({ content: '<svg …>…</svg> Rótulo', styles: { display:'inline-flex', … } })
+ * en vez de:
+ *   text({ content: 'Rótulo', icon: '<svg …>…</svg>' })
+ * Si vas a usar `icon`/`iconLocation`, pasa primero por `qa-editor-check.mjs` — es la
+ * única capa de QA que ve este fallo.
+ */
 export function text({ uniqueId, tagName = "p", content = "", styles = {}, globalClasses, htmlAttributes, icon, iconLocation, metadata, className }) {
   compruebaEtiqueta("text", tagName);
   if (!ETIQUETAS_TEXT.includes(tagName)) {
