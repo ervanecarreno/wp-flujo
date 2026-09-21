@@ -1,0 +1,9 @@
+# Binarios de terceros, redescargables y con hash conocido. No van al repo.
+#
+#   · Los betas del plugin salen del panel de GeneratePress.
+#   · Las skills, de https://github.com/wpgaurav/generateblocks-skills/releases
+#     y su SHA256SUMS.txt, que SÍ se versiona, es el que las verifica.
+#
+# Lo que se versiona es el contenido desempaquetado de las skills: es el
+# material que se lee y se cita en `piloto/INFORME.md` del proyecto.
+*.zip

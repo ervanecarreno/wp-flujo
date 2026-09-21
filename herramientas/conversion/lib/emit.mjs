@@ -298,10 +298,20 @@ export function media({ uniqueId, tagName = "img", styles = {}, htmlAttributes =
   return `${delimiter("generateblocks/media", attrs)}\n${body}\n<!-- /wp:generateblocks/media -->`;
 }
 
-/** Icono/forma SVG. El SVG va en `html` (2ª clave — shape no tiene tagName). */
+/**
+ * Icono/forma SVG.
+ *
+ * **El SVG va solo en el cuerpo, nunca en el JSON del comentario.** En el
+ * `block.json` de GB, `html` se declara `"source": "html"` con selector
+ * `.gb-shape`: el analizador de Gutenberg lo deriva del marcado y hace caso
+ * omiso del valor del comentario. Los exports reales lo confirman — empiezan
+ * por `uniqueId` y siguen con `styles`, sin `html` (verificado el 21/09/2026
+ * contra `herramientas/corpus-gb/`). Escribirlo duplicaba el SVG en cada
+ * bloque sin que nada lo leyera.
+ */
 export function shape({ uniqueId, html, styles = {}, globalClasses, metadata, className }) {
   const id = uniqueId ?? uid("shape");
-  const attrs = { uniqueId: id, html };
+  const attrs = { uniqueId: id };
   if (Object.keys(styles).length) {
     attrs.styles = styles;
     attrs.css = buildCanonicalCss(`.gb-shape-${id}`, styles);

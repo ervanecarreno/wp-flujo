@@ -20,3 +20,7 @@ traspaso-2026-08-26/sesion-cruda/
 # Es un secreto de la cuenta del usuario: da lectura a TODOS sus ficheros de Figma.
 .figma-token
 .figma-token.txt
+
+# Salida por defecto de `qa-visual-diff.mjs` cuando se ejecuta sin `--salida`.
+# Capturas de página completa: desechables y pesadas.
+qa-visual/
