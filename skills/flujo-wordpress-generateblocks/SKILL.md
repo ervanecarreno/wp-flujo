@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2, dentro del protocolo de colaboración A/B de COMO-TRABAJAMOS.md. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.18.0
+version: 0.19.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -147,6 +147,78 @@ Cuando toque:
 **Consecuencia asumida** (del contrato en el tema, no de los CPT, que ahora viven en el
 mu-plugin y no dependen del tema activo): cambiar de tema deja el sitio sin los tokens hasta que
 se instale el tema hijo nuevo. Aceptado.
+
+## Clases BEM propias: `wpf-bloque__elemento--modificador`
+
+**Añadido el 22/09/2026.** Sirve para lo que el marcado de GB no da: un asidero estable.
+GenerateBlocks identifica cada bloque con un hash —`gb-element-7042abea`— que no dice qué es y
+que cambia si el bloque se regenera. Así que cuando hay que apuntar a un bloque desde fuera (un
+snippet, una animación de GSAP, una prueba de Playwright) no hay a qué agarrarse, y lo que se
+acaba haciendo es inventar una clase a mano para ese caso — es literalmente lo que pasó con el
+`gb-year-item` del carrusel de la cronología (trampa 23). Esto lo convierte en convención.
+
+Importa sobre todo por el reparto A/B de `COMO-TRABAJAMOS.md`: **A entrega los bloques y B pone
+el comportamiento encima**, sobre marcado que no ha escrito él. Sin asidero estable, B no tiene
+por dónde agarrar.
+
+**La convención**, BEM de manual con prefijo `wpf-` (de wp-flujo):
+
+| | Ejemplo |
+|---|---|
+| Bloque | `wpf-sumate-apoya` |
+| Elemento | `wpf-sumate-apoya__panel` |
+| Modificador | `wpf-sumate-apoya__panel--claro` |
+
+El prefijo va en minúsculas y con guion, no como `WPflujo_`: un `_` suelto se confunde de un
+vistazo con el `__` de BEM, y el resto del ecosistema ya va así — `gb-` y `gbp-`, que además usa
+BEM en sus propias clases (`gb-accordion__toggle-icon`). Ser el tercero de la misma familia se lee
+mejor que introducir una cuarta forma.
+
+**La línea que no se cruza: estas clases NO llevan estilos.** Los `gbp-*` (Global Styles de GB
+Pro) sí los llevan y van por `globalClasses`; los `wpf-*` son solo un asidero semántico y van por
+`className`. Si un `wpf-` empezara a pintar, el valor dejaría de salir del diseño para salir de la
+clase, que es justo lo que la regla de los Global Styles prohíbe. Corolario práctico: **no crees un
+Global Style llamado `wpf-algo`**, porque entonces una clase que solo nombraba pasaría a pintar sin
+que nadie lo pidiera.
+
+**Van por `className`, nunca sueltas en el marcado.** Una clase presente en el HTML pero ausente de
+los atributos, el editor la adopta como `className` propio al guardar: drift en el primer guardado
+del cliente (ya está medido en `classList()` de `emit.mjs`). Comprobado el 22/09/2026 con
+`qa-editor-check.mjs` sobre una sonda de diez casos —element, text, shape y media, con y sin
+estilos, con `globalClasses`, con dos clases a la vez—: el editor las acepta todas y re-serializa
+idéntico. El orden resultante es `[base] [globalClasses] [gb-tipo-id] [className]`.
+
+**Cómo se usa.** Para lo que el diseñador SÍ nombró, la fábrica de `lib/bem.mjs`:
+
+```js
+const b = bem("Súmate y apoya");
+b()                  // wpf-sumate-apoya
+b("panel")           // wpf-sumate-apoya__panel
+b("panel", "claro")  // wpf-sumate-apoya__panel wpf-sumate-apoya__panel--claro
+```
+
+La slugificación está hecha para lo que sale de verdad de Figma en este flujo: nombres en español
+con acentos, espacios y separadores tipo `·`. Quita acentos, tira palabras vacías y se queda con
+tres palabras — `«Panel · Súmate y apoya»` → `panel-sumate-apoya`, `«La ciudad y sus valores»` →
+`ciudad-valores`.
+
+**Y para las capas sin nombre**, que son la mayoría —en la Home del proyecto piloto, 187 de 290
+bloques, casi dos tercios—, `configurarBem({ auto: true })` deriva una clase del namespace de
+sección que el build ya declara con `resetUid("home/hero")` más el rol del bloque:
+`wpf-hero__fila`, `wpf-hero__titulo`, `wpf-hero__icono-2`. También trata como anónimas las capas
+con nombre de relleno de Figma (`Frame 12`, `Group 3`).
+
+**Desactivado por defecto**, y a propósito: actualizar el plugin no puede cambiar el marcado de un
+proyecto ya montado. Verificado — con `auto` apagado, los cuatro ficheros del proyecto piloto
+generan byte a byte idéntico.
+
+> **El límite del automatismo, dicho claro:** las clases derivadas sirven para LEER el marcado, no
+> para apuntar desde CSS o JS. El número de `__icono-2` depende de cuántos hermanos del mismo rol
+> vayan antes, así que insertar un bloque puede correrlo y romper justo lo único para lo que
+> servía. Si hay que agarrarse a algo de forma estable, **la capa se nombra en Figma** y se usa
+> `bem()`, que depende del nombre y no de la posición. El sistema convierte nombres en clases; no
+> puede inventar una estabilidad que el diseño no tiene. Dicho de otro modo: esto le da a A una
+> razón concreta para nombrar las capas que B va a tener que tocar.
 
 ## Las veintiséis trampas ya pagadas
 

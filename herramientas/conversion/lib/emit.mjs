@@ -16,6 +16,7 @@ import {
   orderAttrs,
   escapeHtmlAttr,
 } from "./canonical.mjs";
+import { slug, rolDe, claseDerivada } from "./bem.mjs";
 
 let counter = 0;
 let nsSeed = "";
@@ -31,7 +32,58 @@ let nsSeed = "";
  * Figma raíz por defecto, que ya es único por frame — así ningún proyecto
  * tiene que acordarse de aplicar un desplazamiento a mano.
  */
-export function resetUid(namespace = "") { counter = 0; nsSeed = namespace; }
+export function resetUid(namespace = "") { counter = 0; nsSeed = namespace; rolesVistos.clear(); }
+
+/* ─────────────────────── Clases BEM propias (`wpf-…`) ────────────────────────
+ *
+ * Por qué hacen falta: el `gb-element-7042abea` que identifica cada bloque es un hash
+ * que no dice qué es y que cambia si el bloque se regenera. Cuando hay que apuntar a un
+ * bloque desde fuera —un snippet, una animación, una prueba— no hay asidero, y lo que se
+ * acaba haciendo es inventar una clase a mano para ese caso (pasó con el `gb-year-item`
+ * del carrusel de la cronología). Esto lo convierte en convención, que es justo lo que
+ * necesita el reparto A/B: A entrega los bloques y B tiene que agarrarse a algo.
+ *
+ * NO LLEVAN ESTILOS, Y ESA ES LA LÍNEA. Los `gbp-*` (Global Styles de GB Pro) sí los
+ * llevan y van por `globalClasses`; estas son solo un asidero semántico y van por
+ * `className`. Mezclarlo rompería la regla de que el valor sale del diseño, no de la
+ * clase. Por lo mismo: no crees un Global Style llamado `wpf-algo`, porque entonces una
+ * clase que solo nombraba pasaría a pintar.
+ *
+ * Desactivado por defecto: un proyecto ya montado no debe cambiar de marcado por
+ * actualizar el plugin. Se activa por proyecto con `configurarBem({ auto: true })`.
+ */
+let bemAuto = false;
+let bemPrefijo = "wpf";
+const rolesVistos = new Map();
+
+/**
+ * @param {object} opciones
+ * @param {boolean} [opciones.auto]    Derivar clase para los bloques sin `className`.
+ * @param {string}  [opciones.prefijo] Por defecto `wpf`. Evita `gb` y `gbp`, que están
+ *                                     ocupados por GenerateBlocks y por sus Global Styles.
+ */
+export function configurarBem({ auto = false, prefijo = "wpf" } = {}) {
+  bemAuto = auto;
+  bemPrefijo = prefijo;
+  rolesVistos.clear();
+}
+
+/**
+ * La clase que acaba en el atributo `className`: la explícita si la hay, y si no —y solo
+ * con `auto` activado— una derivada del namespace de sección más el rol del bloque.
+ *
+ * El `className` explícito SIEMPRE gana: lo ha escrito alguien a propósito.
+ */
+function claseFinal(className, tipo, tagName, styles) {
+  if (className) return className;
+  if (!bemAuto) return undefined;
+  const rol = rolDe(tipo, tagName, styles);
+  const seccion = slug(String(nsSeed || "").split("/").filter(Boolean).pop() || "");
+  const llave = seccion + "|" + rol;
+  const n = (rolesVistos.get(llave) ?? 0) + 1;
+  rolesVistos.set(llave, n);
+  return claseDerivada(nsSeed, tipo, tagName, styles, n, { prefijo: bemPrefijo });
+}
 /** uniqueId estable de 8 hex como los que genera GB */
 export function uid(seed = "") {
   counter++;
@@ -181,7 +233,8 @@ export function element({ uniqueId, tagName = "div", styles = {}, globalClasses,
   if (htmlAttributes) attrs.htmlAttributes = htmlAttributes;
   if (align) attrs.align = align;
   if (metadata) attrs.metadata = metadata;
-  if (className) attrs.className = className;
+  const claseBem = claseFinal(className, 'element', tagName, styles);
+  if (claseBem) attrs.className = claseBem;
 
   const cls = classList("generateblocks/element", id, attrs);
   const inner = children.filter(Boolean).join("\n\n");
@@ -262,7 +315,8 @@ export function text({ uniqueId, tagName = "p", content = "", styles = {}, globa
   if (htmlAttributes) attrs.htmlAttributes = htmlAttributes;
   if (icon) { attrs.icon = icon; if (iconLocation) attrs.iconLocation = iconLocation; }
   if (metadata) attrs.metadata = metadata;
-  if (className) attrs.className = className;
+  const claseBem = claseFinal(className, 'text', tagName, styles);
+  if (claseBem) attrs.className = claseBem;
 
   const cls = classList("generateblocks/text", id, attrs);
   const iconHtml = icon ? `<span class="gb-shape">${icon}</span>` : "";
@@ -313,7 +367,8 @@ export function media({ uniqueId, tagName = "img", styles = {}, htmlAttributes =
   if (mediaId) attrs.mediaId = mediaId;
   if (linkHtmlAttributes) attrs.linkHtmlAttributes = linkHtmlAttributes;
   if (metadata) attrs.metadata = metadata;
-  if (className) attrs.className = className;
+  const claseBem = claseFinal(className, 'media', tagName, styles);
+  if (claseBem) attrs.className = claseBem;
 
   const cls = classList("generateblocks/media", id, attrs);
   const img = `<img class="${cls}"${htmlAttrString(htmlAttributes)}/>`;
@@ -348,7 +403,8 @@ export function shape({ uniqueId, html, styles = {}, globalClasses, htmlAttribut
      un shape, porque metido en el `<svg>` el editor marca el bloque invalido. */
   if (htmlAttributes) attrs.htmlAttributes = htmlAttributes;
   if (metadata) attrs.metadata = metadata;
-  if (className) attrs.className = className;
+  const claseBem = claseFinal(className, 'shape', "span", styles);
+  if (claseBem) attrs.className = claseBem;
 
   const cls = classList("generateblocks/shape", id, attrs);
   const body = `<span class="${cls}"${htmlAttrString(htmlAttributes)}>${html}</span>`;

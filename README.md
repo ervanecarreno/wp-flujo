@@ -18,6 +18,7 @@ en las skills discrepa con él, gana él.
 | `skills/` | Las 7 skills propias del flujo, más las 8 skills oficiales de GSAP vendorizadas (ver abajo) |
 | `herramientas/` | Validadores Node sin dependencias (`audit-gb.js`, `audit-cross.js`, `fix-gb.js`) |
 | `herramientas/conversion/` | **Figma → GenerateBlocks**: conversión de frames, emisores canónicos, ensamblador y QA. Cierra la laguna que el flujo tenía reconocida. Ver su [LEEME](herramientas/conversion/LEEME.md) |
+| `herramientas/conversion/lib/bem.mjs` | Clases `wpf-bloque__elemento--modificador` a partir del nombre de la capa, y derivadas por rol para las capas sin nombre. El asidero estable que el `gb-element-7042abea` no da — ver la sección de clases BEM en la skill del flujo |
 | `herramientas/wp-cli/` | `wp.cmd` y `php.cmd`: usan el PHP y wp-cli que ya trae Local WP, sin instalar nada |
 | `herramientas/animacion/` | Fase 6 (GSAP): `instalar-gsap.js` instala una biblioteca de clases de animación ya lista (no una plantilla), solo cuando el proyecto lo necesita |
 | `herramientas/desplegar-tema.mjs` | Copia `wp/tema-hijo/` al tema real del sitio en Local — corre esto tras tocar cualquier fichero del tema hijo |
