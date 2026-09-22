@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2, dentro del protocolo de colaboración A/B de COMO-TRABAJAMOS.md. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.20.0
+version: 0.21.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -220,7 +220,7 @@ generan byte a byte idéntico.
 > puede inventar una estabilidad que el diseño no tiene. Dicho de otro modo: esto le da a A una
 > razón concreta para nombrar las capas que B va a tener que tocar.
 
-## Las veintiséis trampas ya pagadas
+## Las treinta trampas ya pagadas
 
 Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
 
@@ -604,6 +604,123 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     llegaban al marcado y el bloque quedaba idéntico a la variante A, sin nombre accesible. Se vio
     porque el `role="img"` no aparecía en la página servida. Corregido en el emisor el 22/09/2026;
     con una copia anterior, compruébalo antes de fiarte del resultado de la sonda.
+
+27. **Una etiqueta dinámica vacía no deja el hueco: se lleva el BLOQUE ENTERO.** GenerateBlocks las
+    trata como REQUERIDAS por defecto (`class-register-dynamic-tag.php`: «If this tag is required
+    for the block to render and there is no replacement, bail» → devuelve `''`). Tiene dos caras y
+    las dos importan:
+
+    · **A favor**, es el mecanismo de condicional que el marcado no tiene. Un campo opcional
+      —«si no se rellena, no lo imprimas»— se resuelve poniendo su etiqueta en el bloque y ya está,
+      sin PHP y sin `query`. Truco que lo hace utilizable de verdad: mete los ADORNOS del campo
+      (un filete, una comilla) en un `::before` del MISMO bloque, no en un hermano. Con dos bloques
+      hermanos, el adorno se queda huérfano en mitad de la página cuando el campo está vacío.
+
+    · **En contra**, un valor legítimamente vacío TUMBA el bloque. El caso real es
+      `{{featured_image key:alt}}`: una foto decorativa sin texto alternativo es correcta, y sin
+      embargo la imagen entera desaparecía. Se apaga por etiqueta con `|required:false`. Repasa una
+      por una las etiquetas cuyo valor pueda estar vacío sin que eso sea un error.
+
+28. **`{{post_excerpt}}` FABRICA un extracto si el campo está vacío.** Pasa por `get_the_excerpt()`,
+    que recorta el cuerpo a 55 palabras cuando no hay extracto propio. En una plantilla donde la
+    entradilla va justo encima del cuerpo, eso imprime dos veces las mismas frases y no da ningún
+    error. Si lo que quieres es el campo en crudo, regístrate una etiqueta propia con
+    `get_post_field( 'post_excerpt', $id )` — y de paso recuperas la trampa 27 a tu favor: vacío es
+    vacío, y el bloque no se pinta.
+
+29. **La imagen destacada sale DOS veces en una plantilla que ya la coloca.** GeneratePress la pinta
+    por su cuenta en `generate_after_header` (`generate_featured_page_header()`), y eso vive FUERA
+    de la plantilla: un Content Template sustituye la parte de plantilla del tema, no los ganchos de
+    alrededor. No hay filtro que valga —imprime directo con `the_post_thumbnail()`—, así que hay que
+    quitar la acción, y en `template_redirect`, que es donde los condicionales ya funcionan:
+    `remove_action( 'generate_after_header', 'generate_featured_page_header', 10 )`. El filtro
+    `generate_single_featured_image_output` de GP Premium NO sirve: solo gobierna la ruta de
+    entradas singulares, no la de páginas. Comprobado el 22/09/2026.
+
+30. **El compilador de CSS del emisor solo sabe anidar hacia DENTRO.** `buildCanonicalCss` entiende
+    `&:hover`, `:hover`, `@media …` y descendientes (`.gb-shape svg`), y todo lo demás lo concatena
+    como descendiente. Una regla que dependa de un ANCESTRO —«este bloque cambia de color en las
+    páginas que no son la portada»— no se puede expresar ahí: saldría
+    `.gb-element-x body:not(.home)`, que no casa con nada y no avisa. La salida que funciona sin
+    duplicar el bloque es una **variable con respaldo**: el bloque declara
+    `var(--lo-que-sea, <valor por defecto>)` y el tema hijo redefine `--lo-que-sea` en el `body` de
+    las páginas que toca. El valor por defecto deja el resto del sitio intacto.
+
+## Plantillas de contenido: un Elemento por tipo de página
+
+**Montado y verificado el 22/09/2026.** Cuando todas las páginas de una sección comparten maqueta y
+solo cambian los datos, no se maqueta una por una: se hace **un Elemento «Content Template»** de
+GeneratePress y los datos entran por etiquetas dinámicas.
+
+Cómo se crea, porque no hay interfaz que se pueda automatizar:
+
+```
+wp post create plantilla.html --post_type=gp_elements --post_status=publish --post_title="…"
+```
+
+y después, por `wp eval-file`, sus metas:
+
+| Meta | Valor |
+|---|---|
+| `_generate_element_type` | `block` |
+| `_generate_block_type` | `content-template` |
+| `_generate_element_display_conditions` | `[ [ 'rule' => 'post:page', 'object' => '0' ] ]` |
+
+El tipo `content-template` engancha en `generate_before_do_template_part` y devuelve `false` en
+`generate_do_template_part`: el tema deja de pintar su título y su contenido, y **todo** sale del
+Elemento. Él mismo envuelve la salida en `<article class="… dynamic-content-template">`, así que la
+raíz del marcado es un `div` a secas, sin `<article>` propio.
+
+De dónde sale cada dato:
+
+| Dato | Cómo |
+|---|---|
+| Título | `{{post_title}}` |
+| Imagen destacada | `{{featured_image key:url\|size:full}}` en `htmlAttributes.src` de un `media` |
+| Campo propio | `{{post_meta key:mi_campo}}` |
+| Extracto | etiqueta propia, no `{{post_excerpt}}` — trampa 28 |
+| **Contenido de la entrada** | `<!-- wp:generatepress/dynamic-content {"contentType":"post-content"} /-->` |
+
+Esa última fila es la única excepción legítima a «solo bloques genéricos V2»: **GenerateBlocks no
+tiene etiqueta dinámica para `post_content`** (tiene título, extracto, fecha, imagen destacada y
+metas, y ahí se acaba), y `core/post-content` necesita un contexto de plantilla de bloques que un
+Elemento de GeneratePress no da. Sale envuelto en `<div class="dynamic-entry-content">`, que es a
+lo que apunta el `styles` del `element` que lo contiene para dar tipografía a sus párrafos.
+
+Dos cosas que la plantilla NO debe pedirle al redactor página por página: la caja a ancho completo
+y la barra lateral. Se olvidan. Van al mu-plugin, con `body_class` (añadiendo `full-width-content`)
+y el filtro `generate_sidebar_layout`, condicionados a las páginas que usan la plantilla.
+
+Y las condiciones de visibilidad del Elemento admiten listas de objetos, no propiedades. «Todas las
+páginas MENOS la portada y menos los avisos legales» no es una lista: es una propiedad de cada
+página. Se declara la condición ancha en el Elemento y se afina con el filtro
+`generate_element_display`, leyendo una meta de la página. Así nadie tiene que editar la condición
+cada vez que se crea una página nueva.
+
+### Marcado propio dentro de un bloque: etiquetas dinámicas, no shortcodes
+
+Para las piezas que hay que calcular en PHP (migas de pan, un submenú, una lista) la vía buena es
+**registrar una etiqueta dinámica propia**, no un shortcode:
+
+```php
+add_action( 'init', function () {                   // prioridad 20: GB registra las suyas en 10
+    new GenerateBlocks_Register_Dynamic_Tag( [
+        'title' => 'Migas de pan', 'tag' => 'mis_migas', 'type' => 'post',
+        'supports' => [], 'return' => fn(): string => mis_migas_html(),
+    ] );
+}, 20 );
+```
+
+Gana al shortcode en tres cosas medibles: el estilo se queda ENTERO dentro del `styles` del bloque
+—donde lo ven los dos linters y el contrato—, mientras la función solo emite marcado semántico con
+clases `wpf-…`; hereda el condicional gratis de la trampa 27; y aparece en el desplegable de
+etiquetas del editor, así que el cliente la reutiliza sin tocar código. La función va al **tema
+hijo** (es aspecto), y los campos y las reglas de la plantilla al **mu-plugin** (es modelo de
+contenido) — el mismo reparto de siempre.
+
+Tras tocar el mu-plugin: `node herramientas/desplegar-mu-plugins.mjs --sitio "<…>"`. Es el hermano
+de `desplegar-tema.mjs` y existe por la misma razón (trampa 12): una carpeta `wp/mu-plugins/`
+versionada no es una carpeta cargada, y aquí no hay ni pantalla de plugins donde echarla en falta.
 
 ## Anotaciones de Figma: canal de instrucciones por sección
 

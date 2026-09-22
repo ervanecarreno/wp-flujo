@@ -439,6 +439,14 @@ export function shape({ uniqueId, html, styles = {}, globalClasses, htmlAttribut
  *   {{post_permalink}} {{post_title}} {{post_date dateFormat:j F, Y}}
  *   {{post_excerpt length:28}} {{featured_image size:large}} {{post_meta key:x}}
  *
+ * OJO, y vale igual dentro y fuera de un bucle: una etiqueta es REQUERIDA por
+ * defecto. Si devuelve cadena vacía, GB no pinta el BLOQUE ENTERO que la
+ * contiene (no deja el hueco: lo quita). Es el condicional que el marcado no
+ * tiene —un campo opcional se resuelve solo—, pero un valor legítimamente
+ * vacío tumba el bloque: el caso real es `{{featured_image key:alt}}` sin
+ * texto alternativo, que se llevaba la imagen por delante. Se apaga por
+ * etiqueta con `|required:false`. Ver la trampa 27 de la skill.
+ *
  * SIN calibrar contra un export real de este WP (ninguno de los 18 patrones
  * usa query/looper) — verificar con round-trip antes de confiar a ciegas.
  */

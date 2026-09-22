@@ -297,6 +297,31 @@ Etiquetas dinámicas dentro de `loop-item` (van en `content`, en `htmlAttributes
 
 **Patrón útil:** un destacado + una lista sin repetirlo son dos `query` distintos, el primero con `posts_per_page: 1` y el segundo con `posts_per_page: 3, offset: 1`.
 
+### 5 bis. Las etiquetas dinámicas fuera de un bucle
+
+Las mismas etiquetas valen en una plantilla de página suelta, sin `query`: ahí resuelven contra la entrada que se está sirviendo. Es lo que convierte un Elemento de GeneratePress en una plantilla reutilizable (ver el apartado «Plantillas de contenido» de la skill `flujo-wordpress-generateblocks`).
+
+Tres cosas que hay que saber antes de usarlas, las tres medidas el 22/09/2026:
+
+1. **Son REQUERIDAS por defecto.** Si la etiqueta devuelve cadena vacía, GenerateBlocks **no pinta el bloque entero**, no solo el hueco. Es el condicional que el marcado no tiene —«si el campo está vacío, no lo imprimas» sale gratis—, pero también significa que un valor legítimamente vacío tumba el bloque. Caso real: `{{featured_image key:alt}}` sin texto alternativo se llevaba la imagen por delante. Se apaga por etiqueta: `{{featured_image key:alt|required:false}}`.
+
+   Corolario de composición: los adornos de un campo opcional (un filete, una comilla) van en un `::before` del **mismo** bloque, no en un bloque hermano. Si no, el adorno se queda solo cuando el campo está vacío.
+
+2. **No hay etiqueta para `post_content`.** El catálogo es título, extracto, fecha, permalink, imagen destacada, metas, términos y datos del autor, y ahí se acaba. El contenido de la entrada se imprime con `<!-- wp:generatepress/dynamic-content {"contentType":"post-content"} /-->`, que sale envuelto en `<div class="dynamic-entry-content">` — ese es el selector al que apunta el `styles` del `element` que lo contiene.
+
+3. **`{{post_excerpt}}` se inventa un extracto** recortando el cuerpo a 55 palabras si el campo está vacío, porque pasa por `get_the_excerpt()`. Para el campo en crudo, una etiqueta propia con `get_post_field( 'post_excerpt', $id )`.
+
+**Registrar etiquetas propias** es la vía buena para meter marcado calculado en PHP dentro de un bloque, mejor que un shortcode: el estilo se queda entero en el `styles` del bloque —visible para los linters y para el contrato— y la función solo emite marcado semántico.
+
+```php
+add_action( 'init', function () {                   // prioridad 20: GB registra las suyas en 10
+    new GenerateBlocks_Register_Dynamic_Tag( [
+        'title' => 'Migas de pan', 'tag' => 'mis_migas', 'type' => 'post',
+        'supports' => [], 'return' => fn(): string => mis_migas_html(),
+    ] );
+}, 20 );
+```
+
 ---
 
 ## 6. Estrategia de `uniqueId`
