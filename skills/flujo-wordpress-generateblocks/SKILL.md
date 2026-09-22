@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2, dentro del protocolo de colaboración A/B de COMO-TRABAJAMOS.md. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.21.0
+version: 0.22.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -50,7 +50,7 @@ importación, con sus dos trampas silenciosas, en [[importar-handoff-diseno]].
 |---|---|---|
 | 0 | **Bootstrap del WordPress vacío** (~10 min) | Va **antes** del diseño. Anota subdirectorio, breakpoint real de GP (768) vs GB (767), y carpeta de uploads. Sin estos datos el diseño se cierra a ciegas |
 | 1 | **Diseño en HTML, handoff ya convertido, o Figma con variables** | **Regla revisada el 2/09/2026.** Antes decía "no partir de Figma", y era correcto **mientras el fichero no expusiera la paleta como variables**: sin ellas, leer Figma solo produce HEX aplanados. Ahora: partir de Figma **solo si** el fichero expone variables con nombre **y** existen plantillas de Code Connect. Es una comprobación, no una opinión: si la API devuelve `colors: []`, vuelve la regla anterior. Fijar el color como variables desde ya. **Aquí se pregunta el tipo de conversión** (ver arriba) |
-| 2 | **Esqueleto** | `git init` en `wp-content/`, **tema hijo** con el contrato dentro (ver abajo), carpeta `/patterns/`. **CPTs: en el mu-plugin del proyecto, por código, y solo si hacen falta** (ver abajo). Y **exportar la configuración del tema**: no está en código (ver trampa 6) |
+| 2 | **Esqueleto** | `git init` en `wp-content/`, **tema hijo** con el contrato dentro (ver abajo), carpeta `/patterns/` y **`wp/mu-plugins/`, que nace con el proyecto aunque esté vacío** — si no, la mitad de B acaba en `functions.php` por inercia. **CPTs: por código ahí, y solo si hacen falta; antes, comprueba si la jerarquía de páginas ya lo da** (ver abajo). Y **exportar la configuración del tema**: no está en código (ver trampa 6) |
 | 3 | **Repo** | Solo lo de la fase 2. Nunca core, `uploads/` ni plugins de terceros |
 | 4 | **Generación de marcado, importación del handoff, o conversión desde Figma** | Imágenes **primero** con `wp media import --porcelain` para usar IDs reales. Color por clase CSS, jamás por el panel del bloque. Pasar el validador. Si el marcado ya viene hecho: `wp post create <fichero>`, **nunca** `wp_insert_post()` — ver [[importar-handoff-diseno]]. Si se convierte desde Figma, el toolkit está en `herramientas/conversion/` (ver su LEEME): `convert-frame` → `assemble.mjs` → **los dos** validadores |
 | 5 | **Plantillas, noticias, CPT** | Los CPT ya están por código desde la fase 2; las secciones van a `/patterns` como PHP, no pegadas en la base de datos |
@@ -72,10 +72,15 @@ El reparto es por **quién es dueño de qué**, no por "menos plugins es mejor" 
 
 - **El aspecto** —el contrato de diseño, lo que se ve— va en el **tema hijo**. Es lo que entrega
   A (diseñador): la especificación congelada por Figma, convertida en bloques.
-- **El comportamiento** —tipos de contenido, snippets funcionales, integraciones— va en un
-  **mu-plugin** del propio proyecto. Es lo que entrega B (desarrollador). Un mu-plugin no es un
-  plugin de terceros: es código del proyecto, tan versionado como el tema hijo, que WordPress
-  carga siempre y que no aparece en la pantalla de Plugins para desactivarlo por accidente.
+- **El comportamiento y el modelo de contenido** —tipos de contenido, **campos**, reglas de qué
+  plantilla se aplica a qué, integraciones— van en un **mu-plugin** del propio proyecto. Es lo que
+  entrega B (desarrollador). Un mu-plugin no es un plugin de terceros: es código del proyecto, tan
+  versionado como el tema hijo, que WordPress carga siempre y que no aparece en la pantalla de
+  Plugins para desactivarlo por accidente.
+
+**Son dos despliegues, no uno.** `desplegar-tema.mjs` para el tema hijo y `desplegar-mu-plugins.mjs`
+para la otra mitad, cada vez que se toca. Una carpeta versionada no es una carpeta cargada, y con el
+mu-plugin no hay ni pantalla de plugins donde echarlo en falta.
 
 Lo que se sigue prohibiendo, igual que antes: instalar un plugin de terceros para algo que es
 código de un renglón (Code Snippets para una función, un plugin de CPT por interfaz para un tipo
@@ -128,6 +133,22 @@ proyecto de una landing o una home no necesita ninguno, y registrar uno "por si 
 de más que nadie usa. Sigue vigente el caso real que motivó esto: el proyecto de referencia tenía
 un CPT registrado por código con **cero entradas** —una pieza que no sostenía nada—. Se retiró en
 vez de migrarla. Antes de crear un CPT, comprueba que alguien lo va a usar.
+
+**Y antes de eso, comprueba si la jerarquía de PÁGINAS ya lo da.** Medido el 22/09/2026 sobre un
+caso real —una plantilla para «todos los contenidos internos» de un sitio, que hasta la propia
+anotación de Figma pedía como CPT—: las tres cosas que la plantilla necesitaba salían gratis de las
+páginas jerárquicas, y el CPT solo añadía un problema.
+
+| Lo que necesita una plantilla de sección | Páginas jerárquicas | CPT |
+|---|---|---|
+| URL anidada `/seccion/<slug>/` | de fábrica | hay que fijar **una** base de reescritura, la misma para todas las secciones |
+| Migas de pan | `get_post_ancestors()` | hay que construir la jerarquía aparte |
+| Pestañas de la sección | hermanas en el menú o en el árbol | igual, pero sin árbol si no es jerárquico |
+
+El CPT gana cuando hay **muchas entradas del mismo tipo con campos propios** (noticias, fichas,
+eventos) o hace falta archivo, feed o taxonomías. Para un puñado de páginas de contenido editorial,
+no. **El mu-plugin hace falta igual aunque no haya CPT**: los campos personalizados y las reglas de
+qué plantilla se aplica a qué son modelo de contenido, y ese es su sitio.
 
 Cuando toque:
 

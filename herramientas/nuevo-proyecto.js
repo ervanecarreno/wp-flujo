@@ -156,7 +156,7 @@ Sistema **${sistema}**, único:
 - \`design/${sistema}.tokens.json\` — **el contrato**. Nombres congelados, valores libres
 - \`design/${sistema}.tokens.css\` — **generado**, no se edita a mano
 - \`design/${sistema}.md\` — el documento del sistema
-- \`design/wordpress-mapping.md\` — puente token → WP y componente → bloque → ACF
+- \`design/wordpress-mapping.md\` — puente token → WP y componente → bloque → campos
 - \`tokens/map.json\` — el mapa de **este** proyecto
 
 Reglas que no se negocian:
@@ -235,7 +235,7 @@ _(qué puede morder y qué lo vigila)_
 
 ficheros["wp/tema-hijo/style.css"] = `/*
 Theme Name:   ${nombre} (hijo de GeneratePress)
-Description:  Tema hijo de GeneratePress para ${nombre}. Publica el contrato de diseño y registra los tipos de contenido del proyecto.
+Description:  Tema hijo de GeneratePress para ${nombre}. Publica el contrato de diseño. El comportamiento y los tipos de contenido viven en el mu-plugin del proyecto.
 Template:     generatepress
 Version:      0.1.0
 Requires PHP: 8.0
@@ -253,8 +253,10 @@ ficheros["wp/tema-hijo/functions.php"] = `<?php
  *
  * Generado por herramientas/nuevo-proyecto.js del plugin wp-generateblocks.
  *
- * Hace dos cosas: publica el contrato de diseño (frontend Y editor) y registra
- * los tipos de contenido del proyecto.
+ * Aquí va EL ASPECTO, y nada más: publica el contrato de diseño (frontend Y
+ * editor) y, cuando haga falta, los snippets que PINTAN. El comportamiento y los
+ * tipos de contenido viven en el mu-plugin del proyecto — ver el final de este
+ * fichero y \`wp/mu-plugins/\`.
  *
  * @package ${slug}
  */
@@ -355,16 +357,85 @@ add_action(
 );
 
 /*
- * TIPOS DE CONTENIDO: aquí no van, y es a propósito.
+ * TIPOS DE CONTENIDO Y CAMPOS: aquí no van, y es a propósito.
  *
- * Regla del proyecto: los CPT NO se registran por código. Se crean con **ACF
- * (Advanced Custom Fields)**, que es además donde se rellenan sus campos. Y ACF
- * se instala **solo si de verdad hace falta un CPT**: una landing o una home no
- * necesitan ninguno, y meterlo "por si acaso" es un plugin de más.
+ * Regla vigente desde el 22/09/2026 (\`COMO-TRABAJAMOS.md\` del plugin): el
+ * ASPECTO va al tema hijo; el COMPORTAMIENTO y el MODELO DE CONTENIDO van a un
+ * mu-plugin del proyecto, en código. Ni ACF ni ningún plugin de interfaz: la
+ * definición tiene que viajar en el repositorio, no quedarse en la base de datos.
+ * La razón de fondo no es "menos plugins", es que si mañana se cambia de tema, el
+ * contenido no puede irse con él.
  *
- * Cuando toque: instalar ACF, crear el CPT desde su interfaz (registra CPT y
- * taxonomías desde la 6.1) y activar \`acf-json/\` en este tema hijo para que la
- * definición viaje con el repositorio y no se quede solo en la base de datos.
+ * El esqueleto ya está en \`wp/mu-plugins/${slug}-contenido.php\`.
+ *
+ * Lo que SÍ cabe aquí: los snippets que PINTAN — migas de pan, un submenú, una
+ * lista calculada. La forma buena de meterlos en un bloque de GenerateBlocks es
+ * registrarlos como ETIQUETA DINÁMICA propia (\`GenerateBlocks_Register_Dynamic_Tag\`
+ * en \`init\`, prioridad 20), no como shortcode: así el estilo se queda entero
+ * dentro del bloque, donde lo ven los linters y el contrato, y la función solo
+ * emite marcado semántico. Ver «Plantillas de contenido» en la skill.
+ */
+`;
+
+/* --- El mu-plugin del proyecto ------------------------------------------- */
+
+ficheros[`wp/mu-plugins/${slug}-contenido.php`] = `<?php
+/**
+ * Plugin Name: ${nombre} · Contenido
+ * Description: Modelo de contenido y comportamiento de ${nombre}: tipos de contenido, campos y reglas de plantilla.
+ * Version: 0.1.0
+ *
+ * Generado por herramientas/nuevo-proyecto.js del plugin wp-generateblocks.
+ *
+ * POR QUÉ ESTE FICHERO EXISTE DESDE EL DÍA UNO, AUNQUE ESTÉ VACÍO.
+ * \`COMO-TRABAJAMOS.md\` reparte el código en dos: el ASPECTO al tema hijo, el
+ * COMPORTAMIENTO y el MODELO DE CONTENIDO aquí. Nada de ACF ni de plugins de
+ * interfaz para registrar tipos o campos: la definición viaja en el repositorio.
+ * Si la carpeta no naciera con el proyecto, la mitad de B no tendría sitio y todo
+ * acabaría en \`functions.php\` por inercia — que es exactamente lo que la regla
+ * evita.
+ *
+ * NO SE ACTIVA: WordPress carga los mu-plugins siempre, y por eso tampoco
+ * aparecen en la pantalla de Plugins para desactivarlos por accidente. Tampoco
+ * llegan solos al sitio: después de tocar esto, y cada vez,
+ *
+ *   node "<plugin>/herramientas/desplegar-mu-plugins.mjs" --sitio "<…>/app/public"
+ *
+ * Un mu-plugin con un error de sintaxis tumba el sitio ENTERO, escritorio
+ * incluido, y no se puede desactivar desde la interfaz: el desplegador pasa
+ * \`php -l\` por eso.
+ *
+ * QUÉ VA AQUÍ · tipos de contenido (\`register_post_type\`), campos
+ * (\`register_post_meta\` con \`show_in_rest\`), reglas de qué plantilla se aplica a
+ * qué, integraciones y formularios.
+ *
+ * QUÉ NO · nada que se vea. Los snippets que pintan van al tema hijo.
+ *
+ * @package ${slug}
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/*
+ * TIPOS DE CONTENIDO: solo si de verdad hacen falta.
+ *
+ * Una landing, una home o un puñado de páginas interiores NO necesitan ninguno.
+ * Antes de registrar uno, comprueba si la jerarquía de PÁGINAS ya da lo que
+ * necesitas — URL anidada, cadena de ancestros para las migas, grupo de hermanos
+ * para un submenú—, porque lo da de fábrica y un CPT obliga a fijar una base de
+ * reescritura única para secciones que no tienen por qué compartirla.
+ */
+
+/*
+ * CAMPOS: \`register_post_meta\`, con clave SIN guion bajo delante.
+ *
+ * Una meta protegida (\`_algo\`) se esconde del REST y de la lista de campos
+ * personalizados. Aquí interesa lo contrario: que el campo sea visible para quien
+ * escribe y para el editor. Y \`show_in_rest\` no es decorativo — sin él, la vista
+ * previa de \`{{post_meta key:…}}\` sale vacía dentro del lienzo aunque el frontend
+ * la pinte bien.
  */
 `;
 
@@ -621,10 +692,13 @@ Lo siguiente, por orden:
   3. Congela el contrato: edita design/${sistema}.tokens.json y regenera el CSS con
        node "${rutaPluginJs}/herramientas/tokens-a-css.mjs" design/${sistema}.tokens.json -o design/${sistema}.tokens.css
   4. Rellena ${PREFIJO_PHP}_FUENTES en wp/tema-hijo/functions.php con SOLO los pesos que uses.
-  5. Instala el TEMA HIJO (este flujo no usa plugins propios de WordPress):
-       copia wp/tema-hijo/* y design/${sistema}.tokens.css a
-       <Local Sites>/${sitio}/app/public/wp-content/themes/generatepress-${slug}/
+  5. Despliega las DOS mitades del código del proyecto, y repítelo cada vez que
+     las toques — una carpeta versionada no es una carpeta cargada:
+       cp design/${sistema}.tokens.css wp/tema-hijo/
+       node "${rutaPluginJs}/herramientas/desplegar-tema.mjs"       --sitio "<Local Sites>/${sitio}/app/public"
+       node "${rutaPluginJs}/herramientas/desplegar-mu-plugins.mjs" --sitio "<Local Sites>/${sitio}/app/public"
        wp theme activate generatepress-${slug}
+     El mu-plugin no se activa: WordPress lo carga solo. El tema sí.
      Recuerda WP_MYSQL_PORT=${puerto} para wp-cli. Y ANTES de activar, mira qué
      hay en theme_mods del tema actual (logo, menús, widgets, CSS adicional):
      no viajan de un tema a otro.

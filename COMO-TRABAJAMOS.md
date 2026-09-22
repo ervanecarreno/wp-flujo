@@ -18,8 +18,12 @@ Para no releer todo el documento cada vez que se empieza una tarea:
 - [ ] **¿Sois dos personas de verdad hoy, o uno solo haciendo los dos puestos?** Determina si toca
   rama (ver «El circuito de cada tarea», paso 1) — dos personas, rama siempre; una sola, rama
   opcional. El resto del circuito no cambia.
-- [ ] **¿Toca a A o a B?** Aspecto (Figma, bloques) → A. Comportamiento (CPT, snippets, animación,
-  despliegue) → B. Si dudas, es de B: todo lo que no sea "cómo se ve" lo es.
+- [ ] **¿Toca a A o a B?** Aspecto (Figma, bloques) → A. Comportamiento (tipos de contenido y
+  campos, snippets, animación, despliegue) → B. Si dudas, es de B: todo lo que no sea "cómo se ve"
+  lo es. Si es de los dos —una pieza calculada en PHP que además hay que vestir—, ver «Cuando una
+  pieza es de los dos» más abajo.
+- [ ] **¿Has tocado código del proyecto?** Son DOS despliegues, no uno: `desplegar-tema.mjs` y
+  `desplegar-mu-plugins.mjs`. Ninguno de los dos llega solo.
 - [ ] **¿Vas a tocar algo por interfaz** (Personalizador, cookies, un ajuste de plugin)? Anótalo en
   `ESTADO.md` del proyecto antes de tocarlo, no después.
 - [ ] **Antes de dar algo por terminado: la puerta de calidad.** Sin excepción, sea cual sea el
@@ -38,7 +42,7 @@ Cada uno es dueño de una parcela. Dueño significa que decide y que nadie más 
 - **Entrega:** la especificación congelada y los bloques generados (en una rama, si sois dos).
 
 **B — Desarrollador.** El comportamiento.
-- Tipos de contenido, a código en un **mu-plugin**.
+- Tipos de contenido **y campos**, a código en un **mu-plugin**.
 - Snippets y funciones, en el tema hijo.
 - Animación con GSAP, sobre lo que entrega A.
 - Formularios, cookies e integraciones de plugins.
@@ -49,6 +53,25 @@ Cada uno es dueño de una parcela. Dueño significa que decide y que nadie más 
 **La entrega de A no es «el diseño está aprobado en Figma».** Es un artefacto: la especificación
 congelada y los bloques generados. Figma sigue mandando sobre los valores —colores, tipos,
 espacios—, pero la entrega se revisa en el servidor, no abriendo Figma.
+
+### Cuando una pieza es de los dos: B la calcula, A la viste
+
+Añadido el 22/09/2026, después de montar una plantilla de página que lo necesitaba. Hay piezas que
+no son «aspecto» ni «comportamiento» sino las dos cosas: unas migas de pan, un submenú, una lista
+que sale de la base de datos. La costura es siempre la misma y no se negocia pieza a pieza:
+
+- **B escribe la función y emite solo marcado semántico**, con clases con nombre (`wpf-migas`,
+  `wpf-migas__actual`) y sin una sola declaración de estilo.
+- **A viste ese marcado desde el bloque**, apuntando a esas clases con selectores descendientes
+  dentro del `styles`.
+
+Así el valor sigue saliendo del diseño y pasando por los validadores y el contrato, en vez de
+escaparse a un CSS escrito a mano en paralelo. La vía técnica que lo permite en GenerateBlocks es
+registrar la función como **etiqueta dinámica propia**, no como shortcode; está explicada en la
+skill `flujo-wordpress-generateblocks`, apartado «Plantillas de contenido».
+
+Regla de dedo para saber de quién es una pieza nueva: **si la respuesta depende de qué página se
+está viendo, es de B; si depende de cómo se ve, es de A.**
 
 ## Flujo de diseño a bloques
 
@@ -100,7 +123,10 @@ Siempre el mismo, lo empiece quien lo empiece.
 Con esto se evitan casi todos los choques.
 
 1. **El código sube, el contenido baja.** El código va del repositorio al servidor. El contenido y
-   los ajustes viven en el servidor y no vuelven nunca al repositorio.
+   los ajustes viven en el servidor y no vuelven nunca al repositorio. Y sube **entero**: el
+   proyecto pone código en dos sitios —el tema hijo y el mu-plugin—, así que son dos despliegues,
+   `desplegar-tema.mjs` y `desplegar-mu-plugins.mjs`, cada vez. Una carpeta versionada no es una
+   carpeta cargada; con el mu-plugin no hay ni pantalla de plugins donde echarla en falta.
 2. **La especificación manda.** Los ajustes visuales del tema se configuran *desde* la
    especificación de diseño, no en paralelo. Si hay dos fuentes de verdad, gana la especificación.
 3. **Lo que se toca por interfaz, por turnos.** Tipografía del tema, cookies, opciones de
@@ -115,10 +141,14 @@ Cada una de estas cosas nos ha costado, o nos costaría, un día de trabajo.
 
 - Editar a mano un bloque generado. Se pierde en la siguiente generación; el arreglo va a la
   especificación o al generador.
-- Registrar tipos de contenido desde un plugin de interfaz (ACF y similares) o snippets desde un
-  plugin de snippets (Code Snippets y similares). Todo a código: CPT al mu-plugin, snippets al
-  tema hijo — ver «El aspecto va al tema hijo. El comportamiento va a un mu-plugin» en
-  `flujo-wordpress-generateblocks`.
+- Registrar tipos de contenido o campos desde un plugin de interfaz (ACF y similares) o snippets
+  desde un plugin de snippets (Code Snippets y similares). Todo a código: modelo de contenido al
+  mu-plugin, snippets al tema hijo — ver «El aspecto va al tema hijo. El comportamiento va a un
+  mu-plugin» en `flujo-wordpress-generateblocks`.
+- Crear un tipo de contenido propio antes de comprobar si la **jerarquía de páginas** ya da lo que
+  se necesita. Da gratis la URL anidada, la cadena de ancestros y el grupo de hermanos; un CPT
+  obliga además a fijar una base de reescritura única para secciones que no tienen por qué
+  compartirla. Medido el 22/09/2026 sobre un caso real.
 - Mover la base de datos de un sitio a otro con plugins de migración.
 - Montar una máquina virtual compartida. El repositorio ya hace ese trabajo.
 - Meter otra librería de animación en paralelo a GSAP, que es la que ya usa el flujo (fase 6).
@@ -169,13 +199,39 @@ contra un proyecto real, no contra la teoría. Evaluado con la evidencia de git,
   eso la regla pasó de obligatoria a condicional al tamaño real del equipo (ver el circuito, paso
   1): impone la ceremonia solo cuando la ceremonia tiene función.
 
+**Ejercitado el 22/09/2026, y con enmienda:**
+
+- **El modelo de contenido en el mu-plugin, no en ACF.** Estrenado al montar la plantilla de las
+  páginas interiores de ese proyecto. La regla aguantó, pero se vio que estaba mal enunciada: decía
+  «CPT», y lo que de verdad va ahí es **el modelo de contenido entero**. En ese caso concreto **no
+  hizo falta ningún CPT** —la jerarquía de páginas ya daba la URL anidada, la cadena de ancestros y
+  el grupo de hermanos— y el mu-plugin siguió siendo imprescindible igual, para los campos
+  personalizados y para las reglas de qué páginas usan la plantilla. Corregido arriba, en «Quién es
+  quién».
+
+  Y salió un agujero de verdad: **el flujo repartía el código en dos sitios y solo tenía desplegador
+  para uno.** `wp/mu-plugins/` quedó versionado, revisado y comentado sin que el sitio lo cargara,
+  sin ningún error que lo dijera. Es la misma familia de fallo que «declarar no es publicar»,
+  aplicada a la otra mitad. Arreglado con `herramientas/desplegar-mu-plugins.mjs` y recogido en la
+  regla 1. El generador de proyectos nuevos crea ya las dos carpetas, para que la mitad de B tenga
+  sitio desde el primer día en vez de acabar en `functions.php` por inercia.
+
+  De paso se encontró que `nuevo-proyecto.js` seguía escribiendo **la regla derogada de ACF** en
+  cada proyecto nuevo: llevaba desde el 22/09 contradiciendo este documento en el propio esqueleto.
+  Lección para cualquier regla que se cambie aquí: **buscarla también en lo que genera el setup**,
+  porque un documento actualizado no actualiza las plantillas.
+
 **Sin ejercitar todavía, no descartado:**
 
 - **Un único WordPress en el servidor del cliente desde el día uno.** Ese proyecto sigue en Local
   (`figma-staging.local`); no hay servidor real de cliente en juego aún, así que esta regla no se
   ha puesto a prueba de verdad.
-- **CPT en el mu-plugin, no en ACF.** Ese proyecto no tiene ningún tipo de contenido propio
-  todavía.
+
+Y una confirmación más de **«la especificación manda»**, del mismo 22/09: el usuario corrigió la
+retícula del contenedor principal **en Figma, a mitad de tarea**. La implementación se rehízo
+releyendo el nodo, no ajustando a ojo contra la captura; salió al píxel y se pudo comprobar midiendo
+en el navegador. Es el circuito funcionando en la dirección buena — el cambio entra por la
+especificación y baja solo.
 
 La lectura general: las reglas sobre **de dónde sale la verdad** —Figma, la puerta de calidad, el
 piloto como canario— protegen contra que dos fuentes discrepen, que es el riesgo real de un equipo
