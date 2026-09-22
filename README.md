@@ -1,12 +1,15 @@
 # wp-generateblocks
 
 Plugin de Claude Code que empaqueta el flujo de trabajo de 8 fases para webs WordPress de cliente
-con **GeneratePress + GenerateBlocks Pro V2 + ACF**, junto con las herramientas que lo hacen
-ejecutable.
+con **GeneratePress + GenerateBlocks Pro V2**, junto con las herramientas que lo hacen ejecutable.
 
 No es un proyecto de cliente. Es la maquinaria que se usa **en** los proyectos de cliente.
 
 Para el estado del trabajo y qué toca hacer ahora, lee **[ESTADO.md](ESTADO.md)**.
+
+Para el procedimiento — quién decide qué, qué se comparte, el circuito de cada tarea — lee
+**[COMO-TRABAJAMOS.md](COMO-TRABAJAMOS.md)**. Es el documento que rige, no una skill más: si algo
+en las skills discrepa con él, gana él.
 
 ## Qué trae
 
