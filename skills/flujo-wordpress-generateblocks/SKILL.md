@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
-description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2 + ACF. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.15.0
+description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2, dentro del protocolo de colaboración A/B de COMO-TRABAJAMOS.md. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
+version: 0.18.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -50,11 +50,11 @@ importación, con sus dos trampas silenciosas, en [[importar-handoff-diseno]].
 |---|---|---|
 | 0 | **Bootstrap del WordPress vacío** (~10 min) | Va **antes** del diseño. Anota subdirectorio, breakpoint real de GP (768) vs GB (767), y carpeta de uploads. Sin estos datos el diseño se cierra a ciegas |
 | 1 | **Diseño en HTML, handoff ya convertido, o Figma con variables** | **Regla revisada el 2/09/2026.** Antes decía "no partir de Figma", y era correcto **mientras el fichero no expusiera la paleta como variables**: sin ellas, leer Figma solo produce HEX aplanados. Ahora: partir de Figma **solo si** el fichero expone variables con nombre **y** existen plantillas de Code Connect. Es una comprobación, no una opinión: si la API devuelve `colors: []`, vuelve la regla anterior. Fijar el color como variables desde ya. **Aquí se pregunta el tipo de conversión** (ver arriba) |
-| 2 | **Esqueleto** | `git init` en `wp-content/`, **tema hijo** con el contrato dentro (ver abajo), carpeta `/patterns/`. **CPTs: con ACF y solo si hacen falta** (ver abajo), con `acf-json/` activo. Y **exportar la configuración del tema**: no está en código (ver trampa 6) |
+| 2 | **Esqueleto** | `git init` en `wp-content/`, **tema hijo** con el contrato dentro (ver abajo), carpeta `/patterns/`. **CPTs: en el mu-plugin del proyecto, por código, y solo si hacen falta** (ver abajo). Y **exportar la configuración del tema**: no está en código (ver trampa 6) |
 | 3 | **Repo** | Solo lo de la fase 2. Nunca core, `uploads/` ni plugins de terceros |
 | 4 | **Generación de marcado, importación del handoff, o conversión desde Figma** | Imágenes **primero** con `wp media import --porcelain` para usar IDs reales. Color por clase CSS, jamás por el panel del bloque. Pasar el validador. Si el marcado ya viene hecho: `wp post create <fichero>`, **nunca** `wp_insert_post()` — ver [[importar-handoff-diseno]]. Si se convierte desde Figma, el toolkit está en `herramientas/conversion/` (ver su LEEME): `convert-frame` → `assemble.mjs` → **los dos** validadores |
 | 5 | **Plantillas, noticias, CPT** | Los CPT ya están por código desde la fase 2; las secciones van a `/patterns` como PHP, no pegadas en la base de datos |
-| 6 | **Animación con GSAP** | Va **después** de la fase 5, query loops ya montados. Animar antes y convertir luego a query loop rompe la animación. GB Pro no tiene animación por scroll: su panel Effects es solo hover/focus. Solo si el proyecto la necesita (igual que ACF): `node herramientas/animacion/instalar-gsap.js` instala una **biblioteca de clases ya lista** (`-reveal`, `-stagger`, `-words`, `-scroll-words`, `-zoom`, `-stack`, ver su LEEME), no una plantilla — animar una sección es poner la clase en el marcado, no escribir GSAP. Si hay una web de referencia, medirla primero con `herramientas/referencia/medir-referencia.mjs <url>` en vez de suponer el patrón (trampa 17/18); tras cualquier cambio en `wp/tema-hijo/`, `node herramientas/desplegar-tema.mjs --sitio "<...>"` (trampa 12). Si la biblioteca de clases no cubre el caso y hace falta escribir GSAP a mano (una animación fuera de las siete clases), consultar las skills oficiales vendorizadas — `gsap-scrolltrigger` para scroll, `gsap-core`/`gsap-timeline` para el resto — en vez de improvisar la API de memoria |
+| 6 | **Animación con GSAP** | Va **después** de la fase 5, query loops ya montados. Animar antes y convertir luego a query loop rompe la animación. GB Pro no tiene animación por scroll: su panel Effects es solo hover/focus. Solo si el proyecto la necesita (igual que los CPT): `node herramientas/animacion/instalar-gsap.js` instala una **biblioteca de clases ya lista** (`-reveal`, `-stagger`, `-words`, `-scroll-words`, `-zoom`, `-stack`, ver su LEEME), no una plantilla — animar una sección es poner la clase en el marcado, no escribir GSAP. Si hay una web de referencia, medirla primero con `herramientas/referencia/medir-referencia.mjs <url>` en vez de suponer el patrón (trampa 17/18); tras cualquier cambio en `wp/tema-hijo/`, `node herramientas/desplegar-tema.mjs --sitio "<...>"` (trampa 12). Si la biblioteca de clases no cubre el caso y hace falta escribir GSAP a mano (una animación fuera de las siete clases), consultar las skills oficiales vendorizadas — `gsap-scrolltrigger` para scroll, `gsap-core`/`gsap-timeline` para el resto — en vez de improvisar la API de memoria |
 | 7 | **Puerta de calidad** | Contra staging con la **URL real**, subdirectorio incluido. Nunca contra un HTML local. Cadena de cinco puertas: `qa-run.mjs` (contrato publicado → validadores → round-trip → editor real → la página contra su diseño) más la skill `puerta-calidad-wordpress` |
 | 8 | **Producción** | `wp search-replace --dry-run --skip-columns=guid` primero. Nunca editar URLs a mano. Reimportar la configuración del tema: el search-replace no la trae |
 
@@ -62,12 +62,37 @@ Detalle completo de cada fase, con las fuentes: `traspaso-2026-08-26/SETUP-RECOM
 plugin. El respaldo con nivel de confianza por afirmación está en
 `traspaso-2026-08-26/investigacion/resultados-completos.md`.
 
-## Nada de plugins de WordPress propios: todo al tema hijo
+## El aspecto va al tema hijo. El comportamiento va a un mu-plugin
+
+**Regla vigente desde el 22/09/2026, fijada por el protocolo de colaboración A/B (diseñador/
+desarrollador) del flujo — ver `COMO-TRABAJAMOS.md` en la raíz del plugin, que es el documento que
+rige esto.** Reemplaza la regla del 4/09/2026 de abajo, que decía lo contrario para los CPT.
+
+El reparto es por **quién es dueño de qué**, no por "menos plugins es mejor" a secas:
+
+- **El aspecto** —el contrato de diseño, lo que se ve— va en el **tema hijo**. Es lo que entrega
+  A (diseñador): la especificación congelada por Figma, convertida en bloques.
+- **El comportamiento** —tipos de contenido, snippets funcionales, integraciones— va en un
+  **mu-plugin** del propio proyecto. Es lo que entrega B (desarrollador). Un mu-plugin no es un
+  plugin de terceros: es código del proyecto, tan versionado como el tema hijo, que WordPress
+  carga siempre y que no aparece en la pantalla de Plugins para desactivarlo por accidente.
+
+Lo que se sigue prohibiendo, igual que antes: instalar un plugin de terceros para algo que es
+código de un renglón (Code Snippets para una función, un plugin de CPT por interfaz para un tipo
+de contenido). Eso sigue yendo a código, ahora en el mu-plugin en vez de en el tema hijo — separar
+aspecto de comportamiento es precisamente lo que evita que el tema hijo termine cargado de lógica
+que no es suya.
+
+<details>
+<summary>La regla anterior (4/09/2026 – 22/09/2026), por si hace falta el porqué de un proyecto
+que aún la siga — click para expandir</summary>
 
 **Regla del usuario, explícita (4/09/2026): no quiere plugins de WordPress en sus proyectos.** Lo
 que sea del sitio —contrato de diseño, CPTs, campos— va en el **tema hijo**, no en un plugin
 propio. Hasta esa fecha este flujo prescribía lo contrario (CPTs en un plugin, por portabilidad);
 la portabilidad de tema **no es un objetivo de estos proyectos**.
+
+</details>
 
 Cómo publicar el contrato desde el tema hijo, que es la parte con truco:
 
@@ -91,32 +116,39 @@ Personalizador (`custom_css_post_id`). `wp option get theme_mods_<tema> --format
 después. Y si el WordPress está compartido con otro proyecto, recuerda que **el tema activo es
 global**: el cambio afecta a todo el sitio.
 
-### Y los CPT, con ACF — y solo si hacen falta
+### Y los CPT, en el mu-plugin — y solo si hacen falta
 
-**Regla del usuario (4/09/2026):** los tipos de contenido **no se registran por código**. Se crean
-con **ACF (Advanced Custom Fields, de WP Engine)**, que es además donde se rellenan sus campos.
+**Regla vigente desde el 22/09/2026:** los tipos de contenido se registran **por código, en el
+mu-plugin del proyecto** (`register_post_type()`, `register_taxonomy()`). Es tarea de B
+(desarrollador) — ver `COMO-TRABAJAMOS.md`. No hace falta ACF para esto, y es a propósito: el
+código ya es la fuente portable, sin una capa intermedia (`acf-json/`) que mantener sincronizada.
 
-**ACF se instala SOLO si de verdad hace falta un CPT.** No va en el esqueleto por defecto: un
-proyecto de una landing o una home no necesita ninguno, y meterlo "por si acaso" es un plugin de
-más. Es la única excepción a "nada de plugins de WordPress": ACF es de terceros y aporta la
-interfaz de campos; lo que no se hace es escribir un plugin PROPIO.
+**Un CPT se registra SOLO si de verdad hace falta.** No va en el esqueleto por defecto: un
+proyecto de una landing o una home no necesita ninguno, y registrar uno "por si acaso" es lógica
+de más que nadie usa. Sigue vigente el caso real que motivó esto: el proyecto de referencia tenía
+un CPT registrado por código con **cero entradas** —una pieza que no sostenía nada—. Se retiró en
+vez de migrarla. Antes de crear un CPT, comprueba que alguien lo va a usar.
 
 Cuando toque:
 
-1. Instalar ACF y crear el CPT desde su interfaz (registra CPT y taxonomías desde la 6.1).
-2. Activar `acf-json/` en el tema hijo, para que la definición viaje con el repositorio y no se
-   quede solo en la base de datos.
-3. Los campos, en ACF. Nada de `register_post_meta()` a mano en paralelo: dos fuentes para lo
-   mismo.
+1. `register_post_type()` / `register_taxonomy()` en el mu-plugin, colgado de `init`. Sin
+   herramienta de terceros de por medio: es el mismo patrón para cualquier proyecto, sin depender
+   de qué tenga instalado el WordPress de destino.
+2. Los campos, con `register_post_meta( …, ['show_in_rest' => true, …] )` en el propio mu-plugin
+   —para que aparezcan en el editor de bloques nativo sin plugin adicional— o con un metabox
+   clásico si la edición lo pide. Una sola fuente para cada campo, en código.
+3. **Si el proyecto de verdad necesita una interfaz de campos más rica que lo nativo** (repetidores,
+   campos condicionales, una edición compleja), ACF sigue siendo una herramienta válida para ESO
+   —los campos—, pero declarada en PHP con `acf_add_local_field_group()` dentro del propio
+   mu-plugin, nunca creada desde su interfaz gráfica: así el campo vive en el mismo sitio que el
+   CPT que lo usa, en código, sin `acf-json/` ni nada que solo exista en la base de datos. El CPT
+   en sí nunca depende de ACF para registrarse.
 
-Caso real: el proyecto de referencia tenía un CPT registrado por código con **cero entradas** —una
-pieza que no sostenía nada—. Se retiró en vez de migrarla. Antes de crear un CPT, comprueba que
-alguien lo va a usar.
+**Consecuencia asumida** (del contrato en el tema, no de los CPT, que ahora viven en el
+mu-plugin y no dependen del tema activo): cambiar de tema deja el sitio sin los tokens hasta que
+se instale el tema hijo nuevo. Aceptado.
 
-**Consecuencia asumida** (del contrato en el tema, no de los CPT, que ahora viven en ACF): cambiar
-de tema deja el sitio sin los tokens hasta que se instale el tema hijo nuevo. Aceptado.
-
-## Las veinticuatro trampas ya pagadas
+## Las veintiséis trampas ya pagadas
 
 Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
 
@@ -424,6 +456,70 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     diseñador deja anclado), que en el caso verificado especificaba el fichero exacto, sus
     atributos de reproducción y que el fotograma visible en el lienzo es el póster del vídeo en un
     segundo concreto — dato que solo estaba ahí, en ningún otro sitio.
+
+25. **Un `.svg` metido como bloque `media` (`<img src="…​.svg">`) congela su color y esconde
+    desviaciones del contrato.** Un `<img>` no hereda `currentColor`: lo que el fichero lleve
+    escrito dentro es lo que se ve, y no hay CSS que lo cambie. Peor: el HEX queda **fuera del
+    marcado**, así que ningún linter lo mira — el bloque es válido, y el fichero es opaco para
+    ellos. Descubierto por el usuario el 22/09/2026 en `WEB FUNDACION SC LA PALMA`, donde
+    `logo-nav.svg` y `slogan-h1.svg` llevaban `fill="#FFFFFF"` — blanco puro, que **no es uno de
+    los 6 colores del contrato** (el correcto es `--color-paper`, `#F5F0E4`). Llevaban semanas
+    servidos así, con los dos linters en verde y la comprobación de contrato publicado también en
+    verde, porque ninguna de las tres cosas abre el `.svg`. Se suman tres costes menores: obliga a
+    permitir la subida de SVG (`safe-svg` + `--user=1` en `wp media import`), que es superficie de
+    riesgo evitable; gasta una petición HTTP por icono; y con `loading="lazy"` cae de lleno en la
+    trampa 14.
+
+    **Regla: un SVG va en bloque `shape`, inline, con sus colores pasados a `currentColor`** para
+    que hereden el token del contenedor. El bloque lo admite de fábrica: su `block.json` declara
+    `"html": { "source": "html", "selector": ".gb-shape" }`, o sea que el SVG vive en el marcado y
+    Gutenberg lo deriva de ahí (es la misma razón por la que `shape()` no lo escribe en el JSON del
+    comentario).
+
+    **La excepción es el peso**, y es un juicio, no un número sagrado: un SVG decorativo grande
+    infla el `post_content` de cada página que lo use. En ese proyecto, `circulos-fondo.svg` pesa
+    **199 KB** y se queda como `media`; los iconos (617 B – 1,7 KB) y las piezas de marca (logo
+    44 KB, slogan 19 KB) van inline. Como orden de magnitud: por debajo de ~50 KB, inline sin
+    pensarlo; por encima, mira cuánto pesa ya la página y decide. Un decorativo que además no
+    necesita recolorearse es el candidato natural a quedarse como `media`.
+
+    **Y antes de inyectar, catalóguialo: el SVG se registra primero en la Asset Library de GB Pro**
+    (Dashboard → GenerateBlocks → Asset Library), en un grupo propio del proyecto. Así el cliente
+    puede reutilizarlo desde el selector del bloque Shape sin pegar código, y las piezas de marca
+    quedan en un sitio y no dispersas por las páginas. Cómo funciona por dentro, verificado leyendo
+    el plugin: la librería guarda dos opciones de WordPress, `generateblocks_svg_shapes` y
+    `generateblocks_svg_icons`, cada una un array de grupos con la forma
+    `{ group, group_id, shapes: [ { id, name, shape } ] }`; el filtro
+    `generateblocks_pro_add_custom_svg_shapes` las mete en `generateblocks_get_svg_shapes()` de GB
+    core, que el editor recibe como `svgShapes`. **Es un catálogo del editor, no una referencia
+    dinámica**: al elegir una forma, su SVG se copia inline en el bloque. Se escriben por REST o,
+    desde un script, con `wp option update generateblocks_svg_shapes --format=json`. Los
+    `generateblocks_svg_icons` alimentan el selector del atributo `icon`, que no se usa — ver la
+    trampa 19.
+
+26. **El nombre accesible de un SVG va en el CONTENEDOR, nunca dentro del `<svg>`.** Al aplicar la
+    trampa 25 salta la siguiente: un SVG inline que necesita anunciarse —porque va suelto, sin un
+    enlace o un texto al lado que ya lo nombre— no puede llevar el nombre dentro. Medido el
+    22/09/2026 con `qa-editor-check.mjs` y una sonda de cuatro variantes sobre el mismo SVG:
+
+    | | Dónde va el nombre | Editor |
+    |---|---|---|
+    | A | `aria-hidden="true"` en el `<svg>` | ✔ valida |
+    | B | `role="img"` + `aria-label` en el `<svg>` | ✖ **Attempt Recovery** |
+    | C | `role="img"` + `aria-label` en el `.gb-shape`, por `htmlAttributes` | ✔ valida |
+    | D | un `<title>` dentro del `<svg>` | ✖ **Attempt Recovery** |
+
+    O sea que las dos formas canónicas de nombrar un SVG en HTML —el par `role`/`aria-label` y el
+    `<title>` hijo— son justo las que rompen el bloque. No lo ve ningún linter estático: el marcado
+    es HTML válido. **El SVG sale siempre `aria-hidden="true"` y el nombre se pone en los
+    `htmlAttributes` del bloque `shape`**, que es marcado del propio bloque y sí lo admite.
+
+    Con una trampa dentro de la trampa: **`shape()` de `emit.mjs` no emitía `htmlAttributes`**,
+    aunque el `block.json` del bloque los declara igual que en `element` o `media`. Los descartaba
+    en silencio, así que la variante C «validaba» por la peor de las razones — los atributos no
+    llegaban al marcado y el bloque quedaba idéntico a la variante A, sin nombre accesible. Se vio
+    porque el `role="img"` no aparecía en la página servida. Corregido en el emisor el 22/09/2026;
+    con una copia anterior, compruébalo antes de fiarte del resultado de la sonda.
 
 ## Anotaciones de Figma: canal de instrucciones por sección
 

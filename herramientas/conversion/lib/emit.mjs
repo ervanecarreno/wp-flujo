@@ -277,8 +277,31 @@ export function text({ uniqueId, tagName = "p", content = "", styles = {}, globa
  * `<a>` — verificado el 3/09/2026 contra el export real post 49656 (logo del
  * header enlazando a portada). Sin `linkHtmlAttributes` no hay envoltorio,
  * igual que antes.
+ *
+ * ADVERTENCIA sobre `.svg` — trampa 25 de la skill, encontrada el 22/09/2026:
+ * un SVG servido como `<img src>` NO hereda `currentColor`, así que su color
+ * queda congelado dentro del fichero, fuera del marcado y fuera del alcance de
+ * los linters. En el caso real, dos piezas de marca llevaban `fill="#FFFFFF"`
+ * —un color que no estaba en el contrato— y nadie lo vio. Lo normal es que un
+ * SVG vaya en `shape()`, inline y con `currentColor`.
+ *
+ * Es un AVISO, no una excepción: un decorativo grande (199 KB en el caso real)
+ * es un `media` legítimo, porque inline inflaría el `post_content` de cada
+ * página que lo use. Para esos, `svgDeliberado: true` lo silencia y deja
+ * constancia en el código de que la decisión se tomó.
+ *
+ * Sale por `console.warn` a propósito: va a stderr, no a stdout, así que no
+ * ensucia el marcado cuando el build hace `node build/pagina.mjs > pagina.html`.
  */
-export function media({ uniqueId, tagName = "img", styles = {}, htmlAttributes = {}, globalClasses, mediaId, linkHtmlAttributes, metadata, className }) {
+export function media({ uniqueId, tagName = "img", styles = {}, htmlAttributes = {}, globalClasses, mediaId, linkHtmlAttributes, metadata, className, svgDeliberado = false }) {
+  const src = htmlAttributes.src ?? "";
+  if (!svgDeliberado && /\.svg(\?|#|$)/i.test(src)) {
+    console.warn(
+      `media: "${src.split("/").pop()}" es un SVG servido como <img>: no heredara currentColor ` +
+      `y su color queda fuera del marcado (trampa 25). Normalmente va en shape(), inline. ` +
+      `Si es un decorativo grande y la decision esta tomada, pasa svgDeliberado: true.`
+    );
+  }
   const id = uniqueId ?? uid("img" + (htmlAttributes.src ?? ""));
   const attrs = { uniqueId: id, tagName };
   if (Object.keys(styles).length) {
@@ -309,7 +332,7 @@ export function media({ uniqueId, tagName = "img", styles = {}, htmlAttributes =
  * contra `herramientas/corpus-gb/`). Escribirlo duplicaba el SVG en cada
  * bloque sin que nada lo leyera.
  */
-export function shape({ uniqueId, html, styles = {}, globalClasses, metadata, className }) {
+export function shape({ uniqueId, html, styles = {}, globalClasses, htmlAttributes, metadata, className }) {
   const id = uniqueId ?? uid("shape");
   const attrs = { uniqueId: id };
   if (Object.keys(styles).length) {
@@ -317,11 +340,18 @@ export function shape({ uniqueId, html, styles = {}, globalClasses, metadata, cl
     attrs.css = buildCanonicalCss(`.gb-shape-${id}`, styles);
   }
   if (globalClasses?.length) attrs.globalClasses = globalClasses;
+  /* `htmlAttributes` FALTABA, y el bloque si los admite: su block.json los declara igual
+     que element o media. El emisor los descartaba en silencio — un
+     `shape({ htmlAttributes: … })` salia sin ellos y nadie se enteraba.
+     Se vio el 22/09/2026 al poner el nombre accesible de un logotipo: el `role="img"` no
+     llegaba al marcado. Y no es un extra: es la UNICA via para nombrar un SVG dentro de
+     un shape, porque metido en el `<svg>` el editor marca el bloque invalido. */
+  if (htmlAttributes) attrs.htmlAttributes = htmlAttributes;
   if (metadata) attrs.metadata = metadata;
   if (className) attrs.className = className;
 
   const cls = classList("generateblocks/shape", id, attrs);
-  const body = `<span class="${cls}">${html}</span>`;
+  const body = `<span class="${cls}"${htmlAttrString(htmlAttributes)}>${html}</span>`;
   return `${delimiter("generateblocks/shape", attrs)}\n${body}\n<!-- /wp:generateblocks/shape -->`;
 }
 
