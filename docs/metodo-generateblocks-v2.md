@@ -83,45 +83,68 @@ El SVG va en el atributo `html` y repetido en el cuerpo. Usa `stroke="currentCol
 
 ⚠️ Requiere usuario con permiso `unfiltered_html` (administrador). WordPress elimina el SVG a cualquier otro perfil, y el bloque queda vacío sin avisar.
 
-### Botones y enlaces con icono: un solo bloque, si hay texto
+### Botones y enlaces con icono: el atributo `icon`, con la forma correcta de HTML
 
-**Medido el 22/09/2026 con `qa-editor-check.mjs`, contra un WordPress real en GB 2.4 / Pro
-2.7 (versión estable, no beta).** La regla exacta, y por qué importa la distinción:
+**Corregido el 22/09/2026.** La primera versión de esta sección recomendaba meter el SVG
+a mano dentro de `content`, con una clase inventada, evitando el atributo `icon` del
+bloque. Eso funcionaba, pero por el motivo equivocado, y tenía un coste real: el icono
+quedaba invisible para el editor —era texto, no un icono— así que nadie podía cambiarlo
+desde el panel visual sin tocar código. La forma correcta usa el atributo NATIVO.
 
-| Contenido del `text` | ¿Válida en el editor? |
-|---|---|
-| Solo texto | Sí — es el caso de siempre |
-| **Texto + SVG**, ambos en el `content` | **Sí** |
-| **Solo SVG**, sin ninguna palabra visible | **No — «Attempt Recovery»** |
-
-O sea: un botón con icono y texto —el caso normal— se puede escribir como un ÚNICO
-bloque `text` con `tagName: "a"`, metiendo el SVG y el texto ya maquetados dentro del
-`content`, en vez de tres bloques anidados (`element` > `text` + `shape`):
+**El `block.json` real del bloque `text` declara dos selectores distintos:**
+`icon` es `{"source":"html","selector":".gb-shape"}` y `content` es
+`{"selector":".gb-text"}`. Dos selectores, así que ninguno de los dos puede ser el
+elemento raíz completo — tienen que ser dos `<span>` HERMANOS dentro de la raíz, y la
+raíz misma se queda solo con su id-class, SIN la clase base `gb-text` (esa clase base
+ahora vive en el span del texto, no en el contenedor). Medido con `qa-editor-check.mjs`
+sobre cinco variantes aisladas del mismo botón: cualquier combinación que ponga la clase
+base en la raíz falla, sin excepción; sin ella, con los dos spans, valida siempre.
 
 ```
-<!-- wp:generateblocks/text {"uniqueId":"cta001","tagName":"a","htmlAttributes":{"href":"/contacto"},"styles":{"display":"inline-flex","alignItems":"center","columnGap":"12px",".gb-icono":{"width":"14px","height":"14px"}},"css":"…","className":"gb-text"} -->
-<a class="gb-text-cta001 gb-text" href="/contacto"><span class="gb-icono"><svg …>…</svg></span><span>Contacto</span></a>
+<!-- wp:generateblocks/text {"uniqueId":"cta001","tagName":"a","htmlAttributes":{"href":"/contacto"},"styles":{"display":"inline-flex","alignItems":"center","columnGap":"12px",".gb-shape":{"width":"14px","height":"14px"}},"css":"…"} -->
+<a class="gb-text-cta001" href="/contacto"><span class="gb-shape"><svg …>…</svg></span><span class="gb-text">Contacto</span></a>
 <!-- /wp:generateblocks/text -->
 ```
 
-El icono puede ir delante o detrás del texto dentro del `content` — el orden es solo el
-orden de los `<span>`. Los dos spans internos se estilan con selectores anidados en el
-propio `styles` del bloque (`".gb-icono": {…}`), como cualquier otro selector anidado de
-GB (`:hover`, media queries, `.gb-carousel-dot`…).
+Ni `icon` ni `content` se serializan en el JSON del comentario — ambos tienen
+`source:"html"`, Gutenberg los deriva del cuerpo al parsear (es la misma razón por la
+que `content` a secas nunca se serializa). `iconLocation` SÍ va en el JSON cuando vale
+`"after"` (icono detrás del texto): no tiene `source`, no hay forma de derivarlo del
+HTML. Con `"before"` (el valor por defecto) sobra.
 
-**Pero un enlace que es SOLO un icono —sin ninguna palabra, como un icono de red
-social— NO puede ir así.** Ahí hace falta el patrón de tres bloques: `element(a)` >
-`shape(svg)`. La diferencia entre los dos casos es exactamente la presencia de texto
-visible en el `content`, no la versión de GB.
+**Por qué compensa usar `icon` en vez de seguir metiendo el SVG en `content`:** con el
+SVG registrado antes en la **Icon Library** de GB Pro (`generateblocks_svg_icons` —
+prima de la Asset Library de formas, `generateblocks_svg_shapes`, mismo mecanismo: un
+catálogo del editor, no una referencia dinámica), el icono queda seleccionable desde el
+panel visual del bloque sin pegar código. Un SVG a mano en `content` da el mismo
+resultado visual, pero el editor no lo reconoce como icono.
 
-**Esto corrige una trampa mal acotada.** Se había medido y documentado que «un `text`
-cuyo contenido es solo un SVG deja de validar» como un problema exclusivo de los betas
-GB 2.5 / Pro 2.8 (proyecto piloto, 21/09/2026) — dando a entender que en la versión
-estable sí funcionaba. No se había probado ese caso concreto contra la estable por
-separado: en el piloto, los 12 iconos afectados se arreglaron a la vez en los dos sitios
-(estable y beta), así que nunca quedó un caso vivo con el que comprobarlo. Medido de
-nuevo el 22/09/2026, aislado, contra la versión estable: falla igual. La regla correcta
-no distingue versión — distingue si hay texto visible o no.
+**El trade-off real, para elegir con conocimiento de causa:** la skill externa vendorizada
+`wpgaurav/generateblocks-skills` (`BETA/skills-v2026.09.18/`, revisada el 22/09/2026) NUNCA
+usa el atributo `icon` en sus propios ejemplos — su convención para «botón con icono» es
+siempre `element(a)` > `shape` + `text`, tres bloques. No es que lo hayan probado y les
+fallara —no hay indicio de eso en su documentación—, simplemente priorizan otra cosa: con
+tres bloques, el icono y el texto son cada uno un bloque de Gutenberg independiente,
+seleccionable y editable por separado en el árbol del editor. Con `icon` en un solo `text`,
+esa granularidad se pierde —es un bloque, no tres— a cambio de que el icono sea
+seleccionable desde SU PROPIO panel (el picker de la Icon Library). Para un botón fijo del
+tema (los de este proyecto) la compacidad gana; para un patrón que un cliente vaya a tocar
+bloque a bloque en el editor, puede compensar más la granularidad de los tres bloques.
+
+**La alternativa de «todo en `content`, sin usar `icon`» sigue siendo válida y sigue
+haciendo falta cuando hay MÁS de dos piezas** —por ejemplo, un año, un título y un icono
+en la misma fila: el mecanismo de `icon`/`content` solo tiene sitio para dos selectores,
+así que un tercer trozo de contenido no cabe ahí y hay que escribirlo todo dentro de
+`content`, con clases propias. Esa vía no usa el atributo `icon` en ningún momento, así
+que no le aplica la restricción de la clase base: la raíz conserva su clase normal.
+
+**Y un enlace que es SOLO un icono —sin ninguna palabra, como un icono de red social—
+no puede llevar `icon` tampoco: ahí hace falta el patrón de tres bloques**, `element(a)`
+> `shape(svg)`. Un `text` cuyo `content` queda vacío (todo el contenido es el icono) no
+valida. La diferencia entre los tres casos es exactamente cuántas piezas de contenido
+hay y si alguna es texto visible — no la versión de GB: se midió aparte, aislado, que
+esto falla igual en la versión ESTABLE (2.4/2.7) que en los betas 2.5/2.8, corrigiendo
+una atribución anterior que lo daba por un problema exclusivo de los betas.
 
 ---
 

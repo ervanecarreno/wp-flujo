@@ -141,7 +141,7 @@ const BASE_CLASS = {
 export let CLASS_MODE = "site-2026";
 export function setClassMode(mode) { CLASS_MODE = mode; }
 
-function classList(blockName, uniqueId, attrs) {
+function classList(blockName, uniqueId, attrs, { sinClaseBase = false } = {}) {
   const base = BASE_CLASS[blockName];
   /* `query` no tiene clase base: su cuerpo es un `<div>` pelado (medido en
      corpus-gb/latest-articles.html). Sin esta salida, base.replace reventaba. */
@@ -173,7 +173,7 @@ function classList(blockName, uniqueId, attrs) {
     // El único ejemplo del corpus es un loop-item SIN estilos, cuya clase base sale
     // del respaldo de abajo; deducir de ahí que no la lleva fue inferir, no medir,
     // y el editor lo desmintió. Se queda como estaba.
-    const withBase = [
+    const withBase = !sinClaseBase && [
       "generateblocks/text", "generateblocks/shape", "generateblocks/loop-item",
       // Accordion y Tabs (GB Pro) — calibrado contra exports reales pegados por
       // el usuario (2026-08-19): todos llevan la base class siempre presente,
@@ -279,16 +279,25 @@ function compruebaEtiqueta(bloque, tagName) {
 }
 
 /**
- * ADVERTENCIA sobre `icon` — trampa 19 de la skill `flujo-wordpress-generateblocks`,
- * verificada el 21/09/2026 con `qa-editor-check.mjs`: un `text()` con `icon` genera
- * marcado válido para los dos linters estáticos, pero el EDITOR REAL lo marca inválido
- * («Attempt Recovery»). No investigado más a fondo por qué; la salida verificada es
- * escribir el SVG dentro del propio `content`, que valida y es más corto:
- *   text({ content: '<svg …>…</svg> Rótulo', styles: { display:'inline-flex', … } })
- * en vez de:
- *   text({ content: 'Rótulo', icon: '<svg …>…</svg>' })
- * Si vas a usar `icon`/`iconLocation`, pasa primero por `qa-editor-check.mjs` — es la
- * única capa de QA que ve este fallo.
+ * `icon` — CORREGIDO el 22/09/2026 (antes trampa 19: «no lo uses»). El fallo era real
+ * pero mal diagnosticado: no era el atributo `icon` en sí, era la FORMA del HTML.
+ *
+ * Medido con `qa-editor-check.mjs`, cinco variantes aisladas sobre el mismo botón:
+ * el editor exige que, en cuanto hay `icon`, el bloque deje de ser «raíz con clase base
+ * + contenido suelto» y pase a ser dos `<span>` HERMANOS dentro de la raíz — uno
+ * `.gb-shape` con el SVG, otro `.gb-text` con el texto —, y que la raíz misma pierda su
+ * clase base `gb-text` (se queda solo con la id-class). Es justo lo que declara su
+ * `block.json`: `icon` tiene `"source":"html","selector":".gb-shape"` y `content` tiene
+ * `"selector":".gb-text"` — dos selectores DISTINTOS, así que ninguno de los dos puede
+ * ser el elemento raíz completo. Ninguna combinación con la clase base puesta valida.
+ *
+ * Ni `icon` ni `content` se serializan en el JSON — los dos tienen `source:"html"`, GB
+ * los deriva del cuerpo al parsear (igual que ya se sabía de `content` a secas).
+ * `iconLocation` SÍ hace falta en el JSON cuando vale `"after"`: no tiene `source`, así
+ * que no hay forma de derivarlo del HTML; con `"before"` (el valor por defecto) sobra.
+ *
+ * Sin `icon`, el bloque no cambia nada de lo de siempre: content va directo como hijo,
+ * con su clase base normal — verificado contra ~30 bloques reales, ver la nota de abajo.
  */
 export function text({ uniqueId, tagName = "p", content = "", styles = {}, globalClasses, htmlAttributes, icon, iconLocation, metadata, className }) {
   compruebaEtiqueta("text", tagName);
@@ -313,14 +322,22 @@ export function text({ uniqueId, tagName = "p", content = "", styles = {}, globa
   }
   if (globalClasses?.length) attrs.globalClasses = globalClasses;
   if (htmlAttributes) attrs.htmlAttributes = htmlAttributes;
-  if (icon) { attrs.icon = icon; if (iconLocation) attrs.iconLocation = iconLocation; }
+  // icon/content: NUNCA en el JSON, ver la nota de arriba. iconLocation solo si
+  // difiere del default ("before"), porque ese sí es un valor de configuración normal.
+  if (icon && iconLocation === "after") attrs.iconLocation = "after";
   if (metadata) attrs.metadata = metadata;
   const claseBem = claseFinal(className, 'text', tagName, styles);
   if (claseBem) attrs.className = claseBem;
 
-  const cls = classList("generateblocks/text", id, attrs);
-  const iconHtml = icon ? `<span class="gb-shape">${icon}</span>` : "";
-  const inner = iconLocation === "after" ? `${content}${iconHtml}` : `${iconHtml}${content}`;
+  const cls = classList("generateblocks/text", id, attrs, { sinClaseBase: !!icon });
+  let inner;
+  if (icon) {
+    const spanTexto = `<span class="gb-text">${content}</span>`;
+    const spanIcono = `<span class="gb-shape">${icon}</span>`;
+    inner = iconLocation === "after" ? `${spanTexto}${spanIcono}` : `${spanIcono}${spanTexto}`;
+  } else {
+    inner = content;
+  }
   const body = `<${tagName} class="${cls}"${htmlAttrString(htmlAttributes)}>${inner}</${tagName}>`;
   return `${delimiter("generateblocks/text", attrs)}\n${body}\n<!-- /wp:generateblocks/text -->`;
 }

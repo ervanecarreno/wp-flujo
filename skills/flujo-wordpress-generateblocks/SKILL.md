@@ -1,7 +1,7 @@
 ---
 name: flujo-wordpress-generateblocks
 description: Flujo de 8 fases para webs WordPress de cliente con GeneratePress + GenerateBlocks Pro V2, dentro del protocolo de colaboración A/B de COMO-TRABAJAMOS.md. Úsala en cuanto aparezca un proyecto WordPress de cliente (ayuntamiento, pyme), o si se menciona GeneratePress, GenerateBlocks, GB Pro, maquetar una home o una landing, patrones de bloques, o pasar un sitio a producción. Actívala sin esperar a que la pidan por su nombre.
-version: 0.19.0
+version: 0.20.0
 ---
 
 # Flujo WordPress + GenerateBlocks
@@ -401,15 +401,27 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     `opacity`/`transform`/`filter` puestos en línea — el estado inicial que dejan los motores tipo
     Framer antes de disparar el JS, y la pista de la trampa 18.
 
-19. **`text()` con el atributo `icon` no valida en el editor real de GenerateBlocks, aunque los dos
-    linters den verde.** Verificado el 21/09/2026 con `qa-editor-check.mjs` sobre una sonda de tres
-    variantes de un mismo antetítulo (icono SVG + texto): `text({ icon: svg })` marca el bloque
-    inválido («Attempt Recovery» para el cliente); `element()` + `shape()` + `text()` por separado
-    valida; y el SVG **dentro del propio `content`** de `text()` también valida y además es más
-    corto. Ninguno de los dos linters estáticos lo detecta —el marcado que genera `icon` es
-    sintácticamente correcto, el editor lo rechaza por otra razón que no se ha investigado más—,
-    así que esto **solo lo ve el editor real**. Regla: para icono + texto en línea (antetítulos,
-    etiquetas), escribe el SVG dentro del `content` de `text()`, no en su parámetro `icon`.
+19. **CORREGIDA el 22/09/2026 — `icon` en `text()` SÍ funciona; el diagnóstico original era
+    incorrecto.** Decía «no uses `icon`, mete el SVG en `content`». El fallo real no era el
+    atributo: era la FORMA del HTML que el emisor generaba con él. Medido con `qa-editor-check.mjs`
+    sobre cinco variantes aisladas del mismo botón: el editor exige que, en cuanto hay `icon`, el
+    bloque deje de ser «raíz con su clase base `gb-text` + contenido suelto» y pase a ser DOS
+    `<span>` hermanos dentro de la raíz —uno `.gb-shape` con el SVG, otro `.gb-text` con el
+    texto— con la raíz misma SIN la clase base (solo la id-class). Es justo lo que declara el
+    `block.json` real del bloque: `icon` tiene `"source":"html","selector":".gb-shape"` y
+    `content` tiene `"selector":".gb-text"` — dos selectores distintos, ninguno puede ser el
+    elemento raíz completo. El emisor antiguo ponía la clase base Y el content suelto (sin su
+    span), y por eso fallaba siempre. Corregido en `emit.mjs`: `text()` ahora construye el HTML
+    correcto en cuanto se le pasa `icon`, y ni `icon` ni `content` se serializan en el JSON —los
+    deriva Gutenberg del cuerpo, igual que ya pasaba con `content` a secas. `iconLocation` sí va en
+    el JSON cuando vale `"after"` (no tiene `source`, no se puede derivar del HTML).
+
+    **Por qué compensa usarlo, en vez de seguir metiendo el SVG a mano en `content`:** `icon` es el
+    atributo real del picker del bloque en el editor — con el SVG registrado en la **Icon
+    Library** de GB Pro (`generateblocks_svg_icons`, ver la trampa 25 para su prima la Asset
+    Library de formas), el icono queda seleccionable desde el panel visual sin tocar código. Un
+    SVG metido a mano en `content` con una clase inventada (tipo `.mi-icono`) da el mismo
+    resultado visual pero el editor no lo reconoce como icono — es solo texto.
 
 20. **Los glifos Unicode de flecha (`↗ → ▶ ← ›`…) se pintan como EMOJI de color, no como texto.**
     Ninguna fuente tipográfica del proyecto suele traer esos puntos de código, así que el navegador
@@ -566,8 +578,8 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     core, que el editor recibe como `svgShapes`. **Es un catálogo del editor, no una referencia
     dinámica**: al elegir una forma, su SVG se copia inline en el bloque. Se escriben por REST o,
     desde un script, con `wp option update generateblocks_svg_shapes --format=json`. Los
-    `generateblocks_svg_icons` alimentan el selector del atributo `icon`, que no se usa — ver la
-    trampa 19.
+    `generateblocks_svg_icons` alimentan el selector del atributo `icon` de `text()` — ver la
+    trampa 19, corregida el 22/09/2026: sí se usa, con la forma de HTML correcta.
 
 26. **El nombre accesible de un SVG va en el CONTENEDOR, nunca dentro del `<svg>`.** Al aplicar la
     trampa 25 salta la siguiente: un SVG inline que necesita anunciarse —porque va suelto, sin un
