@@ -1,7 +1,7 @@
 ---
 name: generar-bloques-generateblocks
 description: Genera marcado de bloques de GenerateBlocks Pro V2 canónico y validado. Úsala al escribir, pegar o corregir bloques de GenerateBlocks, comentarios `wp:generateblocks/...`, patrones de Gutenberg para GB, o cuando el editor de WordPress diga que un bloque "contiene contenido inesperado o no válido".
-version: 0.1.0
+version: 0.2.0
 ---
 
 # Generar bloques de GenerateBlocks Pro V2
@@ -53,7 +53,11 @@ Son las 10 casillas del §8 de `docs/metodo-generateblocks-v2.md`:
    literales — solo se escapan las de dentro de un valor
 5. `src`/`alt`/`href` dentro de `htmlAttributes`, no en el primer nivel
 6. `content` duplicado en atributo y cuerpo para todos los `text`
-7. Todo `element` con `tagName: "a"` contiene un `text`, nunca texto plano
+7. Todo `element` con `tagName: "a"` contiene un `text`, nunca texto plano. Excepción: un
+   botón con icono puede ser un solo `text` con `tagName: "a"` y el SVG+texto en su
+   `content` — ver «Botones y enlaces con icono» en `docs/metodo-generateblocks-v2.md`
+   §2. Un enlace que es SOLO icono, sin texto visible, no vale para esta excepción: ese
+   sigue siendo `element(a)` > `shape(svg)`
 8. Los `uniqueId` son únicos y deterministas
 9. Los breakpoints que cruzan bloques están en el CSS externo
 10. Ninguna tipografía declarada si el tema ya la define

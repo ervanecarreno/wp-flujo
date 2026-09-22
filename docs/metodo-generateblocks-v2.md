@@ -16,7 +16,7 @@ GenerateBlocks V2 no tiene un bloque por patrón visual. Tiene primitivas:
 | `generateblocks/shape` | SVG en línea (iconos) | `span` envolviendo el SVG |
 | `generateblocks/query` + `looper` + `loop-item` | Contenido dinámico | — |
 
-**Consecuencia de diseño:** no busques el bloque "card" ni el bloque "grid". Una card es un `element` con `styles`, y una rejilla es un `element` con `display:grid`. Un botón es un `element` con `tagName: "a"` que contiene un `text` con `tagName: "span"` — nunca un `element` con texto suelto dentro.
+**Consecuencia de diseño:** no busques el bloque "card" ni el bloque "grid". Una card es un `element` con `styles`, y una rejilla es un `element` con `display:grid`. Un botón sin icono es un `element` con `tagName: "a"` que contiene un `text` con `tagName: "span"` — nunca un `element` con texto suelto dentro. Un botón **con icono** tiene una forma más compacta y también válida: ver «Botones y enlaces con icono», debajo del bloque `shape`.
 
 ---
 
@@ -82,6 +82,46 @@ El SVG va en el atributo `html` y repetido en el cuerpo. Usa `stroke="currentCol
 ```
 
 ⚠️ Requiere usuario con permiso `unfiltered_html` (administrador). WordPress elimina el SVG a cualquier otro perfil, y el bloque queda vacío sin avisar.
+
+### Botones y enlaces con icono: un solo bloque, si hay texto
+
+**Medido el 22/09/2026 con `qa-editor-check.mjs`, contra un WordPress real en GB 2.4 / Pro
+2.7 (versión estable, no beta).** La regla exacta, y por qué importa la distinción:
+
+| Contenido del `text` | ¿Válida en el editor? |
+|---|---|
+| Solo texto | Sí — es el caso de siempre |
+| **Texto + SVG**, ambos en el `content` | **Sí** |
+| **Solo SVG**, sin ninguna palabra visible | **No — «Attempt Recovery»** |
+
+O sea: un botón con icono y texto —el caso normal— se puede escribir como un ÚNICO
+bloque `text` con `tagName: "a"`, metiendo el SVG y el texto ya maquetados dentro del
+`content`, en vez de tres bloques anidados (`element` > `text` + `shape`):
+
+```
+<!-- wp:generateblocks/text {"uniqueId":"cta001","tagName":"a","htmlAttributes":{"href":"/contacto"},"styles":{"display":"inline-flex","alignItems":"center","columnGap":"12px",".gb-icono":{"width":"14px","height":"14px"}},"css":"…","className":"gb-text"} -->
+<a class="gb-text-cta001 gb-text" href="/contacto"><span class="gb-icono"><svg …>…</svg></span><span>Contacto</span></a>
+<!-- /wp:generateblocks/text -->
+```
+
+El icono puede ir delante o detrás del texto dentro del `content` — el orden es solo el
+orden de los `<span>`. Los dos spans internos se estilan con selectores anidados en el
+propio `styles` del bloque (`".gb-icono": {…}`), como cualquier otro selector anidado de
+GB (`:hover`, media queries, `.gb-carousel-dot`…).
+
+**Pero un enlace que es SOLO un icono —sin ninguna palabra, como un icono de red
+social— NO puede ir así.** Ahí hace falta el patrón de tres bloques: `element(a)` >
+`shape(svg)`. La diferencia entre los dos casos es exactamente la presencia de texto
+visible en el `content`, no la versión de GB.
+
+**Esto corrige una trampa mal acotada.** Se había medido y documentado que «un `text`
+cuyo contenido es solo un SVG deja de validar» como un problema exclusivo de los betas
+GB 2.5 / Pro 2.8 (proyecto piloto, 21/09/2026) — dando a entender que en la versión
+estable sí funcionaba. No se había probado ese caso concreto contra la estable por
+separado: en el piloto, los 12 iconos afectados se arreglaron a la vez en los dos sitios
+(estable y beta), así que nunca quedó un caso vivo con el que comprobarlo. Medido de
+nuevo el 22/09/2026, aislado, contra la versión estable: falla igual. La regla correcta
+no distingue versión — distingue si hay texto visible o no.
 
 ---
 
@@ -336,7 +376,9 @@ mismo había escrito. Ahora pasa esos 732 bloques con **0 errores**.
       **estructurales** del JSON literales.
 - [ ] `src`/`alt`/`href` dentro de `htmlAttributes`, no en el primer nivel.
 - [ ] `htmlAttributes` es un objeto plano, nunca un array (causa nº 1 de "Attempt Recovery").
-- [ ] Todo `element` con `tagName: "a"` contiene un `text`, nunca texto plano.
+- [ ] Todo `element` con `tagName: "a"` contiene un `text`, nunca texto plano. (No aplica
+      cuando el enlace en sí ES un `text` con `tagName: "a"` — ver «Botones y enlaces con
+      icono» en §2.)
 - [ ] Los `uniqueId` son únicos y deterministas.
 - [ ] Los breakpoints que cruzan bloques están en el CSS externo, no intentados con `styles`.
 - [ ] Ninguna tipografía declarada si el tema ya la define.
