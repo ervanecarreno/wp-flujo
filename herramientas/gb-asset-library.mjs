@@ -1,6 +1,17 @@
 #!/usr/bin/env node
 /**
- * gb-asset-library.mjs — registra SVG en la Asset Library de GenerateBlocks Pro.
+ * gb-asset-library.mjs — registra SVG en los catálogos de GenerateBlocks Pro.
+ *
+ * DOS catálogos, mismo mecanismo por debajo, un solo script (`--catalogo`):
+ *
+ *   · `shapes` (por defecto) — la Asset Library, `generateblocks_svg_shapes`.
+ *     Alimenta el picker del bloque `shape` (una forma suelta).
+ *   · `icons` — la Icon Library, `generateblocks_svg_icons`. Alimenta el
+ *     picker del atributo `icon` del bloque `text` (el icono de un botón).
+ *     No existía un registrador genérico para esta antes del 23/09/2026: cada
+ *     proyecto que lo necesitaba lo reinventaba a mano dentro de su propia
+ *     carpeta `build/` — ver la nota de «Botones y enlaces con icono» en
+ *     `docs/metodo-generateblocks-v2.md` §2.
  *
  * La trampa que cierra, encontrada el 22/09/2026 (trampa 25 de la skill):
  *
@@ -12,31 +23,34 @@
  * —blanco puro, que no estaba en el contrato de 6 colores— y llevaban semanas
  * servidas así con toda la cadena de validación en verde.
  *
- * La salida es meter el SVG inline en un bloque `shape`. Pero antes conviene
- * CATALOGARLO: la Asset Library de GB Pro es el sitio donde las piezas de marca
- * quedan a mano para el cliente, que puede insertarlas desde el selector del
- * bloque Shape sin pegar código. Este script hace ese paso, que en la interfaz
- * es subir los ficheros uno a uno a mano.
+ * La salida es meter el SVG inline (en un bloque `shape`, o en el atributo
+ * `icon` de un `text`). Pero antes conviene CATALOGARLO: es el sitio donde las
+ * piezas de marca quedan a mano para el cliente, que puede insertarlas desde
+ * el selector del bloque sin pegar código. Este script hace ese paso, que en
+ * la interfaz es subir los ficheros uno a uno a mano.
  *
  * Cómo funciona por dentro (verificado leyendo el plugin, 22/09/2026):
- *   · La librería guarda la opción `generateblocks_svg_shapes`: un array de
- *     grupos `{ group, group_id, shapes: [ { id, name, shape } ] }`.
- *   · El filtro `generateblocks_pro_add_custom_svg_shapes` las mete en
- *     `generateblocks_get_svg_shapes()` de GB core, que el editor recibe como
- *     `svgShapes`.
+ *   · Cada catálogo guarda su opción de WordPress como un array de grupos
+ *     `{ group, group_id, shapes|icons: [ { id, name, shape|icon } ] }` — la
+ *     clave del array y del campo cambia (`shapes`/`shape` vs `icons`/`icon`),
+ *     el resto es idéntico.
+ *   · El filtro `generateblocks_pro_add_custom_svg_shapes` (o su equivalente
+ *     de iconos) las mete en la función que GB core expone al editor.
  *   · **Es un catálogo del editor, no una referencia dinámica**: al elegir una
- *     forma, su SVG se COPIA inline en el bloque. Registrar aquí no cambia
+ *     pieza, su SVG se COPIA inline en el bloque. Registrar aquí no cambia
  *     ninguna página ya montada.
  *
  * Uso:
- *   node herramientas/gb-asset-library.mjs --sitio "<app/public>" [--puerto N] --listar
+ *   node herramientas/gb-asset-library.mjs --sitio "<app/public>" [--puerto N] [--catalogo shapes|icons] --listar
  *
  *   node herramientas/gb-asset-library.mjs --sitio "<app/public>" --puerto 10011 \
- *     --grupo "Pergamino" --carpeta design/assets/marca            (informa, no escribe)
+ *     [--catalogo icons] --grupo "Pergamino" --carpeta design/assets/iconos     (informa, no escribe)
  *
  *   node herramientas/gb-asset-library.mjs --sitio "<app/public>" --puerto 10011 \
- *     --grupo "Pergamino" --carpeta design/assets/marca --confirmar   (escribe)
+ *     [--catalogo icons] --grupo "Pergamino" --carpeta design/assets/iconos --confirmar   (escribe)
  *
+ *   --catalogo shapes|icons   qué catálogo tocar. Por defecto `shapes` (compatible
+ *                             con el uso de antes de esta opción).
  *   --svg <fichero>       en vez de --carpeta; se puede repetir.
  *   --a-current-color     sustituye los `fill`/`stroke` de color fijo por
  *                         `currentColor` antes de registrar. Solo tiene sentido
@@ -70,17 +84,32 @@ const quitarGrupo = opt("--quitar-grupo");
 const confirmar = flag("--confirmar");
 const listar = flag("--listar");
 const aCurrentColor = flag("--a-current-color");
+const catalogoNombre = opt("--catalogo", "shapes");
+
+/* Lo único que distingue un catálogo del otro: la opción de WordPress donde
+   vive, y el nombre de la clave del array/del campo dentro de cada grupo. El
+   resto —fusionar por grupo, conservar el id de lo que ya existía, avisar de
+   HEX y de peso— es exactamente el mismo código para los dos. */
+const CATALOGOS = {
+  shapes: { opcion: "generateblocks_svg_shapes", clave: "shapes", campo: "shape", etiqueta: "Asset Library", singular: "forma" },
+  icons: { opcion: "generateblocks_svg_icons", clave: "icons", campo: "icon", etiqueta: "Icon Library", singular: "icono" },
+};
+const CAT = CATALOGOS[catalogoNombre];
 
 /* `--svg` repetible. */
 const svgsSueltos = [];
 for (let i = 0; i < args.length; i++) if (args[i] === "--svg") svgsSueltos.push(args[++i]);
 
-if (!sitio || (!listar && !grupo && !quitarGrupo)) {
-  console.error(`Uso: node herramientas/gb-asset-library.mjs --sitio "<app/public>" [--puerto N] --listar
-     o:  node herramientas/gb-asset-library.mjs --sitio "<app/public>" [--puerto N] \\
+if (!sitio || !CAT || (!listar && !grupo && !quitarGrupo)) {
+  console.error(`Uso: node herramientas/gb-asset-library.mjs --sitio "<app/public>" [--puerto N] [--catalogo shapes|icons] --listar
+     o:  node herramientas/gb-asset-library.mjs --sitio "<app/public>" [--puerto N] [--catalogo shapes|icons] \\
            --grupo "<nombre>" (--carpeta <dir> | --svg <fichero>…) [--a-current-color] [--confirmar]
-     o:  node herramientas/gb-asset-library.mjs --sitio "<app/public>" [--puerto N] \\
+     o:  node herramientas/gb-asset-library.mjs --sitio "<app/public>" [--puerto N] [--catalogo shapes|icons] \\
            --quitar-grupo "<nombre>" --confirmar
+
+  --catalogo por defecto es "shapes" (la Asset Library de formas sueltas). Usa
+  "icons" para la Icon Library que alimenta el atributo \`icon\` del bloque text
+  — ver «Botones y enlaces con icono» en docs/metodo-generateblocks-v2.md §2.
 
   Sin --confirmar no escribe nada: dice lo que haria.`);
   process.exit(2);
@@ -104,8 +133,8 @@ function wp(trozos, { permiteFallo = false } = {}) {
 
 /* La opción no existe hasta que alguien guarda algo en la librería: que falte
    es normal, no un error. */
-function leerShapes() {
-  const crudo = wp("option get generateblocks_svg_shapes --format=json", { permiteFallo: true });
+function leerGrupos() {
+  const crudo = wp(`option get ${CAT.opcion} --format=json`, { permiteFallo: true });
   if (!crudo) return [];
   try {
     const v = JSON.parse(crudo);
@@ -113,13 +142,13 @@ function leerShapes() {
   } catch { return []; }
 }
 
-function escribirShapes(grupos) {
-  const tmp = path.join(RAIZ, ".gb-asset-library.tmp.json");
+function escribirGrupos(grupos) {
+  const tmp = path.join(RAIZ, `.gb-asset-library-${catalogoNombre}.tmp.json`);
   fs.writeFileSync(tmp, JSON.stringify(grupos), "utf8");
   try {
     /* Por fichero, no por argumento: los SVG llevan comillas y el shell los
        destrozaría en cuanto el logo pase de unos cientos de bytes. */
-    wp(`option update generateblocks_svg_shapes --format=json < "${tmp}"`);
+    wp(`option update ${CAT.opcion} --format=json < "${tmp}"`);
   } finally {
     fs.rmSync(tmp, { force: true });
   }
@@ -128,7 +157,7 @@ function escribirShapes(grupos) {
 /* `sanitize_key()` de WordPress deja solo [a-z0-9_-]. El `uniqid()` de PHP es
    hex de 13; aquí se imita con tiempo + azar, que para un id de catálogo vale. */
 const idUnico = (nombre) =>
-  (nombre.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9_-]/g, "") || "forma")
+  (nombre.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9_-]/g, "") || CAT.singular)
   + "-" + Date.now().toString(16) + Math.floor(Math.random() * 0x1000).toString(16);
 
 const idGrupo = (nombre) => nombre.toLowerCase().replace(/ /g, "-");
@@ -149,12 +178,12 @@ const pasarACurrentColor = (svg) =>
 
 /* ── Listar ──────────────────────────────────────────────────────────────── */
 if (listar) {
-  const grupos = leerShapes();
-  if (!grupos.length) { console.log("La Asset Library no tiene ninguna forma registrada."); process.exit(1); }
+  const grupos = leerGrupos();
+  if (!grupos.length) { console.log(`La ${CAT.etiqueta} no tiene ningún ${CAT.singular} registrado.`); process.exit(1); }
   for (const g of grupos) {
     console.log(`\n· ${g.group}  (${g.group_id})`);
-    for (const s of g.shapes ?? []) {
-      console.log(`    ${s.name.padEnd(28)} ${String(s.shape?.length ?? 0).padStart(7)} B   id=${s.id}`);
+    for (const s of g[CAT.clave] ?? []) {
+      console.log(`    ${s.name.padEnd(28)} ${String(s[CAT.campo]?.length ?? 0).padStart(7)} B   id=${s.id}`);
     }
   }
   console.log("");
@@ -163,18 +192,18 @@ if (listar) {
 
 /* ── Quitar un grupo ─────────────────────────────────────────────────────── */
 if (quitarGrupo) {
-  const grupos = leerShapes();
+  const grupos = leerGrupos();
   const quedan = grupos.filter((g) => g.group !== quitarGrupo);
   if (quedan.length === grupos.length) {
-    console.log(`No hay ningún grupo llamado «${quitarGrupo}».`);
+    console.log(`No hay ningún grupo llamado «${quitarGrupo}» en la ${CAT.etiqueta}.`);
     process.exit(1);
   }
   if (!confirmar) {
-    console.log(`Quitaría el grupo «${quitarGrupo}». Repite con --confirmar.`);
+    console.log(`Quitaría el grupo «${quitarGrupo}» de la ${CAT.etiqueta}. Repite con --confirmar.`);
     process.exit(0);
   }
-  escribirShapes(quedan);
-  console.log(`✔ Grupo «${quitarGrupo}» quitado.`);
+  escribirGrupos(quedan);
+  console.log(`✔ Grupo «${quitarGrupo}» quitado de la ${CAT.etiqueta}.`);
   process.exit(0);
 }
 
@@ -185,11 +214,11 @@ const ficheros = carpeta
 
 if (!ficheros.length) { console.error("✖ No hay ningún .svg que registrar (usa --carpeta o --svg)."); process.exit(2); }
 
-const grupos = leerShapes();
+const grupos = leerGrupos();
 const existente = grupos.find((g) => g.group === grupo);
-const formasPrevias = existente?.shapes ?? [];
+const previas = existente?.[CAT.clave] ?? [];
 
-const formas = [];
+const piezas = [];
 const avisos = [];
 
 for (const f of ficheros) {
@@ -214,17 +243,17 @@ for (const f of ficheros) {
   }
 
   /* Un nombre que ya estaba conserva su id: las páginas que lo usen siguen
-     apuntando a la misma forma. */
-  const previa = formasPrevias.find((s) => s.name === nombre);
-  formas.push({ id: previa?.id ?? idUnico(nombre), name: nombre, shape: svg });
+     apuntando a la misma pieza. */
+  const previa = previas.find((s) => s.name === nombre);
+  piezas.push({ id: previa?.id ?? idUnico(nombre), name: nombre, [CAT.campo]: svg });
 }
 
 const nuevos = grupos.filter((g) => g.group !== grupo);
-nuevos.push({ group: grupo, group_id: idGrupo(grupo), shapes: formas });
+nuevos.push({ group: grupo, group_id: idGrupo(grupo), [CAT.clave]: piezas });
 
-const yaEstaban = formas.filter((s) => formasPrevias.some((p) => p.name === s.name)).length;
-console.log(`\nGrupo «${grupo}» — ${formas.length} forma(s): ${yaEstaban} actualizada(s), ${formas.length - yaEstaban} nueva(s).`);
-for (const s of formas) console.log(`  · ${s.name.padEnd(28)} ${String(Buffer.byteLength(s.shape)).padStart(7)} B`);
+const yaEstaban = piezas.filter((s) => previas.some((p) => p.name === s.name)).length;
+console.log(`\nGrupo «${grupo}» (${CAT.etiqueta}) — ${piezas.length} ${CAT.singular}(s): ${yaEstaban} actualizada(s), ${piezas.length - yaEstaban} nueva(s).`);
+for (const s of piezas) console.log(`  · ${s.name.padEnd(28)} ${String(Buffer.byteLength(s[CAT.campo])).padStart(7)} B`);
 if (avisos.length) { console.log("\nAvisos:"); for (const a of avisos) console.log(a); }
 
 if (!confirmar) {
@@ -232,7 +261,11 @@ if (!confirmar) {
   process.exit(0);
 }
 
-escribirShapes(nuevos);
-console.log(`\n✔ Registradas en la Asset Library. Se ven en Dashboard → GenerateBlocks → Asset Library.`);
+escribirGrupos(nuevos);
+console.log(`\n✔ Registradas en la ${CAT.etiqueta}. Se ven en Dashboard → GenerateBlocks → Asset Library.`);
 console.log(`  Recuerda: esto es el CATÁLOGO del editor. No cambia ninguna página ya montada —`);
-console.log(`  para usarlas hay que insertarlas, y el SVG se copia inline en el bloque shape.\n`);
+console.log(
+  catalogoNombre === "icons"
+    ? `  para usarlas hay que elegirlas desde el atributo \`icon\` de un bloque text, y el SVG se copia inline.\n`
+    : `  para usarlas hay que insertarlas, y el SVG se copia inline en el bloque shape.\n`
+);

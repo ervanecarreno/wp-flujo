@@ -241,7 +241,7 @@ generan byte a byte idéntico.
 > puede inventar una estabilidad que el diseño no tiene. Dicho de otro modo: esto le da a A una
 > razón concreta para nombrar las capas que B va a tener que tocar.
 
-## Las treinta trampas ya pagadas
+## Las treinta y cuatro trampas ya pagadas
 
 Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
 
@@ -666,6 +666,46 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     duplicar el bloque es una **variable con respaldo**: el bloque declara
     `var(--lo-que-sea, <valor por defecto>)` y el tema hijo redefine `--lo-que-sea` en el `body` de
     las páginas que toca. El valor por defecto deja el resto del sitio intacto.
+
+31. **Un botón de Figma casi nunca se llama "Button".** Se llama por su etiqueta —"Contacto",
+    "Escríbenos", "Súmate y apoya"—, porque la instancia hereda el nombre de su contenido, no del
+    componente. Si la interpretación (automática, en `convert-frame.mjs`, o a mano al leer un
+    `.dc.html`) solo busca capas llamadas "Button/Link/CTA/Botón", esos casos se cuelan como
+    contenedor genérico y pierden el mecanismo nativo `icon`/`iconLocation`. La señal que sí delata
+    un botón sin ese nombre: texto + un icono pequeño y redondo al lado, dentro de un contenedor con
+    relleno sólido o borde visible — la misma condición que ya decide primario/secundario. Un texto
+    suelto sin fill ni stroke sigue sin contar como botón, a propósito: es la trampa del 24/08/2026
+    (enlaces de lista cayendo a "botón" solo por estar cerca de algo), y ampliar la detección sin esa
+    condición la reabriría. `convert-frame.mjs` ya lo hace así desde el 23/09/2026 — ver el
+    comentario largo junto a `isLinkButtonContainer`.
+
+32. **El icono de un botón viene casi siempre dentro de una INSIGNIA, no suelto.** Un círculo con
+    fill propio (`--color-ink`, radio 999) que ENVUELVE el glifo real un nivel más adentro. Tratar
+    ese círculo como "el icono" es el error: hay que exportar lo de DENTRO (el glifo) como el
+    `icon` del bloque `text`, y pintar el círculo aparte, como CSS del selector `.gb-shape` —
+    tamaño, fondo y color, calcado de la propia insignia. `convert-frame.mjs` lo resuelve con
+    `resolverGlifoDeInsignia()`; a mano, es el mismo reparto: el glifo va al atributo `icon`, el
+    círculo a `.gb-shape` dentro de `styles`.
+
+33. **Ese glifo, casi siempre, es un CARÁCTER de texto («↗», no un SVG).** Figma lo deja así con
+    normalidad —es más rápido de maquetar—, y un carácter suelto se pinta como EMOJI DE COLOR en
+    cuanto ninguna de las familias del contrato lo trae dibujado (ninguna lo trae casi nunca: no es
+    un glifo tipográfico estándar). Nunca se copia el carácter tal cual al `content`/`icon` del
+    bloque: se sustituye por un SVG equivalente. Set mínimo ya verificado en producción —«↗» «→»
+    «←» «▶»— en `build/iconos.mjs` de un proyecto real y, para la ruta automática, en
+    `GLIFOS_CONOCIDOS` de `convert-frame.mjs`. No es exhaustivo a propósito: si aparece un glifo
+    nuevo que rompa igual, se añade con SU PROPIO SVG verificado — nunca uno parecido a ojo.
+
+34. **El orden texto/icono no se asume ni se copia del `.dc.html`: se lee del componente real.**
+    Es la causa del único bug de verdad de este apartado, pagado en un proyecto real el 22/09/2026
+    (commit `f5c64d4`): el `.dc.html` de origen traía el icono ANTES del texto en varios botones, y
+    se escribió así a mano sin comprobarlo — pero el componente maestro de Figma («Botón píldora»,
+    las cinco variantes) llevaba SIEMPRE el orden Texto → Insignia. El HTML de Claude Design es
+    material de apoyo (regla del proyecto: si Figma y el HTML discrepan, gana Figma) y aquí
+    discrepaba justo en esto. `convert-frame.mjs` no tiene este problema porque nunca asume: compara
+    la posición real (`absoluteBoundingBox.x`) del icono contra la del texto y deriva `iconLocation`
+    de ahí. Escribiendo a mano, hay que hacer lo mismo — mirar el orden real de los hijos del
+    componente en Figma (o su auto-layout), no el que trae la referencia HTML.
 
 ## Plantillas de contenido: un Elemento por tipo de página
 

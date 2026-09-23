@@ -117,7 +117,10 @@ SVG registrado antes en la **Icon Library** de GB Pro (`generateblocks_svg_icons
 prima de la Asset Library de formas, `generateblocks_svg_shapes`, mismo mecanismo: un
 catálogo del editor, no una referencia dinámica), el icono queda seleccionable desde el
 panel visual del bloque sin pegar código. Un SVG a mano en `content` da el mismo
-resultado visual, pero el editor no lo reconoce como icono.
+resultado visual, pero el editor no lo reconoce como icono. Se registra con
+`node herramientas/gb-asset-library.mjs --sitio "<…>" --catalogo icons --grupo "<nombre>" --carpeta <dir> --confirmar`
+— el mismo script que la Asset Library de formas, con `--catalogo icons` en vez del
+valor por defecto.
 
 **El trade-off real, para elegir con conocimiento de causa:** la skill externa vendorizada
 `wpgaurav/generateblocks-skills` (`BETA/skills-v2026.09.18/`, revisada el 22/09/2026) NUNCA
@@ -145,6 +148,63 @@ valida. La diferencia entre los tres casos es exactamente cuántas piezas de con
 hay y si alguna es texto visible — no la versión de GB: se midió aparte, aislado, que
 esto falla igual en la versión ESTABLE (2.4/2.7) que en los betas 2.5/2.8, corrigiendo
 una atribución anterior que lo daba por un problema exclusivo de los betas.
+
+### Interpretar un botón desde Figma o desde HTML — tres reglas, medidas contra un proyecto real
+
+Añadido el 23/09/2026, sobre lo aprendido montando los botones de un proyecto de cliente (traps
+31-34 de la skill). Aplica igual si el marcado lo escribes a mano leyendo un `.dc.html`/Figma, o si
+lo genera `herramientas/conversion/lib/convert-frame.mjs` — el código ya implementa las tres.
+
+**1. El nombre de la capa no basta.** Una instancia de un botón del sistema de diseño casi nunca se
+llama "Button": se llama por su etiqueta ("Contacto", "Escríbenos"). La señal que SÍ lo delata,
+tenga el nombre que tenga: texto + un icono pequeño y redondo al lado, dentro de un contenedor con
+relleno sólido o borde visible. Un texto suelto sin fill ni stroke sigue sin ser un botón — esa
+distinción es a propósito, evita convertir un enlace de lista en una caja que nunca existió en el
+diseño.
+
+**2. El icono casi siempre viene dentro de una INSIGNIA, no suelto.** Lo que se ve junto al texto no
+suele ser el SVG en sí: es un círculo con fill propio que lo envuelve un nivel más adentro. El
+círculo se pinta con CSS —tamaño, fondo, color— en el selector `.gb-shape` del propio `styles`; lo
+de DENTRO del círculo es el `icon` de verdad.
+
+```js
+text({
+  tagName: "a", content: "Contacto", icon: FLECHA_DIAG, iconLocation: "after",
+  htmlAttributes: { href: "/contacto" },
+  styles: {
+    backgroundColor: "var(--color-gold)", borderRadius: "999px", /* … */
+    ".gb-shape": {                              // la INSIGNIA, no el icono
+      display: "flex", alignItems: "center", justifyContent: "center",
+      width: "38px", height: "38px", borderRadius: "999px",
+      backgroundColor: "var(--color-ink)", color: "var(--color-paper)",
+    },
+  },
+});
+```
+
+**3. Ese glifo, dentro de la insignia, suele ser un CARÁCTER («↗»), no un SVG — y hay que
+sustituirlo.** Un carácter suelto se pinta como emoji de color en cuanto ninguna familia
+tipográfica del contrato lo trae dibujado, que es casi siempre. Nunca se copia el carácter al
+marcado: se cambia por un SVG equivalente. Tres ya verificados en producción, en
+`build/iconos.mjs` de un proyecto real:
+
+```js
+const FLECHA_DIAG = svg('<path d="M7 17 L17 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9.5 7 H17 V14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'); // ↗
+const FLECHA_DER  = svg('<path d="M4 12 H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'); // →
+const PLAY        = svg('<path d="M8 5 L19 12 L8 19 Z" fill="currentColor"/>'); // ▶
+```
+
+No es una lista cerrada: es la lista de lo comprobado. Un glifo nuevo se añade con su propio SVG
+verificado, nunca uno parecido a ojo.
+
+**Y el orden texto/icono nunca se asume ni se copia del `.dc.html` — se lee del componente real.**
+Es la causa del único bug de verdad de este apartado: el `.dc.html` de origen traía el icono ANTES
+del texto en varios botones y se escribió así a mano sin comprobarlo, pero el componente maestro de
+Figma llevaba siempre el orden Texto → Insignia. Regla del proyecto — si Figma y el HTML discrepan,
+gana Figma — aplicada aquí a la letra. Escribiendo a mano: mira el orden real de los hijos del
+componente en Figma. Convirtiendo con el pipeline: ya lo hace solo, comparando la posición
+horizontal real del icono contra la del texto (`absoluteBoundingBox.x`), nunca asumiendo `"before"`
+por defecto.
 
 ---
 

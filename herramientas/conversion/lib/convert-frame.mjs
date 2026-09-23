@@ -139,6 +139,29 @@ function forceCurrentColor(svg) {
     .replace(/(?<=[\s])stroke="(?!none")[^"]*"/g, 'stroke="currentColor"');
 }
 
+/**
+ * Glifos Unicode que un diseño mete como TEXTO suelto (una flecha dibujada con
+ * el carácter «↗», no con una forma) y que en el navegador se pintan como
+ * emoji de color, porque ninguna familia tipográfica de un sistema de marca
+ * los trae dibujados — trampa real, medida en un proyecto de cliente
+ * (`WEB FUNDACION SC LA PALMA/ESTADO.md`, 21/09/2026: «Los glifos ↗ → ▶ salen
+ * como EMOJI azul en el navegador»). Los tres SVG de abajo son los mismos que
+ * quedaron verificados en producción en ese proyecto
+ * (`build/iconos.mjs`), no reinventados aquí.
+ *
+ * No es exhaustivo a propósito: es la lista de lo COMPROBADO. Si aparece un
+ * glifo nuevo que rompa igual, se añade con su propio SVG verificado — no se
+ * adivina uno por semejanza.
+ */
+const svgGlifo = (paths) =>
+  `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="display:block;flex:0 0 auto">${paths}</svg>`;
+export const GLIFOS_CONOCIDOS = {
+  "↗": svgGlifo('<path d="M7 17 L17 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M9.5 7 H17 V14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>'),
+  "→": svgGlifo('<path d="M4 12 H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M13 6 L19 12 L13 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>'),
+  "←": svgGlifo('<path d="M20 12 H5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path><path d="M11 6 L5 12 L11 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>'),
+  "▶": svgGlifo('<path d="M8 5 L19 12 L8 19 Z" fill="currentColor"></path>'),
+};
+
 /** Crea un sustituto de tokens: hex/rgba → var(--slug) si hay match exacto. */
 export function makeTokenizer(tokenMap) {
   const lookup = new Map();
@@ -802,13 +825,53 @@ function findParentOf(root, target) {
 // del carrusel) + que tenga un texto dentro (con o sin un icono al lado).
 // Sin URL real en Figma no hay a qué enlazar: se usa "#" de placeholder y se
 // avisa siempre — nunca se inventa un destino.
-// ---------------------------------------------------------------------------
+//
+// FALLBACK ESTRUCTURAL, añadido el 23/09/2026 con lo aprendido en un proyecto
+// real (Fundación Santa Cruz de La Palma): las INSTANCIAS de un botón del
+// sistema de diseño casi nunca se llaman "Button" en la capa — se llaman por
+// su etiqueta ("Contacto", "Escríbenos", "Súmate y apoya"), porque el nombre
+// de la instancia en Figma suele venir del contenido, no del componente. El
+// detector por nombre las dejaba pasar como contenedor genérico, y perdían el
+// mecanismo nativo `icon`/`iconLocation` del bloque `text` sin que nada lo
+// avisara.
+//
+// La señal que SÍ delata a un «Botón píldora» sin nombre de botón: texto +
+// UN icono pequeño y redondo al lado (la «Insignia» — círculo con flecha),
+// dentro de un contenedor con relleno sólido o borde visible. Es la MISMA
+// condición de fill/stroke que el código de más abajo ya usa para decidir
+// primario/secundario, así que no reabre la trampa del 24/08/2026 (enlaces de
+// texto plano sin fill ni stroke cayendo a "botón" solo por estar cerca de
+// algo). Y se exige el icono-insignia para no confundir un chip/etiqueta
+// decorativa de un solo texto (que no es un enlace) con un botón real — con
+// esa exigencia, un "Etiqueta"/"Chip de filtro" sin icono sigue sin entrar
+// aquí, que es lo correcto: su interactividad es ambigua y no se inventa.
 const LINK_BUTTON_NAME_RE = /\b(button|link|cta|bot[oó]n)\b/i;
+
+/** «Insignia»: pequeña, casi cuadrada, y redondeada por completo (círculo) —
+ *  el badge de icono que acompaña al texto en un botón píldora real (nodo de
+ *  Figma 6117:170, hijo "Insignia"). No exige que sea vectorial: la insignia
+ *  en sí es un contenedor con fill propio, el SVG va dentro de ella. */
+const looksLikeIconBadge = (node) => {
+  const w = node.absoluteBoundingBox?.width, h = node.absoluteBoundingBox?.height;
+  if (!w || !h) return isVectorLikeSubtree(node);
+  const casiCuadrado = Math.abs(w - h) <= Math.max(w, h) * 0.25;
+  if (!casiCuadrado) return false;
+  const radioCompleto = typeof node.cornerRadius === "number" && node.cornerRadius >= Math.min(w, h) / 2 - 1;
+  return radioCompleto || isVectorLikeSubtree(node);
+};
+
 const isLinkButtonContainer = (node) => {
-  if (!LINK_BUTTON_NAME_RE.test(node.name ?? "")) return false;
+  if (!["FRAME", "COMPONENT", "INSTANCE"].includes(node.type ?? "FRAME")) return false;
   const kids = (node.children ?? []).filter((c) => c.visible !== false);
   if (!kids.length || kids.length > 2) return false;
-  return kids.some((c) => c.type === "TEXT");
+  const textKid = kids.find((c) => c.type === "TEXT");
+  if (!textKid) return false;
+  if (LINK_BUTTON_NAME_RE.test(node.name ?? "")) return true;
+  const iconKid = kids.find((c) => c !== textKid);
+  if (!iconKid || !looksLikeIconBadge(iconKid)) return false;
+  const hasFill = topVisibleFill(node)?.type === "SOLID";
+  const hasStroke = Array.isArray(node.strokes) && node.strokes.some((s) => s && s.visible !== false) && node.strokeWeight > 0;
+  return hasFill || hasStroke;
 };
 
 // ---------------------------------------------------------------------------
@@ -1710,6 +1773,46 @@ export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, co
   };
 
   /**
+   * Resuelve el glifo real dentro de una Insignia — el círculo/contenedor
+   * decorado que envuelve el icono de un botón, no el icono en sí (ver
+   * `convertLinkButtonContainer` más abajo). Dos rutas, en este orden:
+   *
+   *   1. Un vector de verdad en algún punto del subárbol (`findFirstVectorIcon`
+   *      ya busca a cualquier profundidad) → se exporta igual que el camino
+   *      normal, sin insignia.
+   *   2. Un TEXT corto que sea uno de los glifos conocidos de arriba (el caso
+   *      real de este proyecto: Figma guardaba «↗» como texto suelto, no como
+   *      forma) → se sustituye por su SVG verificado, y el color sale del
+   *      propio fill de ese texto, no de un valor inventado.
+   *
+   * Si no encuentra ninguna de las dos, no rellena nada por su cuenta: devuelve
+   * `null` y quien llama avisa para revisión manual — el mismo comportamiento
+   * conservador que ya tenía el código antes de reconocer este caso.
+   */
+  const resolverGlifoDeInsignia = (iconNode) => {
+    const vector = findFirstVectorIcon(iconNode);
+    if (vector) {
+      const raw = svgs[vector.id];
+      if (raw) {
+        let html = cleanSvgMarkup(raw);
+        const colors = collectVectorColors(vector);
+        const color = colors.size === 1 ? tokenize([...colors][0]) : null;
+        if (colors.size <= 1) html = forceCurrentColor(html);
+        return { html: stripSvgRootSize(html), color };
+      }
+    }
+    const textoGlifo = findFirstText(iconNode);
+    const caracter = textoGlifo?.characters?.trim();
+    if (caracter && GLIFOS_CONOCIDOS[caracter]) {
+      warnings.push(`«${iconNode.name}»: el glifo "${caracter}" venía como texto suelto dentro de la insignia — sustituido por un SVG equivalente, porque ninguna familia tipográfica del contrato lo dibuja y el navegador lo pintaría como emoji de color.`);
+      const fill = topVisibleFill(textoGlifo);
+      const color = fill ? tokenize(fillToCss(fill)) : null;
+      return { html: GLIFOS_CONOCIDOS[caracter], color };
+    }
+    return null;
+  };
+
+  /**
    * Convierte un contenedor detectado como botón/enlace (ver isLinkButtonContainer)
    * en un <a> real envolviendo un <span> — usa el soporte nativo de icono del
    * bloque text (icon/iconLocation, atributo real de GB, no un hack) cuando hay
@@ -1721,20 +1824,46 @@ export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, co
     if (!textNode) return null;
     const iconNode = kids.find((c) => c !== textNode);
 
-    let iconHtml, iconLocation;
+    let iconHtml, iconLocation, badgeStyles;
     if (iconNode) {
+      const textX = textNode.absoluteBoundingBox?.x ?? 0;
+      const iconX = iconNode.absoluteBoundingBox?.x ?? 0;
+      const ubicacion = () => (iconX < textX ? "before" : "after");
+
       if (isVectorLikeSubtree(iconNode)) {
+        // Camino de siempre: el icono es un SVG suelto, sin insignia alrededor.
         const raw = svgs[iconNode.id];
         if (raw) {
           let html = cleanSvgMarkup(raw);
           const colors = collectVectorColors(iconNode);
           if (colors.size <= 1) html = forceCurrentColor(html);
           iconHtml = stripSvgRootSize(html);
-          const textX = textNode.absoluteBoundingBox?.x ?? 0;
-          const iconX = iconNode.absoluteBoundingBox?.x ?? 0;
-          iconLocation = iconX < textX ? "before" : "after";
+          iconLocation = ubicacion();
         } else {
           warnings.push(`«${node.name}»: el icono junto al texto no se pudo exportar como SVG; se omite.`);
+        }
+      } else if (hasOwnVisualDecoration(iconNode) && hasChildren(iconNode)) {
+        // INSIGNIA: un contenedor con fill/borde/radio propio (círculo, casi
+        // siempre) que ENVUELVE el glifo real, un nivel más adentro — no es el
+        // icono en sí. Aprendido el 23/09/2026 sobre un proyecto real (Fundación
+        // Santa Cruz de La Palma): el «Botón píldora» del sistema de diseño
+        // siempre trae su icono así («Insignia»: círculo `fill` + glifo dentro),
+        // y la versión anterior de este código bajaba directo al `else` de
+        // «demasiado complejo», perdiendo el botón entero — no solo el icono.
+        const resuelto = resolverGlifoDeInsignia(iconNode);
+        if (resuelto) {
+          iconHtml = resuelto.html;
+          iconLocation = ubicacion();
+          const bb = iconNode.absoluteBoundingBox;
+          badgeStyles = {
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: "0",
+            ...(bb ? { width: px(Math.round(bb.width)), height: px(Math.round(bb.height)) } : {}),
+            ...decorationStyles(iconNode, tokenize, warn),
+            ...(resuelto.color ? { color: resuelto.color } : {}),
+          };
+        } else {
+          warnings.push(`«${node.name}»: la insignia junto al texto no trae un glifo reconocible (ni vector ni un carácter de flecha conocido); revisa el resultado manualmente.`);
+          return null;
         }
       } else {
         warnings.push(`«${node.name}»: hay contenido junto al texto que no es un icono simple; revisa el resultado manualmente.`);
@@ -1747,6 +1876,10 @@ export function convertFrame(root, { tokenMap = null, images = {}, svgs = {}, co
     // y los de "texto" (color/tamaño/peso) porque ya no hay Container que los
     // separe.
     const styles = { ...layoutStyles(node, parent, depth), ...decorationStyles(node, tokenize, warn), ...textStyles(textNode, tokenize) };
+    // La insignia (si la hay) se pinta con CSS sobre `.gb-shape` — el mismo
+    // selector que el propio `block.json` del bloque `text` declara para el
+    // icono — en vez de intentar meter el círculo dentro del SVG.
+    if (badgeStyles) styles[".gb-shape"] = badgeStyles;
     // Prioridad máxima: nombre de capa literalmente "gbp-button--primary/
     // --secondary" (o "gbp-footer__link", "gbp-overlay-panel__close"...) →
     // se usa tal cual, intención explícita del usuario. Si no, se infiere:
