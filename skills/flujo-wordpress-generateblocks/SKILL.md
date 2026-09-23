@@ -679,6 +679,17 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     condición la reabriría. `convert-frame.mjs` ya lo hace así desde el 23/09/2026 — ver el
     comentario largo junto a `isLinkButtonContainer`.
 
+    **Límite conocido, encontrado verificando lo de arriba contra el editor real:** el detector de
+    CARRUSEL corre ANTES que el de botón (`isCarouselContainer` se comprueba primero en
+    `convertNode`) y también decide mirando nombres de capa — de cualquier nodo del subárbol, a
+    cualquier profundidad, no solo el nombre del contenedor. Si el glifo de la insignia está
+    nombrado con vocabulario de carrusel ("Flecha", "Next", "Anterior"…), el botón entero se
+    interpreta como un carrusel de una sola diapositiva, ANTES de que el detector de botón llegue a
+    verlo. No se ha tocado `isCarouselContainer` para corregirlo — tiene su propio corpus calibrado
+    (742 bloques, dos rondas de medición) y tocar su precedencia sin medir contra ESE corpus es
+    exactamente el error que este documento pide no cometer. Si aparece un botón mal convertido como
+    carrusel, sospecha primero del nombre del glifo interno.
+
 32. **El icono de un botón viene casi siempre dentro de una INSIGNIA, no suelto.** Un círculo con
     fill propio (`--color-ink`, radio 999) que ENVUELVE el glifo real un nivel más adentro. Tratar
     ese círculo como "el icono" es el error: hay que exportar lo de DENTRO (el glifo) como el
