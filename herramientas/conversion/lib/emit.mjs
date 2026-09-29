@@ -681,16 +681,21 @@ export function accordion({ uniqueId, tagName = "div", styles = {}, globalClasse
   return `${delimiter("generateblocks-pro/accordion", attrs)}\n${body}\n<!-- /wp:generateblocks-pro/accordion -->`;
 }
 
-export function accordionItem({ uniqueId, tagName = "div", styles = {}, globalClasses, htmlAttributes, metadata, className, children = [] }) {
+/** `openByDefault`: el `save()` de GB Pro 2.7 (dist/blocks/accordion-item/index.js) añade la
+ *  clase `gb-accordion__item-open` al item, y el render PHP de accordion-toggle le pone
+ *  `gb-block-is-current` al toggle por contexto. El atributo va detrás de `htmlAttributes`
+ *  (posición de los «extras» en el orden canónico). */
+export function accordionItem({ uniqueId, tagName = "div", styles = {}, globalClasses, htmlAttributes, openByDefault, metadata, className, children = [] }) {
   const id = uniqueId ?? uid("accordion-item");
   const attrs = { uniqueId: id, tagName };
   if (Object.keys(styles).length) { attrs.styles = styles; attrs.css = buildCanonicalCss(`.gb-accordion__item-${id}`, styles); }
   if (globalClasses?.length) attrs.globalClasses = globalClasses;
   if (htmlAttributes) attrs.htmlAttributes = htmlAttributes;
+  if (openByDefault) attrs.openByDefault = true;
   if (metadata) attrs.metadata = metadata;
   if (className) attrs.className = className;
 
-  const cls = classList("generateblocks-pro/accordion-item", id, attrs);
+  const cls = classList("generateblocks-pro/accordion-item", id, attrs) + (openByDefault ? " gb-accordion__item-open" : "");
   const inner = children.filter(Boolean).join("\n\n");
   const open = `<${tagName} class="${cls}"${htmlAttrString(htmlAttributes)}>`;
   const body = inner ? `${open}${inner}</${tagName}>` : `${open}</${tagName}>`;
