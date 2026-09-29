@@ -3,9 +3,121 @@
 > **Fuente de verdad del estado del proyecto.** Al retomar, lee esto primero: ni el README ni la
 > memoria de Claude Code lo sustituyen. Actualízalo al cerrar cada sesión de trabajo.
 
-**Última actualización:** 17/09/2026.
+**Última actualización:** 29/09/2026.
 
 ---
+
+## Recopilación del 25–29/09/2026: trabajar contra producción por SSH, fuentes, ancho global
+
+Pagado en Fundación Santa Cruz de La Palma (detalle en su `ESTADO.md`). Lo genérico, para
+cualquier proyecto del flujo. Ya promovido: trampas 35–37 de `flujo-wordpress-generateblocks` y
+la regla del ancho global en `generar-bloques-generateblocks`.
+
+**1 · Ancho del contenido = el global de GeneratePress.** Todo contenedor que centra una sección
+lleva `maxWidth: var(--gb-container-width)` («Set global max-width»); GB la publica a partir del
+ancho de contenedor del Customizer. El valor del diseño va una vez en el Customizer. Medido: 14
+`1560px` fijos con el Customizer en 1400. Antes de convertir, comprobar
+`generate_settings.container_width`: si no coincide con el diseño, decide el usuario. **Hecho:**
+`audit-gb.js` avisa (regla `ancho-global`) de un `maxWidth` ≥ 960px centrado con margin auto, o de
+un `calc((100% - NNNNpx)…)`, también en bloques Pro (el `navigation` del header). Calibrado: 0
+avisos en los 25 ficheros de `corpus-gb/`, 1 en el header viejo del proyecto, 0 en el nuevo.
+
+**2 · Producción por SSH (sin Local).** La ruta B cuando el sitio vive solo en el hosting:
+- La PHP de la CLI del hosting puede no ser la de la web (aquí 7.0, que no arranca WP): siempre
+  `php82 $(which wp) … --path=.`, comprobado con `wp --info` al entrar por primera vez.
+- Git Bash reescribe las rutas `/…` de los argumentos: `export MSYS_NO_PATHCONV=1` en cada comando
+  con `ssh`/`scp`/`curl`. Con eso activo, `curl -o /c/…` falla: usar rutas relativas.
+- Cada escritura: copia antes en `~/backups/` (el contenido del post, la opción, el fichero CSS) y
+  escritura por la vía normal, `wp post update <id> <fichero>`. Las escrituras directas con
+  `$wpdb` en masa las frena el clasificador de permisos, y con razón: se saltan revisiones y cachés.
+- Migrar la base de datos (`wp db import`) lo ejecuta el usuario, no Claude. Nunca con un plugin de
+  migración encima de una instalación con licencias activas.
+- Los ficheros estáticos salen con `Cache-Control: max-age=31536000`: tras regenerar un CSS se
+  comprueba con `?nc=<azar>` y mirando `Last-Modified`, no fiándose de la primera descarga.
+
+**3 · Fuentes: dos Font Library que no se ven entre sí.** La de WordPress (`wp_font_family` /
+`wp_font_face`, ficheros en `uploads/fonts/`) **no tiene pantalla en un tema clásico**; la que ve el
+cliente en Apariencia → Font Library es la de **GP Premium** (CPT `gp_font`, metas
+`gp_font_variants`, `gp_font_variable` = `--gp-font--<slug>`, CSS en
+`uploads/generatepress/fonts/fonts.css` vía `build_css_file()`). Trampas de GP:
+`check_variants()` fusiona dos variantes con el mismo nombre aunque una sea cursiva (dar nombres
+distintos), y bajo wp-cli `get_stylesheet_directory_uri()` sale en `http://` (`set_url_scheme(…,
+'https')`). Apuntar las variantes a los MISMOS ficheros del tema hijo que el `@font-face` propio
+evita la doble descarga. Limpiar `generate_settings['font_manager']` (entradas heredadas de Google).
+
+**4 · Autoalojar sin Google, bien hecho.** Fuentes variables: un `.ttf` y un `@font-face` por
+estilo (`font-weight: 100 900`), no uno por peso. Instalar solo lo que se usa, medido en los build
+(p. ej. Jost sin cursiva). Una familia que no dio el cliente: sus WOFF2 oficiales (OFL), latín +
+latín extendido con el `unicode-range` de Google. Al editor por el filtro `generate_editor_styles`
+del propio GP, sin encolar a mano. Verificación: 0 `googleapis`/`gstatic` en el HTML servido de
+cada tipo de página. **Hecho:** `qa-contrato-publicado.mjs --sin-google` lista toda referencia a
+`fonts.googleapis.com`/`fonts.gstatic.com` (enlace, `preconnect`, `@import`, `src` de @font-face)
+en el HTML y en cada hoja, y falla si hay alguna; sin la opción solo informa. Probado en positivo
+(stub con preconnect + @import → exit 1) y contra el sitio real (3 páginas, 0 → exit 0).
+
+**5 · Tipografía del Customizer con variables.** `generate_settings['typography']` admite en
+`fontFamily`/`fontSize` cadenas crudas: `var(--gp-font--jost)`, `var(--font-size-fluid-interior)`,
+`clamp(…)`. Se mapea a los estilos de texto de Figma (cuerpo, H1–H3) como valor por defecto del
+tema; los bloques con estilo propio mandan igual. H4–H6 y navegación no se tocan sin uso real.
+
+**6 · Figma, al montar un muestrario de estilos de texto** (`use_figma`): un texto con
+`layoutSizingHorizontal:'FILL'` necesita `textAutoResize:'HEIGHT'` ANTES, o se colapsa a una letra
+por línea; y vaciar `fills` de un `createAutoLayout()` deja ver el fondo del abuelo (el problema
+simétrico del «fondo blanco de fábrica»): mirar el fondo real del padre antes. Para aplicar un
+estilo sin perder las cursivas de un titular: `getStyledTextSegments` + `setRangeTextStyleId` por
+tramo, no `textStyleId` al nodo entero.
+
+**7 · Dos decisiones de usuario que valen como regla por defecto.** Los **logos van como imagen
+SVG en un bloque `media`**, no inline en `shape`: el inline hay que adelgazarlo y ahí se rompió
+(lección del 25/09 sobre la regex). Y el **año del pie es dinámico**, `{{current_year}}` de GB, nunca
+«© 2026» fijo en el build.
+
+**8 · El `ESTADO.md` y la memoria no son la misma cosa que el servidor.** Si el cliente edita a
+mano en producción (aquí, 40+ revisiones en la Home), la copia del build deja de ser la fuente: se
+pregunta antes de redesplegar esa página, y se trabaja por inserción (trampa 37).
+
+---
+
+## Lección del 25/09/2026: el menú móvil «full-overlay» de GB Pro, cuatro trampas
+
+Pagadas en Fundación Santa Cruz de La Palma (detalle en su `ESTADO.md`). Candidatas a trampas
+numeradas de `flujo-wordpress-generateblocks`:
+
+1. **Un `backdrop-filter` (o `transform`, `filter`) en la píldora del nav atrapa al panel móvil.**
+   Ese ancestro pasa a ser el bloque contenedor de sus hijos `position: fixed`, y el overlay
+   (fixed, inset 0) se abre del tamaño del nav. El cristal va en un `::before` del nav.
+2. **Un selector anidado dentro de un `@media` lo descarta el compilador de `emit.mjs`** (solo
+   salen las propiedades directas). Primo de la trampa 30. Para el panel móvil: colgar el aspecto
+   de `&.gb-menu-container--mobile …` en el `menuContainer`, sin `@media`.
+3. **Al abrir, GB Pro CLONA el `menu-toggle` dentro del contenedor** (`.gb-menu-toggle--clone`):
+   ese clon es el botón de cerrar. Se estila desde el contenedor. Y GP pinta `button:focus` con
+   fondo propio (0,1,1): hay que neutralizarlo en el toggle.
+4. **Con la pestaña oculta, `requestAnimationFrame` no se dispara y el panel no se abre nunca**:
+   GB Pro abre dentro de un rAF. En pruebas automáticas parece un fallo del código y no lo es —
+   sustituir el rAF del iframe por un `setTimeout` antes de dar nada por roto.
+
+## Lección del 25/09/2026: redondear decimales de un `d` de SVG con regex rompe curvas complejas
+
+Encontrado en Fundación Santa Cruz de La Palma, en un `svg.mjs` propio del proyecto (no vive en este
+plugin, pero la lección sí debe vivir aquí para el día que se generalice un helper de SVG inline).
+
+El paso que adelgaza precisión (`Illustrator exporta con 7 decimales, se redondean a 2`) usaba:
+
+```js
+valor.replace(/-?\d+\.\d{3,}/g, (n) => redondea(n));
+```
+
+Con números en formato taquigráfico SIN cero inicial (`.036409`, típico de puntos de control Bézier),
+la regex no respeta el límite real entre dos números: en una cadena como `.036409.1391474` (dos
+números válidos, `.036409` y `.1391474`), la regex encuentra `036409.1391474` —tratando la cola del
+primer número como si fuera la parte entera del segundo— y los fusiona en un valor absurdo. Verificado
+contra el logo real del cliente: rompía justo las letras con más curvas (`M`, `p`, `t`), y ni
+`validate-blocks.mjs` ni el ojo en una vista normal lo detectan — hace falta ampliar el SVG aislado,
+fuera de la página, para verlo con claridad.
+
+**Arreglo verificado** (0 fusiones erróneas en las 62 rutas de prueba): exigir que el número no
+empiece justo después de un punto ajeno —`(?<!\.)-?\d+\.\d{3,}`—. Dónde aplicarlo: cualquier
+herramienta de este plugin que limpie/adelgace SVG inline para bloques `shape`, si se genera una.
 
 ## Cerrado el 17/09/2026: 0.14.1, herramienta para colores fuera del contrato
 

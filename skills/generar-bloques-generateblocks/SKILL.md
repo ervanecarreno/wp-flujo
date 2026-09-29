@@ -39,6 +39,16 @@ y se usa el ID que devuelve. Un `wp-image-{ID}` que no existe en el destino no d
 simplemente no genera los tamaños responsive. Usa `herramientas/wp-cli/wp.cmd` (ver la skill
 `wp-cli-en-local`), que carga `gd` y `exif` — sin ellas la degradación es silenciosa.
 
+**El ancho máximo del contenido nunca es una cifra fija en el bloque.** Un contenedor que centra
+el contenido de una sección (header, pie, sección, plantilla) lleva
+`maxWidth: "var(--gb-container-width)"`: es lo que escribe el botón «Set global max-width» de
+GenerateBlocks, y la variable la publica GB a partir del ancho del contenedor de GeneratePress
+(Customizer → Diseño general → Contenedor). El valor del diseño (p. ej. 1560) se pone **una vez en
+el Customizer**, no en cada bloque; así cambiarlo es un ajuste, no una migración. En un `calc()`
+también: `calc((100% - var(--gb-container-width)) / 2 + …)`. Los anchos de lectura de un texto
+(`65ch`) o de un componente concreto no son esto y sí pueden ser fijos. Regla del 29/09/2026,
+proyecto SC La Palma: había 1560px fijos en 14 sitios mientras el Customizer decía 1400.
+
 **Los breakpoints que cruzan varios bloques van al CSS externo**, no intentados con `styles`. Y con
 una sola fuente de verdad: GeneratePress usa 768 px y GenerateBlocks 767 px por defecto.
 

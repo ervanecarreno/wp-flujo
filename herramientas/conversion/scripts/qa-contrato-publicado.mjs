@@ -28,6 +28,10 @@
  *
  *   --tokens  además, exige que TODOS los tokens de ese fichero estén
  *             publicados (caza el contrato que se quedó a medias).
+ *   --sin-google  exige CERO referencias a Google Fonts (fonts.googleapis.com /
+ *             fonts.gstatic.com) en el HTML y en todas sus hojas: para los
+ *             proyectos que autoalojan las fuentes (29/09/2026, SC La Palma). Sin
+ *             la opción, las referencias se listan pero no hacen fallar.
  *
  * Salida: 0 = todo resuelve · 1 = hay referencias rotas · 2 = error de uso.
  */
@@ -36,12 +40,13 @@ import fs from "node:fs";
 const args = process.argv.slice(2);
 const url = args[0];
 if (!url || url.startsWith("--")) {
-  console.error("Uso: node qa-contrato-publicado.mjs <url> [--tokens fichero.tokens.css] [--json]");
+  console.error("Uso: node qa-contrato-publicado.mjs <url> [--tokens fichero.tokens.css] [--sin-google] [--json]");
   process.exit(2);
 }
 const opt = (n) => { const i = args.indexOf(n); return i !== -1 ? args[i + 1] : null; };
 const asJson = args.includes("--json");
 const tokensFile = opt("--tokens");
+const sinGoogle = args.includes("--sin-google");
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36";
 
@@ -187,6 +192,16 @@ if (tokensFile) {
   contratoIncompleto = [...delContrato].filter((t) => !definidos.has(t));
 }
 
+/* ── 4b. Dependencias de Google Fonts ────────────────────────────────────────
+   Autoalojar no se demuestra borrando un enlace: queda el `preconnect`, un
+   `@import` dentro de otra hoja, un `src: url(...gstatic...)` en un @font-face
+   de un plugin, o las entradas heredadas del Customizer de GP. Se buscan en el
+   HTML servido y en el texto de cada hoja descargada. */
+const GOOGLE = /https?:\/\/fonts\.(?:googleapis|gstatic)\.com[^\s"'()<>]*/gi;
+const googleRefs = [];
+for (const m of html.matchAll(GOOGLE)) googleRefs.push({ en: "HTML", ref: m[0] });
+for (const h of hojas) for (const m of h.css.matchAll(GOOGLE)) googleRefs.push({ en: h.origen, ref: m[0] });
+
 /* ── 5. Informe ──────────────────────────────────────────────────────────── */
 
 if (asJson) {
@@ -194,7 +209,7 @@ if (asJson) {
     url, hojas: hojas.length, inaccesibles,
     tokensDefinidos: definidos.size, tokensUsados: usados.size, tokensRotos,
     carasTipograficas: caras.size, familiasDeclaradas: familias.size, fuentesRotas,
-    contratoIncompleto,
+    contratoIncompleto, googleRefs,
   }, null, 2));
 } else {
   console.log("\n== Contrato publicado en " + url + " ==");
@@ -232,8 +247,17 @@ if (asJson) {
       for (const t of contratoIncompleto) console.log("      " + t);
     }
   }
+  if (!googleRefs.length) {
+    console.log("  ✔ Google Fonts: 0 referencias — todo autoalojado");
+  } else {
+    console.log("  " + (sinGoogle ? "✖" : "ℹ") + " Google Fonts: " + googleRefs.length + " referencia(s)" +
+                (sinGoogle ? " — el proyecto exige autoalojar" : ""));
+    for (const g of googleRefs.slice(0, 10)) console.log("      " + g.ref + "  (" + g.en + ")");
+    if (googleRefs.length > 10) console.log("      … y " + (googleRefs.length - 10) + " más");
+  }
   console.log("");
 }
 
-const rotos = tokensRotos.filter((t) => !t.conRespaldo).length + fuentesRotas.length + contratoIncompleto.length;
+const rotos = tokensRotos.filter((t) => !t.conRespaldo).length + fuentesRotas.length + contratoIncompleto.length +
+  (sinGoogle ? googleRefs.length : 0);
 process.exit(rotos ? 1 : 0);

@@ -718,6 +718,32 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     de ahí. Escribiendo a mano, hay que hacer lo mismo — mirar el orden real de los hijos del
     componente en Figma (o su auto-layout), no el que trae la referencia HTML.
 
+35. **El CSS de un Elemento de GP (header, pie, plantilla) se hornea en el fichero de CADA página
+    que lo muestra.** Una página servida con `uploads/generateblocks/style-<id>.css` lleva dentro
+    las reglas del header y del pie; cambiar el Elemento con `wp post update` no toca esos
+    ficheros. Resultado medido (29/09/2026): el menú móvil cambiado en el header salía bien en las
+    interiores (CSS inline) y con el valor viejo en la Home y en otras páginas con fichero. Tras
+    tocar un Elemento global: listar qué páginas sirven fichero (`generateblocks/style-` en su HTML)
+    y regenerar cada uno con `gb-regenerar-css.mjs` (borrar el fichero, atrasar
+    `generateblocks_dynamic_css_time`, pedir la página). No hay que suponer qué páginas usan
+    fichero y cuáles inline: en un mismo sitio conviven las dos.
+
+36. **Un reemplazo sobre `post_content` que encuentra 0 coincidencias «funciona» igual.** El
+    marcado guarda `var(--token)`, no `var(--token)`, y dentro del `css` del bloque va sin
+    espacios (`color-mix(in srgb,var(…) 85%,transparent)`), distinto de `styles`
+    (`color-mix(in srgb, var(…) 85%, transparent)`): hay que buscar LAS DOS formas. Y la barra
+    invertida la puede comer el propio heredoc o el intérprete antes de llegar al script: en
+    Python, construir el patrón con `chr(92)` en vez de escribir `\\u002d`. Regla: imprimir el
+    número de coincidencias de cada forma y abortar si alguna es 0 antes de escribir.
+
+37. **Añadir una sección a una página viva sin regenerarla entera.** Cuando la página del servidor
+    ya difiere del build (ediciones a mano del cliente), regenerarla borraría esas ediciones. Se
+    genera SOLO la sección con su propio espacio de ids (`resetUid("<pagina>-<seccion>")`, que
+    además no desplaza los ids del resto del build), se emite aparte (p. ej. con una variable de
+    entorno `SOLO=<seccion>` en el script), se comprueba que ningún `uniqueId` nuevo choca con los
+    de la página, se inserta delante de un ancla del contenido descargado, se valida la página
+    COMPLETA resultante y se sube con `wp post update <id> <fichero>`. Después, trampa 35.
+
 ## Plantillas de contenido: un Elemento por tipo de página
 
 **Montado y verificado el 22/09/2026.** Cuando todas las páginas de una sección comparten maqueta y

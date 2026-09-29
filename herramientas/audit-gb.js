@@ -38,9 +38,8 @@ const PREFIX = {
 };
 
 // ---------- 1. Escáner de comentarios de bloque ----------
-function scan(s) {
+function scan(s, OPEN = '<!-- wp:generateblocks/') {
   const out = [];
-  const OPEN = '<!-- wp:generateblocks/';
   let i = 0;
   while ((i = s.indexOf(OPEN, i)) !== -1) {
     const start = i;
@@ -348,6 +347,39 @@ const UNA_LLAVE = new RegExp(String.raw`(?<!\{)\{\s*(${KNOWN.join('|')})\s*([^}]
 let u1;
 while ((u1 = UNA_LLAVE.exec(src))) {
   add('WARN', 'dynamic-tag', u1[1], `etiqueta con UNA sola llave: ${u1[0].slice(0, 40)} — GB espera {{...}} y esto falla en SILENCIO`);
+}
+
+// ---------- 5b. Ancho del contenido fijo en vez del global de GP (29/09/2026) ----------
+// Un contenedor de sección (maxWidth grande + centrado con margin auto) lleva
+// `var(--gb-container-width)`, el «Set global max-width» de GB, que sale del ancho de
+// contenedor del Customizer de GeneratePress. Una cifra fija duplica ese ajuste y se
+// desincroniza: medido en un proyecto real, 14 × 1560px con el Customizer en 1400.
+// Umbral 960px: por debajo son anchos de componente o de lectura, que sí pueden ser fijos.
+// Aviso y no error: un ancho fijo a propósito es legítimo si el usuario lo ha decidido.
+const ANCHO_MIN_SECCION = 960;
+const pxGrande = (v) => {
+  const m = /^\s*(\d+(?:\.\d+)?)px\s*$/.exec(String(v ?? ''));
+  return m && Number(m[1]) >= ANCHO_MIN_SECCION ? m[1] : null;
+};
+// Incluye los bloques Pro: el contenedor del header suele ser `generateblocks-pro/navigation`.
+for (const b of [...blocks, ...scan(src, '<!-- wp:generateblocks-pro/')]) {
+  if (!b.json) continue;
+  let attrs; try { attrs = JSON.parse(b.json); } catch { continue; }
+  const st = attrs.styles || {};
+  const px = pxGrande(st.maxWidth);
+  const centrado = st.marginLeft === 'auto' && st.marginRight === 'auto';
+  if (px && centrado) {
+    add('WARN', 'ancho-global', attrs.uniqueId || b.type,
+      `maxWidth fijo ${px}px en un contenedor centrado — usa var(--gb-container-width) («Set global max-width») y fija el valor en el Customizer de GP`);
+  }
+  for (const [prop, val] of Object.entries(st)) {
+    if (typeof val !== 'string') continue;
+    const c = /calc\(\s*\(?\s*100%\s*-\s*(\d{3,5})px/.exec(val);
+    if (c && Number(c[1]) >= ANCHO_MIN_SECCION) {
+      add('WARN', 'ancho-global', attrs.uniqueId || b.type,
+        `${prop}: calc() con el ancho de contenido fijo (${c[1]}px) — usa var(--gb-container-width)`);
+    }
+  }
 }
 
 // ---------- 6. Salida ----------
