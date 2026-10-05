@@ -197,6 +197,21 @@ for (const b of blocks) {
     add(ESTRICTO ? 'WARN' : 'NOTA', 'css≠styles', id, 'tiene css pero styles vacío');
   }
 
+  // --- 3e-bis. pseudo sin & (":hover", "::before", ":is(...)") ---
+  // GenerateBlocks compila toda clave que no empieza por & como DESCENDIENTE: ":hover" da
+  // ".sel :hover". El css importado puede venir bien compilado y ocultarlo hasta que el editor
+  // recompila el bloque; por eso es ERROR siempre, no depende de --estricto (05/10/2026).
+  if (attrs.styles && typeof attrs.styles === 'object') {
+    const walkPseudo = (obj, ruta) => {
+      for (const [k, v] of Object.entries(obj)) {
+        if (!v || typeof v !== 'object') continue;
+        if (k[0] === ':') add('ERR', 'pseudo-sin-&', id, `clave "${ruta}${k}" sin & — GB la compila como descendiente; debe ser "&${k}"`);
+        walkPseudo(v, ruta + k + ' › ');
+      }
+    };
+    walkPseudo(attrs.styles, '');
+  }
+
   // --- 3f. tipografía declarada (§8 último punto) ---
   if (attrs.styles) {
     const flat = JSON.stringify(attrs.styles);

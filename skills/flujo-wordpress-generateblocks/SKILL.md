@@ -659,8 +659,8 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     entradas singulares, no la de páginas. Comprobado el 22/09/2026.
 
 30. **El compilador de CSS del emisor solo sabe anidar hacia DENTRO.** `buildCanonicalCss` entiende
-    `&:hover`, `:hover`, `@media …` y descendientes (`.gb-shape svg`), y todo lo demás lo concatena
-    como descendiente. Una regla que dependa de un ANCESTRO —«este bloque cambia de color en las
+    `&:hover`, `@media …` y descendientes (`.gb-shape svg`), y todo lo demás lo concatena
+    como descendiente (un `:hover` sin `&` lo rechaza: trampa 38). Una regla que dependa de un ANCESTRO —«este bloque cambia de color en las
     páginas que no son la portada»— no se puede expresar ahí: saldría
     `.gb-element-x body:not(.home)`, que no casa con nada y no avisa. La salida que funciona sin
     duplicar el bloque es una **variable con respaldo**: el bloque declara
@@ -743,6 +743,21 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     entorno `SOLO=<seccion>` en el script), se comprueba que ningún `uniqueId` nuevo choca con los
     de la página, se inserta delante de un ancla del contenido descargado, se valida la página
     COMPLETA resultante y se sube con `wp post update <id> <fichero>`. Después, trampa 35.
+
+38. **Toda pseudo de `styles` lleva `&`: `"&:hover"`, `"&::before"`, `"&:is(:hover,:focus)"`.**
+    GenerateBlocks Pro (`dist/styles-builder.js`) compila cada clave anidada con
+    `t.startsWith("&") ? sel + t.slice(1) : sel + " " + t`: sin `&` es DESCENDIENTE, y `":hover"`
+    da `.gb-text-x :hover`, que no hace nada. La trampa es que no se ve al importar: el emisor
+    compilaba `":hover"` como si llevara `&`, así que el `css` entraba bien y el bloque funcionaba
+    hasta que el editor lo recompilaba —al tocar un estilo y guardar— y el hover se rompía «solo».
+    Medido el 05/10/2026 en SC La Palma: 84 claves sin `&` en 6 entradas de producción y 7 hovers
+    ya rotos en la portada, entre ellos las flechas del carrusel. Desde entonces `buildCanonicalCss`
+    lanza un error con una clave que empieza por `:`, y `audit-gb.js` la marca como ERR
+    (`pseudo-sin-&`) aunque no se use `--estricto`. Para sanear un sitio vivo, no se reimporta:
+    se escanean con `parse_blocks` todas las entradas (incluidos los Elementos de GP), se sustituye
+    por texto SOLO dentro del JSON de cada comentario de bloque (`":hover":{` → `"&:hover":{`
+    y, en los `css` ya recompilados, `.gb-…-xxxxxxxx :hover` → `…:hover`), se cuadran recuentos y
+    bytes en simulación, se guarda con `wp_slash` releyendo, y después, trampa 35.
 
 ## Plantillas de contenido: un Elemento por tipo de página
 

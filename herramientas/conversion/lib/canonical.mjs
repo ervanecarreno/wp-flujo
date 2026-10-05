@@ -166,8 +166,14 @@ export function buildCanonicalCss(selector, styles) {
           // pseudo sobre el propio selector: "&:is(:hover, :focus)" → .sel:is(:hover,:focus)
           selectorEntries.push([k, `${sel}${minifyCssValue(k.slice(1))}{${collectSorted(v)}}`]);
         } else if (k.startsWith(":")) {
-          // forma corta ":hover" → self-pseudo
-          selectorEntries.push([k, `${sel}${minifyCssValue(k)}{${collectSorted(v)}}`]);
+          // NO existe la "forma corta" ":hover". GenerateBlocks Pro (styles-builder.js) hace
+          // `t.startsWith("&") ? sel + t.slice(1) : sel + " " + t`: sin & es DESCENDIENTE
+          // (".sel :hover"). Antes se compilaba aquí como self-pseudo y el css importado salía
+          // bien, pero en cuanto el editor recompilaba el bloque el hover se rompía (05/10/2026).
+          throw new Error(
+            `Clave "${k}" sin "&" en ${sel}: GenerateBlocks la compila como descendiente ` +
+              `("${sel} ${k}"). Escribe "&${k}".`
+          );
         } else {
           // selector descendiente (p.ej. ".gb-shape svg" o ".gb-text-x")
           selectorEntries.push([k, `${sel} ${k}{${collectSorted(v)}}`]);

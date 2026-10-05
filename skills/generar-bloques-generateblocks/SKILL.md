@@ -49,6 +49,12 @@ también: `calc((100% - var(--gb-container-width)) / 2 + …)`. Los anchos de le
 (`65ch`) o de un componente concreto no son esto y sí pueden ser fijos. Regla del 29/09/2026,
 proyecto SC La Palma: había 1560px fijos en 14 sitios mientras el Customizer decía 1400.
 
+**Toda pseudo de `styles` empieza por `&`.** `"&:hover"`, `"&:focus-visible"`, `"&::before"` o
+`"&:is(:hover,:focus)"`, nunca `":hover"`. GenerateBlocks compila toda clave anidada sin `&` como
+descendiente (`.gb-text-x :hover`), y además lo hace tarde: el `css` importado puede venir bien y
+romperse la primera vez que alguien toque el bloque en el editor. El emisor lanza un error y
+`audit-gb.js` da ERR `pseudo-sin-&`. Regla del 05/10/2026 (trampa 38 del flujo).
+
 **Los breakpoints que cruzan varios bloques van al CSS externo**, no intentados con `styles`. Y con
 una sola fuente de verdad: GeneratePress usa 768 px y GenerateBlocks 767 px por defecto.
 

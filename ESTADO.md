@@ -3,7 +3,18 @@
 > **Fuente de verdad del estado del proyecto.** Al retomar, lee esto primero: ni el README ni la
 > memoria de Claude Code lo sustituyen. Actualízalo al cerrar cada sesión de trabajo.
 
-**Última actualización:** 29/09/2026.
+**Última actualización:** 05/10/2026.
+
+---
+
+## Lección del 05/10/2026: las pseudo de `styles` sin `&` se rompen al recompilar
+
+Pagado en SC La Palma. GenerateBlocks compila `":hover"` como descendiente (`.sel :hover`). El
+emisor (`canonical.mjs`) lo compilaba como `.sel:hover`, así que el `css` importado salía bien y
+el fallo aparecía después, cuando el editor recompilaba el bloque. En producción había 84 claves y
+7 hovers ya rotos en la portada. **Hecho:** `buildCanonicalCss` lanza un error con una clave que
+empieza por `:`, y `audit-gb.js` da ERR `pseudo-sin-&` siempre. Ya promovido: trampa 38 de
+`flujo-wordpress-generateblocks` (y la 30 corregida) y regla dura de `generar-bloques-generateblocks`.
 
 ---
 
