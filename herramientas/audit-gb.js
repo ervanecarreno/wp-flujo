@@ -107,6 +107,30 @@ function buildCss(sel, styles) {
   return out;
 }
 
+// Hijos directos (elementos y texto no vacio) de la etiqueta raiz de un cuerpo. Proyeccion
+// minima para el check de iconos, no un parser de HTML: basta con contar profundidad.
+const VACIAS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+function hijosDirectos(body) {
+  const inner = body.trim().replace(/^<[^>]+>/, '').replace(/<\/[a-zA-Z0-9]+>$/, '');
+  const hijos = [];
+  let prof = 0, i = 0;
+  const re = /<(\/?)([a-zA-Z][a-zA-Z0-9-]*)([^>]*?)(\/?)>/g;
+  let m;
+  while ((m = re.exec(inner))) {
+    if (prof === 0 && inner.slice(i, m.index).trim()) hijos.push({ tag: '#texto', clases: [] });
+    const [, cierre, tag, rest, auto] = m;
+    const t = tag.toLowerCase();
+    if (cierre) prof = Math.max(0, prof - 1);
+    else {
+      if (prof === 0) hijos.push({ tag: t, clases: ((rest.match(/class="([^"]*)"/) || [, ''])[1]).split(/\s+/) });
+      if (!auto && !VACIAS.has(t)) prof++;
+    }
+    i = re.lastIndex;
+  }
+  if (inner.slice(i).trim()) hijos.push({ tag: '#texto', clases: [] });
+  return hijos;
+}
+
 // ---------- 3. Checks ----------
 const issues = [];
 const add = (sev, rule, id, msg, extra) => issues.push({ sev, rule, id, msg, extra });
@@ -288,6 +312,30 @@ for (const b of blocks) {
         if (typeof v !== 'string') continue;
         const present = rest.includes(k + '="');
         if (!present) add('ERR', 'cuerpo', id, `htmlAttributes.${k} no aparece en el cuerpo`);
+      }
+    }
+  }
+
+  // text con icono: forma nativa de la funcion save (metodo §«Botones y enlaces con icono»).
+  // Portado del preflight de wpgaurav/generateblocks-skills v2026.09.20, cuyos fixtures salen
+  // del serializador nativo (GB 2.5.0-beta.1): un span.gb-shape directo, un span.gb-text
+  // hermano si hay etiqueta, la raiz SIN la clase base y el orden que diga iconLocation.
+  // iconOnly:true no lleva etiqueta; una etiqueta vacia deja <span class="gb-text"></span>.
+  if (b.type === 'text' && openTag) {
+    const hijos = hijosDirectos(body);
+    const iconos = hijos.filter(h => h.clases.includes('gb-shape'));
+    if (iconos.length || /class="[^"]*\bgb-shape\b/.test(body) && !/<!--\s+wp:/.test(body)) {
+      const cls = (openTag[2].match(/class="([^"]*)"/) || [, ''])[1].split(/\s+/);
+      if (cls.includes('gb-text')) add('ERR', 'icono', id, 'text con icono y la clase base gb-text en la raiz: el selector de content se traga el icono');
+      if (iconos.length !== 1 || iconos[0].tag !== 'span') add('ERR', 'icono', id, 'text con icono: hace falta UN span.gb-shape hijo directo de la raiz');
+      else {
+        const otros = hijos.filter(h => h !== iconos[0]);
+        if (attrs.iconOnly && otros.length) add('ERR', 'icono', id, 'iconOnly:true no puede llevar etiqueta en el HTML guardado');
+        else if (otros.length && !(otros.length === 1 && otros[0].tag === 'span' && otros[0].clases.includes('gb-text')))
+          add('ERR', 'icono', id, 'la etiqueta de un text con icono va en UN span.gb-text hermano del icono');
+        const loc = attrs.iconLocation || 'before';
+        if (hijos[loc === 'after' ? hijos.length - 1 : 0] !== iconos[0])
+          add('ERR', 'icono', id, `el orden icono/etiqueta del cuerpo no coincide con iconLocation "${loc}"`);
       }
     }
   }

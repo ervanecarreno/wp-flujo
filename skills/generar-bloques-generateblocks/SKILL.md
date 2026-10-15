@@ -80,10 +80,12 @@ Son las 10 casillas del §8 de `docs/metodo-generateblocks-v2.md`:
 5. `src`/`alt`/`href` dentro de `htmlAttributes`, no en el primer nivel
 6. `content` duplicado en atributo y cuerpo para todos los `text`
 7. Todo `element` con `tagName: "a"` contiene un `text`, nunca texto plano. Excepción: un
-   botón con icono puede ser un solo `text` con `tagName: "a"` y el SVG+texto en su
-   `content` — ver «Botones y enlaces con icono» en `docs/metodo-generateblocks-v2.md`
-   §2. Un enlace que es SOLO icono, sin texto visible, no vale para esta excepción: ese
-   sigue siendo `element(a)` > `shape(svg)`
+   botón con icono puede ser un solo `text` con `tagName: "a"` y el atributo `icon`: raíz
+   SIN la clase `gb-text`, dentro `span.gb-shape` + `span.gb-text` hermanos — ver «Botones
+   y enlaces con icono» en `docs/metodo-generateblocks-v2.md` §2. Un enlace que es SOLO
+   icono sigue siendo `element(a)` > `shape(svg)` mientras `iconOnly:true` no se haya
+   medido en un sitio propio (el upstream lo da por válido; ver el mismo apartado).
+   `audit-gb.js` da ERR `icono` si la forma no es la nativa
 8. Los `uniqueId` son únicos y deterministas
 9. Los breakpoints que cruzan bloques están en el CSS externo
 10. Ninguna tipografía declarada si el tema ya la define

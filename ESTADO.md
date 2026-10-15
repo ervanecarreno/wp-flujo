@@ -3,7 +3,42 @@
 > **Fuente de verdad del estado del proyecto.** Al retomar, lee esto primero: ni el README ni la
 > memoria de Claude Code lo sustituyen. Actualízalo al cerrar cada sesión de trabajo.
 
-**Última actualización:** 09/10/2026.
+**Última actualización:** 15/10/2026.
+
+---
+
+## Revisión del 15/10/2026: generateblocks-skills, de v2026.09.18 a `b57b6c2`
+
+La copia vendorizada se movió a `BETA/generateblocks-skills/`, una carpeta de nombre fijo con
+`ORIGEN.md`: commit copiado, cómo comprobar novedades y parches locales que hay que reaplicar.
+El parche de `conditions.md` (id como texto) está reaplicado. **Revisión programada cada 15 días.**
+
+**Novedades del upstream:** v2026.09.20 corrige su ejemplo de `text` con `icon`. Ahora coincide
+con nuestra forma del 22/09 y trae siete fixtures del serializador nativo. También aclara cómo
+editar patrones locales y sincronizados, y `b57b6c2` (06/10) añade `wp_slash()` a las escrituras
+por PHP.
+
+**Lo promovido:**
+- `emit.mjs`: **bug arreglado.** Un `text` con icono y sin estilos llevaba `class="gb-text"` en
+  la raíz, y GB lo guarda sin `class`. Además acepta `iconOnly`. Los siete fixtures salen ahora
+  idénticos byte a byte.
+- `audit-gb.js`: nueva regla ERR `icono`, portada de su `preflight.py`. Comprueba un solo
+  `span.gb-shape` directo, la etiqueta en un `span.gb-text` hermano, que la raíz no lleve
+  `gb-text` y el orden según `iconLocation`. Da 0 disparos sobre el corpus (742 bloques) y
+  detecta el ejemplo roto.
+- `herramientas/wp-cli/global-styles.php`: **bug latente arreglado.** Llamaba a
+  `update_post_meta`/`wp_update_post` sin `wp_slash()`, así que cualquier `\"` del JSON de
+  `gb_style_data` (una font-family entre comillas) perdía la barra al importar.
+- `generar-bloques-generateblocks` (casilla 7) y `docs/metodo-generateblocks-v2.md`: la forma
+  nativa del icono, y la contradicción abierta de abajo.
+
+**Pendiente — medir en un sitio propio con `qa-editor-check.mjs`:** `iconOnly:true` y la etiqueta
+vacía. El upstream los da por válidos y nosotros medimos que el solo-icono fallaba. Hasta
+entonces, el enlace solo-icono sigue siendo `element(a)` > `shape`.
+
+**Lo que se ha visto y no se aplica:** la guía de patrones (`core/block` con `ref`: leer el
+registro antes de editarlo) ya la cubre el flujo, porque se trabaja sobre el marcado exportado.
+La de migraciones no aplica: no migramos bloques V1.
 
 ---
 

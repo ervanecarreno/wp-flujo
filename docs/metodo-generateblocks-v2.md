@@ -122,11 +122,17 @@ resultado visual, pero el editor no lo reconoce como icono. Se registra con
 — el mismo script que la Asset Library de formas, con `--catalogo icons` en vez del
 valor por defecto.
 
-**El trade-off real, para elegir con conocimiento de causa:** la skill externa vendorizada
-`wpgaurav/generateblocks-skills` (`BETA/skills-v2026.09.18/`, revisada el 22/09/2026) NUNCA
-usa el atributo `icon` en sus propios ejemplos — su convención para «botón con icono» es
-siempre `element(a)` > `shape` + `text`, tres bloques. No es que lo hayan probado y les
-fallara —no hay indicio de eso en su documentación—, simplemente priorizan otra cosa: con
+**Confirmado desde fuera el 15/10/2026.** La skill externa vendorizada
+`wpgaurav/generateblocks-skills` (`BETA/generateblocks-skills/`, ver su `ORIGEN.md`) traía
+hasta la v2026.09.18 un ejemplo de `icon` con la forma rota (clase `gb-text` en la raíz, sin
+`span.gb-text`, SVG duplicado en el JSON). En la v2026.09.20 lo corrigieron y llegaron a la
+misma forma que medimos aquí el 22/09, con siete fixtures sacados del serializador nativo
+(`scripts/fixtures/text-icons.json`). `emit.mjs` los reproduce byte a byte, y `audit-gb.js`
+da ERR `icono` sobre el ejemplo roto. La comparación destapó un fallo nuestro: con icono y
+**sin estilos**, el emisor ponía `class="gb-text"` en la raíz; GB guarda la raíz sin `class`.
+
+**El trade-off real, para elegir con conocimiento de causa:** fuera de ese ejemplo, su
+convención para «botón con icono» es `element(a)` > `shape` + `text`, tres bloques. Con
 tres bloques, el icono y el texto son cada uno un bloque de Gutenberg independiente,
 seleccionable y editable por separado en el árbol del editor. Con `icon` en un solo `text`,
 esa granularidad se pierde —es un bloque, no tres— a cambio de que el icono sea
@@ -148,6 +154,14 @@ valida. La diferencia entre los tres casos es exactamente cuántas piezas de con
 hay y si alguna es texto visible — no la versión de GB: se midió aparte, aislado, que
 esto falla igual en la versión ESTABLE (2.4/2.7) que en los betas 2.5/2.8, corrigiendo
 una atribución anterior que lo daba por un problema exclusivo de los betas.
+
+**Contradicción abierta (15/10/2026), pendiente de medir con `qa-editor-check.mjs`:** los
+fixtures nativos de generateblocks-skills v2026.09.20 dan por válidos dos casos que aquí
+fallaban. Uno es `"iconOnly":true` en el JSON, con solo el `span.gb-shape` dentro y un
+`aria-label` (su ejemplo es un `button`). El otro es la etiqueta vacía, que deja
+`<span class="gb-text"></span>`. Puede que nuestra prueba no llevara `iconOnly`. `emit.mjs` ya
+acepta `iconOnly` y reproduce su fixture, pero **hasta medirlo en un sitio propio con GB
+estable, el enlace solo-icono sigue siendo `element(a)` > `shape`.**
 
 ### Interpretar un botón desde Figma o desde HTML — tres reglas, medidas contra un proyecto real
 

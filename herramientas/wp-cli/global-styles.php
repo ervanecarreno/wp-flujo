@@ -146,32 +146,36 @@ foreach ( $doc['estilos'] as $e ) {
 		}
 		printf( "  ACTUALIZA  %-34s (ID %d)\n", $sel, $id );
 		if ( ! $dry ) {
-			wp_update_post( array(
+			// wp_update_post() y update_post_meta() pasan wp_unslash() por su entrada: sin
+			// wp_slash(), cada \" del JSON de gb_style_data (p. ej. una font-family entre
+			// comillas) pierde su barra y el JSON queda roto, y un content:"4" del CSS
+			// se convierte en "2014". Visto en generateblocks-skills (b57b6c2, 06/10/2026).
+			wp_update_post( wp_slash( array(
 				'ID'         => $id,
 				'post_title' => $e['titulo'] ?? $sel,
 				'menu_order' => (int) ( $e['orden'] ?? 0 ),
-			) );
-			update_post_meta( $id, 'gb_style_selector', $sel );
-			update_post_meta( $id, 'gb_style_css', $e['css'] ?? '' );
-			update_post_meta( $id, 'gb_style_data', $data );
+			) ) );
+			update_post_meta( $id, 'gb_style_selector', wp_slash( $sel ) );
+			update_post_meta( $id, 'gb_style_css', wp_slash( $e['css'] ?? '' ) );
+			update_post_meta( $id, 'gb_style_data', wp_slash( $data ) );
 		}
 		$actualizados++;
 	} else {
 		printf( "  CREA       %-34s\n", $sel );
 		if ( ! $dry ) {
-			$nuevo = wp_insert_post( array(
+			$nuevo = wp_insert_post( wp_slash( array(
 				'post_type'   => $CPT,
 				'post_title'  => $e['titulo'] ?? $sel,
 				'post_status' => $e['estado'] ?? 'publish',
 				'menu_order'  => (int) ( $e['orden'] ?? 0 ),
-			), true );
+			) ), true );
 			if ( is_wp_error( $nuevo ) ) {
 				printf( "     FALLO: %s\n", $nuevo->get_error_message() );
 				continue;
 			}
-			update_post_meta( $nuevo, 'gb_style_selector', $sel );
-			update_post_meta( $nuevo, 'gb_style_css', $e['css'] ?? '' );
-			update_post_meta( $nuevo, 'gb_style_data', $data );
+			update_post_meta( $nuevo, 'gb_style_selector', wp_slash( $sel ) );
+			update_post_meta( $nuevo, 'gb_style_css', wp_slash( $e['css'] ?? '' ) );
+			update_post_meta( $nuevo, 'gb_style_data', wp_slash( $data ) );
 		}
 		$creados++;
 	}

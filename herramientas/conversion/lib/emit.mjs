@@ -202,7 +202,10 @@ function classList(blockName, uniqueId, attrs, { sinClaseBase = false } = {}) {
     parts.push(...globals);
     if (hasStyles) parts.push(idCls);
     parts.push(...extra);
-    if (!parts.length) parts.push(base);
+    // Con sinClaseBase (text con icono) no hay respaldo: sin estilos ni clases, GB guarda
+    // la raiz SIN atributo class (fixture «unstyled» de generateblocks-skills v2026.09.20,
+    // serializador nativo). El respaldo metia gb-text y el editor lo rechaza con icono.
+    if (!parts.length && !sinClaseBase) parts.push(base);
   }
   return parts.join(" ");
 }
@@ -299,10 +302,17 @@ function compruebaEtiqueta(bloque, tagName) {
  * `iconLocation` SÍ hace falta en el JSON cuando vale `"after"`: no tiene `source`, así
  * que no hay forma de derivarlo del HTML; con `"before"` (el valor por defecto) sobra.
  *
+ * `iconOnly` (añadido el 15/10/2026, de generateblocks-skills v2026.09.20): con `true`, la
+ * funcion save NO emite el span.gb-text — solo el span.gb-shape — y el JSON lleva
+ * `"iconOnly":true`. Es la forma nativa de un enlace o boton que es SOLO un icono; necesita
+ * un nombre accesible (`aria-label` en htmlAttributes). Reproduce byte a byte el fixture
+ * «icon-only» del upstream, capturado del serializador nativo de GB 2.5.0-beta.1; falta
+ * pasarlo por qa-editor-check.mjs en un sitio propio con GB estable.
+ *
  * Sin `icon`, el bloque no cambia nada de lo de siempre: content va directo como hijo,
  * con su clase base normal — verificado contra ~30 bloques reales, ver la nota de abajo.
  */
-export function text({ uniqueId, tagName = "p", content = "", styles = {}, globalClasses, htmlAttributes, icon, iconLocation, metadata, className }) {
+export function text({ uniqueId, tagName = "p", content = "", styles = {}, globalClasses, htmlAttributes, icon, iconLocation, iconOnly, metadata, className }) {
   compruebaEtiqueta("text", tagName);
   if (!ETIQUETAS_TEXT.includes(tagName)) {
     throw new Error(
@@ -328,6 +338,7 @@ export function text({ uniqueId, tagName = "p", content = "", styles = {}, globa
   // icon/content: NUNCA en el JSON, ver la nota de arriba. iconLocation solo si
   // difiere del default ("before"), porque ese sí es un valor de configuración normal.
   if (icon && iconLocation === "after") attrs.iconLocation = "after";
+  if (icon && iconOnly) attrs.iconOnly = true;
   if (metadata) attrs.metadata = metadata;
   const claseBem = claseFinal(className, 'text', tagName, styles);
   if (claseBem) attrs.className = claseBem;
@@ -337,11 +348,12 @@ export function text({ uniqueId, tagName = "p", content = "", styles = {}, globa
   if (icon) {
     const spanTexto = `<span class="gb-text">${content}</span>`;
     const spanIcono = `<span class="gb-shape">${icon}</span>`;
-    inner = iconLocation === "after" ? `${spanTexto}${spanIcono}` : `${spanIcono}${spanTexto}`;
+    if (iconOnly) inner = spanIcono;
+    else inner = iconLocation === "after" ? `${spanTexto}${spanIcono}` : `${spanIcono}${spanTexto}`;
   } else {
     inner = content;
   }
-  const body = `<${tagName} class="${cls}"${htmlAttrString(htmlAttributes)}>${inner}</${tagName}>`;
+  const body = `<${tagName}${cls ? ` class="${cls}"` : ""}${htmlAttrString(htmlAttributes)}>${inner}</${tagName}>`;
   return `${delimiter("generateblocks/text", attrs)}\n${body}\n<!-- /wp:generateblocks/text -->`;
 }
 
