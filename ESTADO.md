@@ -3,7 +3,42 @@
 > **Fuente de verdad del estado del proyecto.** Al retomar, lee esto primero: ni el README ni la
 > memoria de Claude Code lo sustituyen. Actualízalo al cerrar cada sesión de trabajo.
 
-**Última actualización:** 05/10/2026.
+**Última actualización:** 09/10/2026.
+
+---
+
+## Lección del 09/10/2026: el id de una Condition de GB Pro va como texto
+
+Pagado en SC La Palma (aside de Contacto). `"gbBlockCondition":50351` (número) funcionaba en
+el frontal y en la vista previa, pero el usuario guardó la plantilla en el editor y este
+descartó el atributo: GB Pro lo declara `{type:"string"}`. Contacto pasó a pintar las dos
+tarjetas. Arreglado con `"50351"` y comprobado en el editor. Promovido: trampa 40 de
+`flujo-wordpress-generateblocks`. Corregidas las cuatro copias de `conditions.md` en `BETA/`,
+que decían «integer post ID».
+
+---
+
+## Evaluación del 09/10/2026: skill `generateblocks-addon-builder`
+
+github.com/Calvin-Susan/generateblocks-addon-builder (MIT, v1.0.0, del 03/10/2026). Es un método
+para **escribir plugins** que añaden bloques a GenerateBlocks: envoltorio que solo guarda ajustes
+con bloques GB como partes, renderizado en servidor, Global Styles por defecto y pruebas con
+Playground y Playwright. **No se instala:** el flujo no crea bloques propios (convierte diseños a
+bloques GB y usa los nativos de GB Pro), y su descripción competiría con
+`generar-bloques-generateblocks`. Además, GB Pro no se puede instalar en Playground.
+
+**Lo que sí se ha promovido:**
+- `flujo-wordpress-generateblocks`: el apartado «Bloques propios» (dentro de la regla del
+  mu-plugin) remite a la skill para el día que haga falta un bloque propio, con sus cuatro reglas.
+  También la trampa 39 (los optimizadores de «CSS no usado» borran las clases que solo pone el JS).
+- `generar-bloques-generateblocks`: la lista de ARIA que sobrevive a kses, medida en producción en
+  SC La Palma (WordPress con GB 2.4.1 y GB Pro 2.7.1).
+- `puerta-calidad-wordpress`, paso 5: buscar plugins con «Remove Unused CSS».
+
+**Lo que se ha visto y no se aplica:** «no sobrescribir nunca un Global Style» es una regla para
+un plugin que se instala en sitios ajenos. Aquí el JSON del repo manda, y `global-styles.js` ya
+avisa con `ACTUALIZA` en la simulación. Tampoco se aplican el candado de concurrencia ni
+`gb_style_category`.
 
 ---
 

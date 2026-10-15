@@ -121,6 +121,30 @@ Personalizador (`custom_css_post_id`). `wp option get theme_mods_<tema> --format
 después. Y si el WordPress está compartido con otro proyecto, recuerda que **el tema activo es
 global**: el cambio afecta a todo el sitio.
 
+### Bloques propios: solo si GB Pro no lo trae, y con este método
+
+Si un proyecto necesita un componente interactivo que GenerateBlocks Pro no trae (un conmutador
+de precios, una cuenta atrás) o un comportamiento nuevo sobre los bloques de GB, va al mu-plugin
+siguiendo el método de la skill pública **`generateblocks-addon-builder`**
+(github.com/Calvin-Susan/generateblocks-addon-builder, MIT, v1.0.0, evaluada el 09/10/2026). **No
+está instalada:** sirve para escribir plugins (PHP, `block.json`, JS del editor, pruebas en
+Playground) y, si estuviera activa, competiría con `generar-bloques-generateblocks` en cualquier
+petición de «un bloque de GenerateBlocks». Se consulta cuando haga falta. Sus cuatro reglas son las
+que importan:
+
+1. El bloque nuevo es un **envoltorio que solo guarda ajustes**, como el Acordeón de GB Pro. Lo que
+   se ve son bloques GB normales (`element`, `text`, `media`, `shape`), estilados desde el panel
+   de GB y marcados con un `data-*` en sus `htmlAttributes`.
+2. **Nunca se registran atributos nuevos en los bloques de GB.** Para ampliarlos, se usa
+   `htmlAttributes` (comportamiento) o `styles` (CSS). Así el contenido sigue siendo válido si el
+   mu-plugin se desactiva.
+3. **El estado inicial lo pinta el servidor** (roles, ARIA, `hidden`) con `WP_HTML_Tag_Processor`:
+   la página es correcta antes de que cargue el JS, y nadie puede borrar esos atributos desde el
+   editor.
+4. **Nada se carga en páginas que no usan el bloque.** En un tema clásico como GeneratePress, el
+   `viewStyle` del bloque se imprime en el pie (hay un destello de contenido sin estilo): hay que
+   encolarlo en `wp_enqueue_scripts` cuando `has_block()` lo encuentre.
+
 ### Y los CPT, en el mu-plugin — y solo si hacen falta
 
 **Regla vigente desde el 22/09/2026:** los tipos de contenido se registran **por código, en el
@@ -758,6 +782,33 @@ Todas verificadas en proyectos reales. No hay que volver a descubrirlas.
     por texto SOLO dentro del JSON de cada comentario de bloque (`":hover":{` → `"&:hover":{`
     y, en los `css` ya recompilados, `.gb-…-xxxxxxxx :hover` → `…:hover`), se cuadran recuentos y
     bytes en simulación, se guarda con `wp_slash` releyendo, y después, trampa 35.
+
+39. **Una clase que solo pone el JS no está en el HTML, y un optimizador de «CSS no usado» borra
+    su regla.** WP Rocket, LiteSpeed Cache, FlyingPress, Perfmatters y similares, con «Remove
+    Unused CSS» activado, analizan el HTML servido y descartan los selectores que no aparecen en
+    él. Las clases de estado que pone el JavaScript al interactuar no aparecen nunca: las de GB Pro
+    (`gb-accordion__item-open`, `gb-block-is-current`, `is-active` de los puntos del carrusel, las
+    del menú móvil) y las propias del proyecto (las que pone un snippet en `body` o en un ítem).
+    El sitio se ve bien en la primera carga y falla al abrir un acordeón o cambiar de diapositiva,
+    sin ningún error. Si el cliente activa uno de esos plugins, esas clases van a su lista segura;
+    para animar, mejor la Web Animations API (`element.animate()`) que una clase que solo existe
+    en JS. Lo comprueba la puerta de calidad, paso 5. Fuente: la skill
+    `generateblocks-addon-builder` (ver «Bloques propios» más arriba), contrastada el 09/10/2026.
+
+40. **Mostrar un bloque solo en una página, dentro de una plantilla compartida: Conditions de
+    GB Pro, y el id va como TEXTO.** Patrón: una Condition (`gblocks_condition`, «Ubicación =
+    página X») y la referencian dos bloques. Uno lleva `"gbBlockCondition":"<id>"` (se pinta solo
+    en X) y el otro, además, `"gbBlockConditionInvert":true` (en todas menos X). Se evalúa en el
+    servidor (`render_block`): el bloque descartado ni se envía. GB Pro 2.7.1 declara
+    `gbBlockCondition` como **`{type:"string"}`**, no como entero, aunque alguna referencia lo
+    diga. Con un número, el frontal funciona (el servidor hace `absint`), así que la prueba en el
+    navegador pasa. Pero el EDITOR descarta el atributo al guardar por no ser del tipo
+    declarado: basta con que el cliente toque la plantilla para que el bloque quede sin condición
+    y se pinte en todas partes. El `Invert`, booleano, sí sobrevive, y eso despista. Medido el
+    09/10/2026 en SC La Palma (aside de Contacto). Comprobar SIEMPRE abriendo la plantilla en el
+    editor y leyendo `attributes.gbBlockCondition` de los bloques, no solo el frontal. Y una
+    condición que no existe o no está publicada se pinta igual («fail-open»): primero se crea y
+    se publica, y después se sube el marcado que la usa.
 
 ## Plantillas de contenido: un Elemento por tipo de página
 

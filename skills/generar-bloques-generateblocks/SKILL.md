@@ -22,9 +22,19 @@ fichero de 179 bloques, y **el JSON sigue siendo válido**, así que no salta ni
 aparece ningún bloque sin atributos. Si hace falta PHP propio: `wp_slash()` antes.
 
 Y avisa al usuario de esto: **el SVG en línea desaparece si lo pega alguien sin
-`unfiltered_html`** (o sea, no administrador). Comprobado: se van los 16 SVG de una home y los
+`unfiltered_html`** (en un WordPress normal, sin multisitio: Autor y Colaborador; Administrador y
+Editor sí lo tienen — medido el 09/10/2026, salvo que `DISALLOW_UNFILTERED_HTML` esté activo). Comprobado: se van los 16 SVG de una home y los
 126 bloques quedan intactos — la página se ve entera y sin iconos, sin ninguna alerta.
 `wp post create` no aplica `kses`, así que importar por línea de comandos lo evita del todo.
+
+Lo mismo pasa con **los atributos ARIA fuera de la lista corta de WordPress**. Medido el 09/10/2026
+en un WordPress real (`wp_kses_allowed_html('post')['div']`): sobreviven `aria-controls`,
+`aria-current`, `aria-describedby`, `aria-details`, `aria-expanded`, `aria-hidden`, `aria-label`,
+`aria-labelledby`, `aria-live`, `role` y cualquier `data-*`. **No sobreviven** `aria-pressed`,
+`aria-checked`, `aria-selected` y el resto: si un Autor o un Colaborador guarda la página, desaparecen y
+el bloque queda «no válido» en el editor. Un estado que deba guardarse va en `data-*` o en uno de
+la lista; los de fuera, que los ponga el JS en tiempo de ejecución. Afecta a las mismas cuentas
+que el SVG: Autor y Colaborador.
 
 ## Reglas duras
 

@@ -97,6 +97,12 @@ reinstalarlo en otra máquina: `wp package install wp-cli/doctor-command:2.3.0` 
 falla). Usa el envoltorio de la skill `wp-cli-en-local`, y ejecútalo desde PowerShell —
 `cmd //c "..."` puede partir un `--path` con espacios.
 
+Y una comprobación a mano: `wp plugin list --status=active`. Si hay un plugin de caché u
+optimización con **«Remove Unused CSS»** activado (WP Rocket, LiteSpeed Cache, FlyingPress,
+Perfmatters…), las clases de estado que solo pone el JS tienen que estar en su lista segura. Si
+no, el acordeón, el carrusel o el menú móvil dejan de cambiar de aspecto, sin ningún error.
+Detalle en la trampa 39 de `flujo-wordpress-generateblocks`.
+
 ## Tras el despliegue
 
 Migrar con `wp search-replace "<url-local>" "<url-produccion>" --dry-run --skip-columns=guid`,

@@ -253,7 +253,10 @@ export function element({ uniqueId, tagName = "div", styles = {}, globalClasses,
    bloque invalido y el cliente ve «Attempt Recovery». Pasaba en la landing del
    proyecto de referencia, y no lo veia ningun linter ni el round-trip de REST —
    solo qa-editor-check.mjs, abriendo el editor de verdad. */
-export const ETIQUETAS_TEXT = ["p", "div", "a", "h1", "h2", "h3", "h4", "h5", "h6", "li", "span"];
+/* `button` añadido el 09/10/2026: lo usa la propia plantilla «Contact form» de GB Pro 2.7.1
+   para el botón de envío (`tagName:"button"` + `htmlAttributes:{type:"submit"}`), generada por
+   su editor en SC La Palma. Es la forma nativa de un botón de formulario de GB Pro. */
+export const ETIQUETAS_TEXT = ["p", "div", "a", "h1", "h2", "h3", "h4", "h5", "h6", "li", "span", "button"];
 
 /* Etiquetas que GenerateBlocks NO admite en un `element`. TODAS medidas abriendo
    el editor de verdad con qa-editor-check.mjs, no deducidas:
