@@ -15,3 +15,4 @@
 - [Investigación WordPress Studio](investigacion-wordpress-studio.md) — comparativa vs Local WP, PAUSADA; riesgo SQLite vs MySQL antes de pilotar
 - [Lección: huérfanos de color por redmean](leccion-huerfanos-color-redmean.md) — nueva herramienta `resolver-huerfanos-color.mjs`, la fórmula detrás de las Δ de mapa-colores.md
 - [PENDIENTE: piloto Design Tokens GB Pro 2.8](piloto-design-tokens-gbpro28.md) — hay un JSON de Design System importable; recordarle a David montar el piloto al arrancar el proyecto
+- [Rutina generateblocks-skills](rutina-generateblocks-skills.md) — nube, días 1 y 16, abre PR con novedades del upstream
